@@ -18,10 +18,10 @@ main:
 	
 	self.SHOCKDAMPING = -0.1 //0.25 //1.0 //0.75 //0.5 //0.75 //0.25 //0.0 //1.0 //0.5 //0.8 //0.5 // heavy shock damping
 	
-	self.ROLLINGRESISTANCE = 0.02 //0.04 //0.10 //0.05 // 0.15
+	self.ROLLINGRESISTANCE = 0.04 //0.10 //0.05 // 0.15
 	self.GROUNDFRICTIONLATERAL = 0.95 //0.70 //1.10
 	
-	self.GROUNDBRAKEMULTIPLIER = 55.0 //27.5 //16.0 //20.0 //10.0
+	self.GROUNDBRAKEMULTIPLIER = 27.5 //16.0 //20.0 //10.0
 	
 	self.MAX_SLIP_ANGLE = 5.0 / 180.0 * level.PI
 	self.MAX_RECENTERING_SLIP_ANGLE = 1.0 / 180.0 * level.PI

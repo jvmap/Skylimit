@@ -2,8 +2,8 @@ TIKI
 setup
 {
 	scale 1.0
-	path models/fx/dummy
-	skelmodel dummy3.skd
+	path models/skylimit/utils/unitconnector
+	skelmodel unitconnector.skd
 }
 
 init
@@ -12,56 +12,127 @@ init
 	{
 		classname effectentity
 		notsolid
-		rendereffects +dontdraw
+        rendereffects +dontdraw
 	}
 	client
 	{
-		originemitter fire1
+		tagemitter connector fire1_unlinked
 		(
-			spawnrate 10.00
-			model explosed2.spr
-			alpha 1.00 //0.50
-			color 0.50 0.50 1.00
-			varycolor
-			life 0.8 //2.00
-			scalerate 0.50
-			radius 10.00
-			velocity 30.00
-			accel 0.00 0.00 190.00
-			friction 2.00
-			offsetalongaxis crandom -2 crandom -2 crandom -2
-			angles 0 0 crandom -30
-			avelocity 0 0 crandom -20
-			scalemin 1.50 //0.50
-			scalemax 2.00
-			fade
-			avelocity 10.0 10.0 10.0
+            spawnrate 45.00
+			model sl_fire2.spr
+            scalerate 8.0
+			scale 0.15
+			life 0.1
+            //parentlink
+            //randomroll
+            fade
+            offsetalongaxis -50 crandom 1 crandom 1
+			//fadedelay 0.05
+			//fadein 0.05
+			avelocity crandom 750.0 crandom 750.0 crandom 750.0
 			startoff
 		)
 
-		originemitter fire2
+        tagemitter connector fire1
 		(
-			spawnrate 10.00
-			model sharpflame.spr
-			color 0.50 1.00 1.00
-			varycolor
-			scale 5.00
-			life 0.8 // 2.00
-			scalerate 0.50
-			velocity 23.00
-			accel 0.00 0.00 300.00
-			friction 1.00
-			offsetalongaxis 0 crandom -20 range 7 -4
-			angles 0 0 56
-			avelocity 0 0 45
+            spawnrate 45.00
+			model sl_fire2.spr
+            scalerate 4.0
+			scale 0.3
+			life 0.1
+            parentlink
+            velocity -5000
+            //randomroll
+            fade
+            offsetalongaxis range -40 -60 crandom 10 crandom 10
+			//fadedelay 0.05
+			//fadein 0.05
+			avelocity crandom 750.0 crandom 750.0 crandom 750.0
+			startoff
+		)
+        
+        tagemitter connector fire1_also_ok
+		(
+            spawnrate 30.00
+			model sl_fire2.spr
+            scalerate 0.075
+			scale 0.3
+			life 1.5
+            parentlink
+            randvelaxis range -50 -25 0 0
+            //friction 0.9
+            accel 0 0 5.0
+            //velocity -5000
+            //randomroll
+            fade
+            radialvelocity 1.5 0.0 0.0
+            offsetalongaxis range -20 -40 crandom 30 range -15 15
+			//fadedelay 0.05
+			//fadein 0.05
+			avelocity crandom 250.0 crandom 250.0 crandom 250.0
+			startoff
+		)
+        
+        tagemitter connector fire1_hmm
+		(
+            spawnrate 30.00
+			model sl_fire2.spr
+            scalerate 0.075
+			scale 0.3
+			life 2
+            //parentlink
+            randvelaxis range -50 -25 0 0
+            //friction 0.9
+            accel 0 0 5.0
+            //velocity -5000
+            //randomroll
+            fade
+            radialvelocity 1.5 0.0 0.0
+            offsetalongaxis range -20 -40 crandom 30 range -15 15
+			//fadedelay 0.05
+			//fadein 0.05
+			avelocity crandom 250.0 crandom 250.0 crandom 250.0
+			startoff
+		)
+        
+        tagemitter connector fire2
+		(
+            spawnrate 20.00
+			model sl_fire2.spr
+			scale 3.0
+			life 0.4
+            accel -8 16 30
+            //randvel -1000 2000 4000 // cannot be combined with randvelaxis :(
+            //friction 0.1
+            randvelaxis -400 0 0
+            //radialvelocity 1.0 0.0 0.0
+			offsetalongaxis range -80 -60 crandom 40 crandom 40
+            offset 0 0 75
 			fade
-			avelocity 10.0 10.0 10.0
+            fadedelay 0.3
+            fadein 0.1
+			avelocity crandom 250.0 crandom 250.0 crandom 250.0
+			startoff
+		)
+        
+		tagemitter connector fire2_ok
+		(
+            spawnrate 20.00
+			model sl_fire2.spr
+			scale 4.0
+			life 0.5
+			offsetalongaxis -200 crandom 40 crandom 40
+            //randomroll
+			fade
+            fadedelay 0.3
+            fadein 0.1
+			avelocity crandom 750.0 crandom 750.0 crandom 750.0
 			startoff
 		)
 		
 		originemitter firesmoke
 		(
-			model vsssource.spr
+            model vsssource.spr
 			alpha 0.95
 			color 0.01 0.01 0.01
 			scale 4.0
@@ -84,8 +155,8 @@ init
 
 animations
 {
-    idle dummy3.skc
-	start dummy3.skc
+    idle idle.skc
+	start idle.skc
 	{
 		client
 		{
@@ -94,7 +165,7 @@ animations
 			enter emitteron firesmoke
 		}
 	}
-	stop dummy3.skc
+	stop idle.skc // dummy3.skc
 	{
 		client
 		{
@@ -103,18 +174,4 @@ animations
 	    	enter emitteroff firesmoke
 		}
 	}
-//	blowup dummy3.skc
-//	{
-//		client
-//		{
-//			enter originspawn
-//			(
-//				count 1
-//				life 1.0
-//				model models/skylimit/fx/cannon_shell.tik
-//				anim start
-//				scale 16.0
-//			)
-//		}
-//	}
 }

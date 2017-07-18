@@ -3,11 +3,11 @@
 TIKI
 setup
 {
-	scale 4.0
+	scale 5.0
 	path models/skylimit/fx/tracer
 	skelmodel tracer.skd
-	surface front shader sl_tracer_front
-	surface side shader sl_tracer_side
+	surface front shader sl_tracer_$tracer_color$_front
+	surface side shader sl_tracer_$tracer_color$_side
 }
 
 animations

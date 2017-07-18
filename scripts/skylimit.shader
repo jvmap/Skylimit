@@ -1137,20 +1137,21 @@ skylimit_bomb_crosshair
 	}
 }
 
-// has a faint metalic gloss
 spitfire
 {
 	qer_editorimage textures/skylimit/models/spitfire/body.tga
 	{
 		map textures/skylimit/models/spitfire/body.tga
 		rgbGen lightingSpherical
+    nextbundle
+        rgbGen lightingSpherical
 	}
-	{
-		map $whiteimage
-		rgbGen const 0.45 0.4 0.35 //0.5 0.5 0.5
-		alphaGen dot -20.0 1.0
-		blendfunc alphaadd
-	}
+    {
+        map textures/skylimit/models/skygrey.tga
+        rgbGen lightingSpherical
+        alphaGen portal 1000
+        blendfunc blend
+    }
 }
 
 // has specular highlights
@@ -1160,6 +1161,8 @@ spitfire_specular
 	{
 		map textures/skylimit/models/spitfire/body.tga
 		rgbGen lightingSpherical
+    nextbundle
+        rgbGen lightingSpherical
 	}
 	{
 		map $whiteimage
@@ -1221,10 +1224,12 @@ spitfire_faa
 	{
 		map textures/skylimit/models/spitfire/body_faa.tga
 		rgbGen lightingSpherical
+    nextbundle
+        rgbGen lightingSpherical
 	}
-	{
+    {
 		map $whiteimage
-		rgbGen const 0.45 0.4 0.35
+		rgbGen const 0.4 0.25 0.15
 		alphaGen dot -20.0 1.0
 		blendfunc alphaadd
 	}
@@ -1237,16 +1242,18 @@ spitfire_faa_specular
 	{
 		map textures/skylimit/models/spitfire/body_faa.tga
 		rgbGen lightingSpherical
+    nextbundle
+        rgbGen lightingSpherical
 	}
 	{
 		map $whiteimage
-		rgbGen const 0.45 0.4 0.35
+		rgbGen const 0.4 0.25 0.15
 		alphaGen dot -20.0 1.0
 		blendfunc alphaadd
 	}
 	{
 		map $whiteimage
-		rgbGen const 0.90 0.8 0.70
+		rgbGen const 0.8 0.5 0.3
 		alphaGen dot -100.0 1.0
 		blendfunc alphaadd
 	}
@@ -1370,11 +1377,11 @@ bf109_desert_filter
 
 bf109_trop
 {
-	qer_editorimage textures/skylimit/models/bf109/body_trop.tga
+    qer_editorimage textures/skylimit/models/bf109/body_trop.tga
 	{
 		map textures/skylimit/models/bf109/body_trop.tga
 		rgbGen lightingSpherical
-	}
+    }
 }
 
 bf109_trop_wheel
@@ -1440,6 +1447,8 @@ b17_body
 	{
 		map textures/skylimit/models/b17/body.tga
 		rgbGen lightingSpherical
+    nextbundle
+        rgbGen lightingSpherical
 	}
 }
 
@@ -1467,6 +1476,8 @@ swordfish_grey_body
 	{
 		map textures/skylimit/models/swordfish/body_grey.tga
 		rgbGen lightingSpherical
+    nextbundle
+        rgbGen lightingSpherical
 	}
 }
 
@@ -1494,6 +1505,8 @@ swordfish_grey_gear
 	{
 		map textures/skylimit/models/swordfish/gear_grey.tga
 		rgbGen lightingSpherical
+    nextbundle
+        rgbGen lightingSpherical
 	}
 }
 
@@ -2009,29 +2022,122 @@ sl_explosion
 	}
 } 
 
-// machinegun tracer
-sl_tracer_front
+sl_fire
 {
-	cull none
-	//deformvertexes autosprite
+	nomipmaps
+	spriteGen parallel_oriented
 	{
-		map models/fx/muzflash/flashnode1.tga
-		alphaGen vertex
+		animmap 15 textures/effects/bang01.tga textures/effects/bang02.tga textures/effects/bang03.tga textures/effects/bang04.tga textures/effects/bang05.tga textures/effects/bang06.tga textures/effects/bang07.tga textures/effects/bang08.tga textures/effects/bang09.tga textures/effects/bang10.tga textures/effects/bang11.tga textures/effects/bang12.tga textures/effects/bang13.tga textures/effects/bang14.tga textures/effects/bang15.tga textures/effects/bang16.tga textures/effects/bang17.tga textures/effects/bang18.tga textures/effects/bang19.tga
 		blendfunc alphaadd
-		//blendFunc GL_SRC_ALPHA GL_ONE
+        alphaGen vertex
+		rgbGen vertex
 	}
 }
 
-sl_tracer_side
+
+sl_fire2
+{
+	spritegen parallel_oriented
+    //noMerge
+    //nopicmip
+	cull none
+    //deformVertexes lightglow
+    //deformVertexes normal 10 sin 1 1 1
+	{
+		//animmap 10 textures/effects/boom1.tga textures/effects/boom2.tga textures/effects/boom3.tga textures/effects/boom4.tga textures/effects/boom5.tga //textures/effects/boom6.tga textures/effects/boom7.tga
+        //clampmap textures/effects/boom2.tga
+        clampmap textures/skylimit/fx/firesprite.tga
+		blendfunc alphaadd
+        alphaGen vertex
+		rgbGen vertex
+	}
+} 
+
+sl_fire3
+{
+	spritegen parallel_oriented
+	cull none
+	{
+		map textures/sprites/corona_reg.tga
+		blendfunc GL_SRC_ALPHA GL_ONE
+		blendfunc alphaadd
+        alphaGen vertex
+		rgbGen vertex
+	}
+}
+
+// machinegun tracer
+// note: historical tracer colours:
+// red: mg17 (s800), mg151/15, bk3.7, .303 (s800)
+// yellow: mgff (l600), mk108 (xl500), AN/M2 (m900), hispano (l900)
+// white: mg81z (s800w)
+// blue: mg131 (m700), mg151/20 (l700)
+sl_tracer_red_front
+{
+	// tracer is not visible from the front
+    nomipmaps
+	{
+		map models/skylimit/fx/flashnode1.tga
+        rgbGen const 1.0 0.1 0.0
+		alphaGen vertex
+        blendfunc add
+	}
+}
+
+sl_tracer_red_side
 {
 	cull none
 	nomipmaps
 	{
 		map textures/skylimit/alphagradient.tga
-		rgbGen const 1.0 1.0 0.8
-		alphaGen vertex
+        rgbGen const 1.0 0.1 0.0
 		blendfunc alphaadd
-		//blendfunc GL_SRC_ALPHA GL_ONE
+	}
+}
+
+sl_tracer_yellow_front
+{
+	// tracer is not visible from the front
+    nomipmaps
+	{
+		map models/skylimit/fx/flashnode1.tga
+        rgbGen const 1.0 0.9 0.0
+		alphaGen vertex
+        blendfunc add
+	}
+}
+
+sl_tracer_yellow_side
+{
+	cull none
+	nomipmaps
+	{
+		map textures/skylimit/alphagradient.tga
+        rgbGen const 1.0 0.9 0.0
+		blendfunc alphaadd
+	}
+}
+
+sl_tracer_blue_front
+{
+	// tracer is not visible from the front
+    nomipmaps
+	{
+		map models/skylimit/fx/flashnode1.tga
+        rgbGen const 0.2 0.1 1.0
+		alphaGen vertex
+        blendfunc add
+	}
+}
+
+sl_tracer_blue_side
+{
+	cull none
+	nomipmaps
+	{
+		map textures/skylimit/alphagradient.tga
+        rgbGen const 0.2 0.1 1.0
+		blendfunc alphaadd
 	}
 }
 

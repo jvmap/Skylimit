@@ -5,14 +5,8 @@ specs:
 	self.name = "MG151 20mm"
 	self.hud_shader = "sl_wmg151"
 	
-	self.damage = 10.0 // also does splash damage
-	
-	self.splash = game.true
-	self.splash_damage_center = 10.0
-	self.splash_damage_bounds = 0.0
-	self.splash_radius = 19.0 // m
-	self.splash_scale = 4.0
-	
+	self.damage = 25.0
+    
 	// bulletattack info
 	self.bulletvelocity = 700.0 // m/s
 	self.bulletlife = 1.25

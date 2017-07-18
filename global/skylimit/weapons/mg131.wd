@@ -3,7 +3,7 @@
 specs:
 	self.name = "MG131 13mm"
 	self.hud_shader = "sl_wmg131"
-	self.damage = 13.0
+	self.damage = 6.9
 	
 	self.bulletvelocity = 700.0 // m/s
 	self.bulletlife = 1.0

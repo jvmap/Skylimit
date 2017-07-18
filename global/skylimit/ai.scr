@@ -4,15 +4,15 @@
 main:
 	wait 2.0
 
-	for(local.i = 1; local.i <= 0; local.i++)
+	for(local.i = 1; local.i <= 3; local.i++)
 	{
-		wait 0.5
+		waitframe
 		thread botloop allies local.i
 	}
-	for(local.i = 1; local.i <= 0; local.i++)
+	for(local.i = 1; local.i <= 3; local.i++)
 	{
-		//wait 0.50
-		thread botloop axis 0
+		waitframe
+		thread botloop axis local.i
 	}
 end
 
@@ -52,23 +52,26 @@ botloop local.team local.delay:
 		
 		local.plane thread global/skylimit/flight.scr::fly local.pilot local.plane_opt
 		
-		wait 1.5
+        if ( !local.plane.airspawn)
+        {
+            while (local.pilot && local.plane && !local.plane.engine_started)
+                waitframe
+        
+            if (local.pilot) 
+            {
+                local.pilot.SL_ucmd[THROTTLE_UP] = game.false
+                waitframe
+            }
+            
+            if (local.pilot) 
+            {
+                local.pilot.SL_ucmd[THROTTLE_UP] = game.true            
+                waitframe
+            }
+        }
 		
-		if(local.plane)
-		{
-			if(!local.plane.airspawn)
-			{
-				local.pilot.SL_ucmd[THROTTLE_UP] = game.false
-				
-				wait 0.5
-				
-				//wait (randomfloat 2.0)
-			}
-			
-			local.pilot.SL_ucmd[THROTTLE_UP] = game.true
-			thread fly_like_an_idiot local.plane local.pilot
-		}
-		
+        thread fly_like_an_idiot local.plane local.pilot
+        
 		while !(local.pilot.killed)
 		{
 			//local.plane waitthread global/skylimit/damage.scr::dodamage 20.0 level.MODM_BULLET_MG $world NULL NULL local.plane.origin NIL
@@ -93,9 +96,15 @@ fly_like_an_idiot local.plane local.pilot:
 		
 		local.screenheight = 4.0 // m
 		
-		// take off run
-		
-		while(local.pilot && local.plane && local.plane.origin[2] - local.af_height <= local.screenheight / level.SL_UNITSCALE)
+        // spin up
+        local.pilot.SL_ucmd[BRAKE] = game.true
+        wait 3.0
+        local.pilot.SL_ucmd[BRAKE] = game.false
+        
+		// take off run	
+        
+		//while(local.pilot && local.plane && local.plane.origin[2] - local.af_height <= local.screenheight / level.SL_UNITSCALE)
+        while(local.pilot && local.plane && local.plane.onground)
 		{
 			// keep wings level
 			if(local.plane.leftvector[2] < -0.1)
@@ -114,11 +123,24 @@ fly_like_an_idiot local.plane local.pilot:
 				local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
 			}
 			
+            // don't sink
+            if(local.plane.p_velocity[2] < 0)
+			{
+                local.pilot.SL_ucmd[PITCH_UP] 			= game.true
+				local.pilot.SL_ucmd[PITCH_DOWN] 		= game.false
+			}
+			else
+			{
+				local.pilot.SL_ucmd[PITCH_UP] 			= game.false
+				local.pilot.SL_ucmd[PITCH_DOWN] 		= game.false
+			}
+            
 			waitframe
 		}
 		
 		if !(local.pilot) end
 		
+        local.pilot.SL_ucmd[PITCH_UP] 			= game.true
 		local.pilot.SL_ucmd[TOGGLE_GEAR] 		= game.true
 	
 		waitframe

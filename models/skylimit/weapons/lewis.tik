@@ -22,7 +22,7 @@ init
 	{
 		tagemitter tag_barrel muzzle
 		(
-			model models/skylimit/fx/muzzle/s700.tik
+			model models/skylimit/fx/muzzle/s800.tik
 			spawnrate 20.0
 			life 0.02
 			anim fire

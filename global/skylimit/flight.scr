@@ -3,8 +3,8 @@
 fly local.pilot local.plane_opt local.team:
 	group.FRAMETIME = 0.05
 	group.PHYSICS = global/skylimit/physics.scr
-	group.NORMAL_TIMESTEP = 0.05
-	group.REFINE_PHYSICS_SPEED = 90.0 // m/s
+	group.NORMAL_TIMESTEP = 0.025
+	group.REFINE_PHYSICS_SPEED = 900.0 // m/s
 	
 	self.SCALE = $world.SL_SCALE
 	
@@ -19,13 +19,13 @@ fly local.pilot local.plane_opt local.team:
 	group.GS_GOINGDOWN 	= 2
 	group.GS_GOINGUP	= 3
 	
-	group.GEARMAXSPEED = 102.9 // m/s (200 kts), max speed to have gear out
+	group.GEARMAXSPEED = 100.0 // m/s, max speed to have gear out
 	
 	group.SKIDDELAY = 2.0 // min time between skids (secs)
 
 	// min speed, throttle to emit smoke trail
 	group.EXHAUSTMINSPEED = 30.0 // m/s
-	group.EXHAUSTMINPOWERPCT = 0.20
+	group.EXHAUSTMINPOWERPCT = 2.0 //0.20
 	
 	group.PROP_ANG_SPEED_MAXPOLY = 5.0 * level.PI // rad/s angvel below which to show polyprop
 	group.PROP_ANG_SPEED_MINBLUR = 4.0 * level.PI // rad/s angvel below which to show blurprop
@@ -34,10 +34,10 @@ fly local.pilot local.plane_opt local.team:
 	group.KAMIKAZE_RADIUS_WATER = 20.0
 	group.KAMIKAZE_DAMAGE = 5000.0
 	
-	group.SPAWN_COLLISION_IMMUNETIME = 5.0
+	group.SPAWN_COLLISION_IMMUNETIME = 10.0 //5.0
 	
 	// plane explodes when health drops below this number
-	group.EXPLOSION_HEALTH = -200.0
+	group.EXPLOSION_HEALTH = -300.0
 	
 	// engine cuts off when health drop below this number
 	group.MIN_ENGINE_HEALTH = -50.0
@@ -46,7 +46,7 @@ fly local.pilot local.plane_opt local.team:
 	group.MIN_OIL_PRESSURE_HEALTH = -25.0
 	
 	// plane starts to smoke below this health number
-	group.SMOKE_HEALTH = 25.0
+	group.SMOKE_HEALTH = 40.0
 	
 	// distance to trace down to
 	group.GEARTRACEDIST = 100.0 * $world.SL_SCALE // 200.0
@@ -72,9 +72,9 @@ fly local.pilot local.plane_opt local.team:
 	
 	group.CROSSHAIR_FRIENDLY_TAN = 0.035 // ~2 degs on either side
 	
-	group.EMITTER_UPDATE_DELAY = 0.1 // update emitter state only after x seconds
+	group.EMITTER_UPDATE_DELAY = 0.0 //0.1 // update emitter state only after x seconds
 	
-	group.FIRE_BURST_TIME = 0.30 // min burst time when firing automatic weapons
+	group.FIRE_BURST_TIME = 0.25 //0.30 // min burst time when firing automatic weapons
 	
 	group.FLAKWARNINGTIMEOUT = 2.5 // s
 	
@@ -223,8 +223,8 @@ fly local.pilot local.plane_opt local.team:
 	self.selected_item_id = self.max_item_id
 	waitthread item_switch 1
 	
-	self.teamicon = spawn ("skylimit/hud/aircraft_" + self.dmteam + ".tik")
-	self.teamicon waitthread global/skylimit/flightmodel.scr::attach self auxorigin 0
+	//self.teamicon = spawn ("skylimit/hud/aircraft_" + self.dmteam + ".tik")
+	//self.teamicon waitthread global/skylimit/flightmodel.scr::attach self auxorigin 0
 	
 	local.init_quat_cos = waitthread global/skylimit/math.scr::cos (0.5 * local.startyaw * level.PI / 180.0)
 	local.init_quat_sin = waitthread global/skylimit/math.scr::sin (0.5 * local.startyaw * level.PI / 180.0)
@@ -292,7 +292,7 @@ fly local.pilot local.plane_opt local.team:
 		self.throttlelevel = 0.0
 		if(self.PROPELLER_FIXED_PITCH == NIL)
 		{
-			self.propeller_pitch_angle = 0.5 * level.PI
+			self.propeller_pitch_angle = self.PROPELLER_PITCH_MIN  //0.5 * level.PI
 			self.engine_setting = level.ES_TAXI
 		}
 		self.prop_ang_speed = 0.0 // angular speed of propeller
@@ -324,6 +324,17 @@ fly local.pilot local.plane_opt local.team:
 	self.engine_sound_playing = game.false
 	self.engine_carburetor_factor = 1.0
 	
+    self.wind_sound_volume = 0.0
+	self.wind_sound_pitch = 0.0
+    self.wind_sound_playing = game.false
+    
+    self.taxi_sound_volume = 0.0
+    self.taxi_sound_playing = game.false
+    
+    //self.wheel_brake_sound_volume = 0.0
+    //self.want_wheel_brake_sound_volume = self.wheel_brake_sound_volume
+    //self.wheel_brake_sound_playing = game.false
+    
 	self.spawntime = level.time
 	
 	self.instrument_altitude = 0.0
@@ -466,7 +477,7 @@ fly local.pilot local.plane_opt local.team:
 		// pure calcs
 		while(self && !self.destroyed && local.curtime < group.FRAMETIME)
 		{
-			// variable timestep
+            // variable timestep
 			waitthread determine_timestep
 
 			// get surface info
@@ -686,7 +697,6 @@ fly local.pilot local.plane_opt local.team:
 		// update general emitters
 		waitthread emitters
 	
-		// determine height and ground normal
 		if(self.pilotcontrol && self.pilot.isplayer)
 		{				
 			// end of map alarm
@@ -789,13 +799,17 @@ init_prop:
 	}
 	
 	// propeller settings
-	self.PROPELLER_PITCH_RANGE[level.ES_CRUISE] 	= local.zero::local.max
+	self.PROPELLER_PITCH_RANGE[level.ES_CRUISE] 	= self.PROPELLER_PITCH_CRUISE_MIN::local.max
 	self.PROPELLER_PITCH_RANGE[level.ES_TAKEOFF] 	= local.zero::local.max
-	self.PROPELLER_PITCH_RANGE[level.ES_CLIMB] 		= local.zero::local.max
+	self.PROPELLER_PITCH_RANGE[level.ES_CLIMB] 		= local.zero::local.max // not used
 	self.PROPELLER_PITCH_RANGE[level.ES_TAXI] 		= local.zero::local.max
 	//self.PROPELLER_PITCH_RANGE[level.ES_REVERSE] 	= local.min::local.max
 	//self.PROPELLER_PITCH[level.ES_REVERSE] 			= local.min
 	self.PROPELLER_PITCH[level.ES_FEATHER]			= local.max
+    
+    // ug
+    if (!self.PROPELLER_FIXED_PITCH)
+        self.ENGINE_RPM[level.ES_TAXI] = 1.5 * self.ENGINE_RPM[level.ES_TAXI]
 end
 
 //#INLINE
@@ -852,7 +866,7 @@ fm_wings:
 	// simplified
 	local.roll_moment = 0.25 * local.c_roll * local.a * self.qinf * self.WINGAREA * self.WINGSPAN
 
-	self.cd = self.CD0
+	self.cd = self.CD0 * 1.1 // UGH UGLY!!! More drag...
 
 	// roll damper
 	local.roll_damping = 0.06125 * self.p_avelocity * self.normalvel * local.a * self.air_density * self.speed * self.WINGAREA * self.WINGSPAN * self.WINGSPAN
@@ -989,41 +1003,7 @@ fm_tailplane:
 		local.limit_angle = -self.normal_trim_angle * self.POSITIVE_G_LIMIT
 	}
 	
-//	// slipstream
-//	if(self.slipstream_speed == 0.0)
-//	{
-//		// hmm no slipstream
-//		local.ss  	= 0.0
-//		local.ss2 	= 0.0
-//		local.svaoa = 0.0
-//	}
-//	else
-//	{
-//		local.offset_factor = (self.aoa - self.SLIPTUBE_BASEANGLE) * self.TAILARM / self.sliptuberadius
-//		local.offset_factor2 = local.offset_factor * local.offset_factor
-//		if(local.offset_factor2 < 1.0)
-//		{
-//			local.ss 	= self.slipstream_speed/self.speed * (2.0*local.offset_factor2*local.offset_factor - 3.0*local.offset_factor2 + 1.0)
-//			local.ss2 	= local.ss * local.ss
-//			local.svaoa = 0.5 * local.ss * self.prop_ang_speed * self.PROPELLER_DIAMETER / self.speed * self.ENGINE_DIRECTION * self.VTAILSLIPSTREAMFACTOR * self.SLIPTUBE_VORTICITY
-//		}
-//		else
-//		{
-//			// tail is outside slipstream
-//			local.ss 	= 0.0
-//			local.ss2 	= 0.0
-//			local.svaoa = 0.0
-//		}
-//	}
-//	
-//	println "svaoa: " (local.svaoa*180.0/level.PI) " deg, ss: " local.ss
-//	
-//	// dynamic pressure on horizontal stabilizer
-//	local.hqinf = self.qinf * (1.0 + self.HTAILSLIPSTREAMFACTOR * (2.0 * local.ss + self.HTAILSLIPSTREAMFACTOR * local.ss2))
-//	
-//	// dynamic pressure on vertical stabilizer
-//	local.vqinf = self.qinf * (1.0 + self.VTAILSLIPSTREAMFACTOR * (2.0 * local.ss + self.VTAILSLIPSTREAMFACTOR * local.ss2))
-	
+    // questionable when translational speed is low, but rotational speed high.
 	local.hqinf = self.qinf
 	local.vqinf = self.qinf
 	
@@ -1031,15 +1011,15 @@ fm_tailplane:
 	local.pitch_angle = self.trim_angle + self.tailpitchlevel * local.limit_angle - (abs self.tailpitchlevel)*(self.trim_angle+local.avel_fpa) - self.ZEROLIFTANGLE
 	local.htailaoa = self.aoa + local.avel_aoa + local.pitch_angle
 	
-	if(abs local.htailaoa < self.CUTOFFTAILSURFACEAOA)
-	{
+	//if(abs local.htailaoa < self.CUTOFFTAILSURFACEAOA)
+	//{
 		local.htailaoa = waitthread cap local.htailaoa -self.MAXTAILSURFACEAOA self.MAXTAILSURFACEAOA
-		local.htailforce = local.htailaoa * self.HTAILLIFTSLOPE * local.hqinf * self.HTAILWINGAREA * (self.normalvel * self.forwardvector)
-	}
-	else
-	{
-		local.htailforce = 0.0
-	}
+		local.htailforce = local.htailaoa * self.HTAILLIFTSLOPE * local.hqinf * self.HTAILWINGAREA //* (self.normalvel * self.forwardvector)
+	//}
+	//else
+	//{
+	//	local.htailforce = 0.0
+	//}
 	
 	// additional aoa due to yawing motion (yaw damper)
 	local.avel_aoa = -1.0 * self.p_avelocity * self.upvector * self.TAILARM / self.speed
@@ -1048,16 +1028,17 @@ fm_tailplane:
 	local.vtailzeroliftangle = self.VTAILZEROLIFTANGLE - self.ruddermod * self.RUDDERDEFLECTION * (1.0 - self.mach)
 	local.vtailaoa -= local.vtailzeroliftangle
 	
-	if(abs local.vtailaoa < self.CUTOFFTAILSURFACEAOA)
-	{
+	//if(abs local.vtailaoa < self.CUTOFFTAILSURFACEAOA)
+	//{
 		local.vtailaoa = waitthread cap local.vtailaoa -self.MAXTAILSURFACEAOA self.MAXTAILSURFACEAOA
-		local.vtailforce = -local.vtailaoa * self.VTAILLIFTSLOPE * local.vqinf * self.VTAILWINGAREA * (self.normalvel * self.forwardvector)
-	}
-	else
-	{
-		local.vtailforce = 0.0
-	}
-		
+		local.vtailforce = -local.vtailaoa * self.VTAILLIFTSLOPE * local.vqinf * self.VTAILWINGAREA //* (self.normalvel * self.forwardvector)
+	//}
+	//else
+	//{
+	//	local.vtailforce = 0.0
+	//}
+    
+    // use of liftdirection is questionable (due to rotational speed) and not consistent with use of leftvector
 	waitthread global/skylimit/physics.scr::impulse (local.htailforce * self.liftdirection + local.vtailforce * self.leftvector) (self.origin - self.forwardvector * self.TAILARM)
 end
 
@@ -1091,20 +1072,20 @@ fm_prop local.timestep:
 	
 	// only take into account velocity components normal to propeller disk (forwardvector is normal)
 	// otherwise we would get asymmetric thrust
-	local.Vinf = self.p_velocity * self.forwardvector
+	local.Vinf = self.speed //self.p_velocity * self.forwardvector
 	
 	// speed @ 0.75 * 0.5b
 	local.bladespeed = self.prop_ang_speed * 3.0 / 8.0 * self.PROPELLER_DIAMETER
 	
 	local.liftslope = 2.0 * level.PI
 	
-	if(local.bladespeed > 0.0)
+	if(local.bladespeed > 0.1)
 	{
 		local.incidence = waitthread global/skylimit/math.scr::arctan (local.Vinf / local.bladespeed)
 	}
 	else
 	{
-		local.incidence = 0.5 * level.PI
+		local.incidence = 0.0 //0.5 * level.PI
 	}
 	
 	if(self.PROPELLER_FIXED_PITCH != NIL)
@@ -1121,37 +1102,47 @@ fm_prop local.timestep:
 	{
 		if(self.engine_setting == level.ES_REVERSE)
 		{
-			// pick max negative pitch (without stalling)
+            // pick max negative pitch (without stalling)
 			local.desired_pitch_angle = self.PROPELLER_CL_MIN / local.liftslope + local.incidence
 			local.desired_pitch_angle = waitthread cap local.desired_pitch_angle ( -0.5 * level.PI) (0.5 * level.PI)
 		}
 		else if(self.engine_setting == level.ES_FEATHER)
 		{
-			local.desired_pitch_angle = self.PROPELLER_PITCH[level.ES_FEATHER]
+            local.desired_pitch_angle = self.PROPELLER_PITCH[level.ES_FEATHER]
 		}
 		else
 		{
 			local.prop_pitch_min = self.PROPELLER_PITCH_RANGE[self.engine_setting][1]
 			local.prop_pitch_max = self.PROPELLER_PITCH_RANGE[self.engine_setting][2]
-			local.desired_angvel = self.ENGINE_RPM[self.engine_setting] / self.ENGINE_GEAR_RATIO / 60.0 * 2.0 * level.PI
+            //local.desired_rpm = self.ENGINE_FLIGHT_IDLE_RPM + (self.throttlelevel - self.ENGINE_THROTTLE_FLIGHT_IDLE) * (self.ENGINE_LIMIT_RPM - self.ENGINE_FLIGHT_IDLE_RPM) / (1 - self.ENGINE_THROTTLE_FLIGHT_IDLE)
+            
+            local.desired_rpm = self.ENGINE_RPM[self.engine_setting]
+            
+            // throttle=0:
+            //self.ENGINE_FLIGHT_IDLE_RPM - self.ENGINE_THROTTLE_FLIGHT_IDLE / (1 - self.ENGINE_THROTTLE_FLIGHT_IDLE) * (self.ENGINE_LIMIT_RPM - self.ENGINE_FLIGHT_IDLE_RPM)
+            
+            //if (self.engine_setting == level.ES_CRUISE && local.desired_rpm < self.ENGINE_MIN_CRUISE_RPM)
+            //    local.desired_rpm = self.ENGINE_MIN_CRUISE_RPM // allow some engine braking
+			local.desired_angvel = local.desired_rpm / self.ENGINE_GEAR_RATIO / 60.0 * 2.0 * level.PI
 			local.desired_pitch_angle = self.propeller_pitch_angle + self.PROPELLER_GOVERNOR_AGGRESSIVENESS * (self.prop_ang_speed - local.desired_angvel)
 			
 			// to prevent propeller stall
 			local.min_pitch = self.PROPELLER_CL_MIN / local.liftslope + local.incidence
 			
-			if(local.min_pitch < local.prop_pitch_min)
-			{
-				local.min_pitch = local.prop_pitch_min
-			}
+			//if(local.min_pitch < local.prop_pitch_min)
+			//{
+			//	local.min_pitch = local.prop_pitch_min
+			//}	
 			
 			local.max_pitch = self.PROPELLER_CL_MAX / local.liftslope + local.incidence
 			
-			if(local.max_pitch > local.prop_pitch_max)
-			{
-				local.max_pitch = local.prop_pitch_max
-			}
+			//if(local.max_pitch > local.prop_pitch_max)
+			//{
+			//	local.max_pitch = local.prop_pitch_max
+			//}
 			
 			local.desired_pitch_angle = waitthread cap local.desired_pitch_angle local.min_pitch local.max_pitch
+            local.desired_pitch_angle = waitthread cap local.desired_pitch_angle local.prop_pitch_min local.prop_pitch_max
 		}
 		
 		local.pitch_speed = self.PROPELLER_GOVERNOR_SPEED
@@ -1268,8 +1259,15 @@ fm_prop local.timestep:
 	// can also brake on propeller only with some effort
 	waitthread global/skylimit/physics.scr::impulse (self.forwardvector * local.thrust)
 	
-	//println (int(self.prop_ang_speed*self.ENGINE_GEAR_RATIO*30.0/level.PI)) " rpm, thrust: " (int (local.thrust/1000.0)) " kN , torque: " (int (self.engine_torque/1000.0)) " kNm, power: " (int(local.thrust*self.speed/1000.0)) " kW (" (int(self.engine_torque*self.prop_ang_speed/1000.0)) " kW), pitch: " (int (self.propeller_pitch_angle/level.PI*180.0)) " deg, CL: " local.CL " (" (local.comp_correction_cl * (waitthread global/skylimit/math.scr::sqrt (0.25 * self.PROPELLER_CD0 * level.PI * self.PROPELLER_DIAMETER * self.PROPELLER_DIAMETER * self.PROPELLER_BLADE_OSWALD_FACTOR / self.PROPELLER_BLADE_AREA))) ") cc: " local.comp_correction_cl " (" local.mach " M) " self.p_vload " g"
-	
+	// sqrt (propvel^2 + bladespeed^2) ( = magnitude of relative wind)
+	local.totaltipspeed = vector_length (local.Vinf local.tipspeed 0)
+	local.tipmach = local.totaltipspeed / self.air_soundspeed
+
+    self.prop_dissipated_power = local.dragmoment * self.prop_ang_speed - local.thrust * self.speed    
+    
+	//println (int(self.prop_ang_speed*self.ENGINE_GEAR_RATIO*30.0/level.PI)) " rpm, thrust: " (int (local.thrust/1000.0)) " kN , torque: " (int (self.engine_torque/1000.0)) " kNm, power: " (int(local.thrust*self.speed/1000.0)) " kW (" (int(local.dragmoment*self.prop_ang_speed/1000.0)) " kW), pitch: " (int (self.propeller_pitch_angle/level.PI*180.0)) " deg, np: " (int(self.prop_dissipated_power/1000)) " kW, " self.p_vload " g (" local.tipmach " M)"
+    //, CL: " local.CL " (" (local.comp_correction_cl * (waitthread global/skylimit/math.scr::sqrt (0.25 * self.PROPELLER_CD0 * level.PI * self.PROPELLER_DIAMETER * self.PROPELLER_DIAMETER * self.PROPELLER_BLADE_OSWALD_FACTOR / self.PROPELLER_BLADE_AREA))) ") cc: " local.comp_correction_cl " (" local.mach " M) " self.p_vload " g pin: " local.incidence
+    
 	if(self.powerup_boost)
 	{
 		waitthread global/skylimit/physics.scr::impulse (self.forwardvector * group.POWERUP_BOOSTRATIO * self.MASS * $world.GRAVITY * self.powerup_boost_fraction)
@@ -1438,6 +1436,8 @@ end ((1.0 - 1.0 / (1.0 + abs local.speed_ratio) / (1.0 + abs local.speed_ratio))
 //#INLINE
 fm_undercarriage:
 
+    self.wheel_brake_power = 0.0
+
 	// shuffle wheel execution order to randomize integration error
 	if(randomint 2)
 	{
@@ -1546,15 +1546,17 @@ fm_wheel local.side local.wheel:
 					
 					// forward friction coefficient
 					local.mu_fwd = self.ROLLINGRESISTANCE * (waitthread getgroundfrictioncoefficient (local.groundvel * local.wheelfwdvec / self.GROUNDFRICTIONYIELDSPEED_FORWARD))
-					
+				
+                    local.vel_fwd = abs (local.groundvel * local.wheelfwdvec)
+                
 					if(local.wheel.braked && self.pilotcontrol && self.ucmd[BRAKE])
 					{
 						local.mu_fwd = local.mu_fwd * self.GROUNDBRAKEMULTIPLIER
+                        self.wheel_brake_power += local.mu_fwd * local.force * local.vel_fwd
 					}
 					
 					local.fwddrag = -local.mu_fwd * local.wheelfwdvec * local.force
 				
-					local.vel_fwd = abs (local.groundvel * local.wheelfwdvec)
 					local.vel_lf = local.groundvel * local.wheellfvec
 					
 					if(local.vel_fwd == 0.0)
@@ -1596,7 +1598,7 @@ fm_wheelskid local.side local.wheel:
 	{
 		if(level.time > self.lastskidtime + group.SKIDDELAY && self.gearstate == group.GS_DOWN || !local.wheel.retractable)
 		{
-			self playsound aircraft_skid
+			//self playsound aircraft_skid
 			self.lastskidtime = level.time
 			
 			if(self.speed > group.DUSTSPEED_HI)
@@ -1650,8 +1652,9 @@ end
 //#INLINE
 ctrl_tailpitchlvl:
 
-	local.mod = (self.TAILPITCHMOD + self.TAILPITCHFALLOFF)
-	
+    // TODO: at low speed focus on speed stability and smooth controls
+    // at high speed focus on pitch stability (?) and crisp controls.
+
 	local.INF = 2.0
 	local.EPS = 1.0 / local.INF
 	
@@ -1665,7 +1668,7 @@ ctrl_tailpitchlvl:
 	}
 	else
 	{
-		local.falloff = self.tailpitchlevel * local.INF * self.TAILPITCHFALLOFF * (1.0 + self.mach)
+		local.falloff = self.tailpitchlevel * local.INF * self.TAILPITCHFALLOFF //* (1.0 + self.mach)
 	}
 
 	if(self.pilotcontrol)
@@ -1680,7 +1683,7 @@ ctrl_tailpitchlvl:
 	local.tpmod -= self.input_ver
 	local.tpmod = waitthread cap local.tpmod -1.0 1.0
 	
-	self.tailpitchlevel += (local.tpmod * local.mod - local.falloff) * group.FRAMETIME
+	self.tailpitchlevel += (local.tpmod * self.TAILPITCHMOD + local.tpmod * self.TAILPITCHFALLOFF - local.falloff) * group.FRAMETIME
 	self.tailpitchlevel = waitthread cap self.tailpitchlevel -1.0 1.0
 
 	// trim the tail
@@ -1851,7 +1854,7 @@ ctrl_throttle:
 		if(self.throttlelevel > self.THROTTLE_IDLE)
 		{
 			// blow up the engine
-			self playsound aircraft_boom
+			//self playsound aircraft_boom
 			//self.props[self.unlucky_engine_number].sfx_fire anim blowup
 			//self.props[self.unlucky_engine_number].sfx_fire commanddelay 0.05 anim start
 		}
@@ -1885,7 +1888,7 @@ ctrl_throttle:
 				self.engine_servo_engaged = self.throttlelevel <= self.THROTTLE_IDLE && local.delta == 1
 			}
 			
-			local.engine_cutoff = local.delta == -1 && self.has_released_idle_throttle && self.throttlelevel == self.THROTTLE_IDLE
+			local.engine_cutoff = local.delta == -1 && self.has_released_idle_throttle && self.throttlelevel == self.THROTTLE_IDLE && self.onground
 			
 			if(self.engine_servo_engaged)
 			{
@@ -1918,25 +1921,31 @@ ctrl_throttle:
 	}
 	
 	// engine sound
-	local.rpm_fact = self.prop_ang_speed * 60.0 / 2.0 / level.PI / self.ENGINE_LIMIT_RPM
-	
-	if(self.engine_started)
+	local.rpm_fact = self.prop_ang_speed * 30 / level.PI / self.ENGINE_LIMIT_RPM * self.ENGINE_GEAR_RATIO
+
+	if (local.rpm_fact > 0.01) //(self.engine_started)
 	{	
 		local.alias = "aircraft_engine" + self.ENGINE_SOUND
-		local.pitch = level.SL_SND_ENGINE_PITCH_IDLE + local.rpm_fact * (level.SL_SND_ENGINE_PITCH_FULLPOWER - level.SL_SND_ENGINE_PITCH_IDLE) //local.throttle_fact
-		local.volume = level.SL_SND_ENGINE_VOLUME_IDLE + self.throttlelevel * self.throttlelevel * (level.SL_SND_ENGINE_VOLUME_FULLPOWER - level.SL_SND_ENGINE_VOLUME_IDLE) //local.throttle_fact
+		//local.pitch = level.SL_SND_ENGINE_PITCH_IDLE + local.rpm_fact * (level.SL_SND_ENGINE_PITCH_FULLPOWER - level.SL_SND_ENGINE_PITCH_IDLE) //local.throttle_fact
+        local.pitch = local.rpm_fact * level.SL_SND_ENGINE_PITCH_FULLPOWER
+		local.volume = 2 * (level.SL_SND_ENGINE_VOLUME_MIN + self.throttlelevel * (1 - level.SL_SND_ENGINE_VOLUME_MIN))
+        // fade out
+        //if (local.rpm_fact < 0.01)
+        //    local.volume = local.volume * local.rpm_fact * 100
 		local.mindist = level.SL_SND_ENGINE_MINDIST
 		local.maxdist = level.SL_SND_ENGINE_MAXDIST
-		
+        
 		local.dv = local.volume - self.engine_sound_volume
 		local.dp = local.pitch - self.engine_sound_pitch
 		
-		local.e = local.dv * local.dv + local.dp * local.dp
+		//local.e = local.dv * local.dv + local.dp * local.dp
 		
-		if( !self.engine_sound_playing || local.e > level.SL_SND_LOOPSOUNDERROR)
+		//if( !self.engine_sound_playing || local.e > level.SL_SND_LOOPSOUNDERROR)
+        if( !self.engine_sound_playing || abs local.dv > level.SL_SND_LOOPSOUNDERROR_VOLUME ||  self.engine_sound_volume * (abs local.dp) > 8 * level.SL_SND_LOOPSOUNDERROR_PITCH)
 		{
-			self loopsound local.alias local.volume local.mindist local.maxdist local.pitch
-			
+			//println "self loopsound " local.alias " " local.volume " " local.pitch
+            self loopsound local.alias local.volume local.mindist local.maxdist local.pitch
+            
 			self.engine_sound_volume = local.volume
 			self.engine_sound_pitch = local.pitch
 			self.engine_sound_playing = game.true
@@ -1948,18 +1957,67 @@ ctrl_throttle:
 		self.engine_sound_volume = 0.0
 		self.engine_sound_pitch = 0.0
 		self.engine_sound_playing = game.false
+            
 	}
 	
+    if (self.pilot && self.pilot.isplayer)
+    {
+        // TODO: 1. half volume if external 2. depend on CL (or q*CD??)
+        if (self.nose_cam && self.speed > group.AEROMINSPEED)
+        {
+            local.volume = self.qinf / 7500
+            
+            if (self.hasretractablegear && self.gearstate != group.GS_UP)
+                local.volume = local.volume * 2
+            
+            if (self.crew) // swordfish hack.
+                local.volume = local.volume * 10
+            
+            if (local.volume > 2)
+                local.volume = 2
+                
+            //println "cd * q: " (int(self.cd * self.qinf))
+        }
+        else
+            local.volume = 0.0
+            
+        if (local.volume >= 0.2)
+        {
+            local.pitch = 1 //2 * self.speed / self.air_soundspeed
+            local.dv = local.volume - self.wind_sound_volume
+            local.dp = local.pitch - self.wind_sound_pitch
+            if( !self.wind_sound_playing || abs local.dv > level.SL_SND_LOOPSOUNDERROR_VOLUME ||  self.wind_sound_volume * (abs local.dp) > 8 * level.SL_SND_LOOPSOUNDERROR_PITCH)
+            {
+                //println "self loopsound wind " local.volume " " local.pitch
+                self.pilot loopsound "wind" local.volume 150 150 local.pitch
+                self.wind_sound_volume = local.volume
+                self.wind_sound_pitch = local.pitch
+                self.wind_sound_playing = game.true
+            }
+        }
+        else if (self.wind_sound_playing)
+        {
+            self.pilot stoploopsound
+            self.wind_sound_volume = 0.0
+            self.wind_sound_pitch = 0.0
+            self.wind_sound_playing = false
+        }
+    }
+    
 	// propeller sound
-	local.pitch = local.rpm_fact * (1.0 + self.mach)
-	
-	if(local.pitch >= level.SL_SND_PROP_MINPITCH)
+    local.blade_frequency = self.prop_ang_speed * 30 / level.PI * 60 * self.PROPELLER_NUMBLADES / self.props.size
+	local.pitch = local.blade_frequency / 360000
+    
+    local.volume = self.prop_dissipated_power / self.props.size / 75 / 1000
+    
+	//if(local.pitch >= level.SL_SND_PROP_MINPITCH)
+    if (local.volume >= 0.1)
 	{
-		local.alias = "aircraft_prop"
-		local.volume = level.SL_SND_PROP_VOLUME * (local.pitch - level.SL_SND_PROP_MINPITCH) / (1.0 - level.SL_SND_PROP_MINPITCH)
+        local.alias = "aircraft_prop"
+		//local.volume = 2 * (local.pitch - level.SL_SND_PROP_MINPITCH) / (1.0 - level.SL_SND_PROP_MINPITCH)        
 		local.mindist = level.SL_SND_PROP_MINDIST
 		local.maxdist = level.SL_SND_PROP_MAXDIST
-		waitthread global/skylimit/sound.scr::loopsound local.alias local.volume (local.pitch*level.SL_SND_PROP_PITCHMULT) local.mindist local.maxdist
+		waitthread global/skylimit/sound.scr::loopsound local.alias local.volume local.pitch local.mindist local.maxdist
 	}
 	else
 	{
@@ -1976,7 +2034,7 @@ ctrl_throttle:
 	else if(local.engine_was_started && !self.engine_started)
 	{
 		// play cutoff sound
-		self playsound aircraft_engine_cutoff
+		//self playsound aircraft_engine_cutoff
 	}
 
 	if(self.engine_servo_engaged)
@@ -2040,22 +2098,77 @@ ctrl_throttle:
 			waitthread updatecvarstring sl_es "FP"
 		}
 	}
-	
-	if(self.onground && (self.p_velocity - self.ground_velocity) * self.groundfwdvec > 0.5)
+    
+    if (self.onground)
+    {
+        local.volume  = abs ((self.p_velocity - self.ground_velocity) * self.groundfwdvec / 10)
+        if (local.volume > 2)
+            local.volume = 2
+    }
+    else
+        local.volume = 0.0
+    
+	if(local.volume >= 0.2)
 	{
-		self.wheel_left.sfx loopsound aircraft_taxi
-		self.taxi_sound_playing = game.true
+		local.dv = local.volume - self.taxi_sound_volume
+        if (!self.taxi_sound_playing || abs local.dv > 2 * level.SL_SND_LOOPSOUNDERROR_VOLUME)
+        {
+            //println "loopsound aircraft_taxi " local.volume
+            self.wheel_left.sfx loopsound aircraft_taxi local.volume
+            self.taxi_sound_volume = local.volume
+            self.taxi_sound_playing = game.true
+        }
 	}
-	else
+	else if (self.taxi_sound_playing)
 	{
 		self.wheel_left.sfx stoploopsound
-		if(self.taxi_sound_playing)
-		{
-			self.taxi_sound_playing = game.false
-			self.wheel_left.sfx playsound aircraft_taxi_halt
-		}
+		self.taxi_sound_playing = game.false
+        self.taxi_sound_volume = 0.0
 	}
-	
+    
+    //if (self.wheel_brake_power > 0)
+    //    println "brakiness: " (int (self.wheel_brake_power / self.EMPTY_MASS / 40))
+    
+    /*
+    // brake sound
+    if (self.onground && self.pilotcontrol && self.ucmd[BRAKE])
+        local.volume  = self.wheel_brake_power / self.EMPTY_MASS / 400
+    else
+        local.volume = 0.0
+    
+    if (local.volume > self.want_wheel_brake_sound_volume)
+    {
+        // slow fade in
+        local.volume = 0.1 * local.volume + 0.9 * self.want_wheel_brake_sound_volume
+    }
+    else
+    {
+        // fast fade out
+        local.volume = 0.1 * local.volume + 0.9 * self.want_wheel_brake_sound_volume
+    }
+    self.want_wheel_brake_sound_volume = local.volume
+    
+    if (local.volume > 2)
+        local.volume = 2
+    
+	if(local.volume >= 0.1)
+	{
+		local.dv = local.volume - self.wheel_brake_sound_volume
+        if (!self.wheel_brake_sound_playing || 2 * (abs local.dv) > level.SL_SND_LOOPSOUNDERROR_VOLUME)
+        {
+            //println "loopsound aircraft_brake " local.volume " (power: " (int (self.wheel_brake_power/1000)) " kW)"
+            //self.wheel_right.sfx loopsound aircraft_brake local.volume 160 160 (0.6 + 0.05 * local.volume)
+            self.wheel_brake_sound_volume = local.volume
+            self.wheel_brake_sound_playing = game.true
+        }
+    }
+	else if (self.wheel_brake_sound_playing)
+	{
+        self.wheel_right.sfx stoploopsound
+		self.wheel_brake_sound_playing = game.false
+        self.wheel_brake_sound_volume = 0.0
+	}
+    */
 	// update prop
 	if(self.prop_ang_speed < group.PROP_ANG_SPEED_MAXPOLY)
 	{
@@ -2211,7 +2324,7 @@ ctrl_fire_primary:
 					else if( !local.w.jammed && local.w.readytofire && local.w.rounds_per_gun > 0)
 					{
 						if( !local.w.semiauto || !self.lastframefireheld )
-						{		
+						{
 							thread local.w.handler::fire local.w
 							
 							local.w.rounds_per_gun--
@@ -3572,14 +3685,15 @@ damage:
 		{
 			// spawn some damage sfx
 			// spawn slightly in advance so it doesn't look like we hit behind the plane
-			local.LEADTIME = 0.10
+			local.LEADTIME = 0.15
 			
 			if(self.lastdamagelocation)
 			{
 				local.ent = waitthread global/skylimit/common.scr::getfromstack EffectEntity game.false
 				if(local.ent)
 				{
-					local.ent model skylimit/fx/aircraft_damage.tik
+                    local.ent scale (self.damagecueue / 10)
+                    local.ent model skylimit/fx/aircraft_damage.tik
 					local.ent origin (self.lastdamagelocation + self.w_velocity * local.LEADTIME)
 					local.ent anim start
 					local.ent thread global/skylimit/common.scr::releasetostack 0.5
@@ -3662,7 +3776,8 @@ checkalive:
 				// pilot switched teams
 				// remove plane
 				self.destroyed = game.true
-				self.means_of_death = self.MOD_SUICIDE	
+				self.means_of_death = self.MOD_SUICIDE
+                self.pilot stoploopsound
 			}
 			
 			if !(isAlive self.pilot)
@@ -3702,8 +3817,8 @@ checkalive:
 		if(self.crashing)
 		{
 			waitthread killpilot self.killer self.last_administered_means_of_damage
-			self.pilot = NULL
-			
+			self.pilot = NULL	
+            
 			if (!self.crashing_handled)
 			{
 				waitthread handle_crashing
@@ -3775,7 +3890,7 @@ killpilot local.dmger local.means_of_death:
 					local.dmger = self.pilot
 				}
 				
-				self.pilot stoploopsound // stops stall alarm if it's playing
+				self.pilot stoploopsound // stops wind sound if it's playing
 				
 				// cratered = means of death #7
 				
@@ -3803,6 +3918,9 @@ killpilot local.dmger local.means_of_death:
 					self.pilot.raise_suspension_time = level.time + level.SL_SUSPENSION_TIME
 					self.pilot.court_martial = game.false // did not friendly fire
 				}
+                
+                //self.pilot.cam_transition_time = local.CAM_TRANSITION_TIME_SPEC
+                self.pilot.cam_mode = "freelook"
 			}
 		}
 		else
@@ -3838,10 +3956,9 @@ end
 
 //#INLINE
 handle_crashing:
-	self.props[self.unlucky_engine_number].sfx_fire model "skylimit/fx/aircraft_fire.tik"
 	self.props[self.unlucky_engine_number].sfx_fire anim start
 
-	self.cm_crashing = waitthread global/skylimit/common.scr::randomvectoroffset group.CM_CRASHING group.CM_CRASHING group.CM_CRASHING
+	self.cm_crashing = waitthread global/skylimit/common.scr::randomvectoroffset (10 * group.CM_CRASHING) group.CM_CRASHING group.CM_CRASHING
 	
 	self.crashing_handled = game.true
 end

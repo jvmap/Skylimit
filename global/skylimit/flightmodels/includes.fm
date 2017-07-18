@@ -16,14 +16,14 @@ main:
 	self.RUDDERDEFLECTIONSPEED = 10.0 // fraction per second
 	self.RUDDERRECENTERINGSPEED = 0.1 // fraction per second
 	
-	self.TAILPITCHMOD = 0.4
-	self.TAILPITCHFALLOFF = 0.55
-	self.TAILMAXPULLFRACTION = 1.00 // fraction of stall angle
+	self.TAILPITCHMOD = 0.3 //0.4 // hmm, 0.3 is sluggish but better for landing.
+	self.TAILPITCHFALLOFF = 0.4 //0.55
+	self.TAILMAXPULLFRACTION = 0.95 //1.00 // fraction of stall angle
 	
 	self.NEGATIVE_G_LIMIT = -3.0
 	self.POSITIVE_G_LIMIT = 6.0
 	
-	self.TRIMMOD = 0.5
+	self.TRIMMOD = 0.25 //0.1 //0.5
 	
 	self.STALLMARGIN = 0.09 // rad, additional aoa required over MAXAOA to reduce lift by half
 
@@ -31,8 +31,8 @@ main:
 	self.CUTOFFTAILSURFACEAOA = 20.0/180.0*level.PI // either side
 
 	// engine properties
-	self.POWERMODUP = 0.20 // power delta in fraction of maxpower per second, throttling up
-	self.POWERMODDN = 0.40 // power delta in fraction of maxpower per second, throttling down
+	self.POWERMODUP = 0.15 //0.20 // power delta in fraction of maxpower per second, throttling up
+	self.POWERMODDN = 0.30 //0.40 // power delta in fraction of maxpower per second, throttling down
 	//self.THROTTLE_IDLE = 0.1 //0.25 // idle throttle %
 	
 	// slipstream parameters
@@ -41,8 +41,8 @@ main:
 //	self.SLIPTUBE_RADIUSFACTOR = 2.0 // times propeller diameter
 //	self.SLIPTUBE_VORTICITY = 0.01
 	
-	self.ENGINE_THROTTLE_GROUND_IDLE = 0.1
-	self.ENGINE_THROTTLE_FLIGHT_IDLE = 0.1 //0.30
+	self.ENGINE_THROTTLE_GROUND_IDLE = 0.25 //0.1
+	self.ENGINE_THROTTLE_FLIGHT_IDLE = 0.25 //0.4 //0.1
 	
 	self.DIHEDRAL = 5.0 / 180.0 * level.PI // dihedral angle, rad
 	
@@ -58,6 +58,7 @@ main:
 	self.ENGINE_MECH_FRICTION_MOMENT_YIELDSPEED = 1.0 // rad/s
 	self.ENGINE_MIN_RPM 						= 300.0 // engine cuts off below this rpm
 	self.ENGINE_DIRECTION						= 1 // rotate clockwise from behind
+    self.ENGINE_FLIGHT_IDLE_RPM                 = 2500.0 //2200.0 //1800.0 // min rpm when aloft
 	
 	// propeller properties
 	self.PROPELLER_DIAMETER = 3.0 // m
@@ -68,7 +69,8 @@ main:
 	self.PROPELLER_INERTIA = 0.2 * self.PROPELLER_DIAMETER * self.PROPELLER_DIAMETER * self.PROPELLER_MASS // principal mass moment of inertia along spin axis kg m^2
 	
 	// blade pitch limits
-	self.PROPELLER_PITCH_MIN = -15.0 / 180.0 * level.PI //-15.0 / 180.0 * level.PI // geometrical min pitch (->reverse)
+	self.PROPELLER_PITCH_MIN = 0.0 / 180.0 * level.PI //-15.0 / 180.0 * level.PI // geometrical min pitch (->reverse)
+    self.PROPELLER_PITCH_CRUISE_MIN = 20.0 / 180.0 * level.PI
 	self.PROPELLER_PITCH_MAX = 90.0 / 180.0 * level.PI	// geometrical max pitch (->feather)
 	
 	// propeller blade aerodynamics
@@ -79,7 +81,7 @@ main:
 	self.PROPELLER_CD0 = 0.005 // skin friction
 	self.PROPELLER_CDSTALL = 0.1
 	
-	self.PROPELLER_GOVERNOR_AGGRESSIVENESS	= 0.0002 //50.0 // governor responsiveness ('willingness' to maintain selected rpm) s^-1
+	self.PROPELLER_GOVERNOR_AGGRESSIVENESS	= 0.002 //0.0002 //50.0 // governor responsiveness ('willingness' to maintain selected rpm) s^-1
 	self.PROPELLER_GOVERNOR_SPEED			= 30.0 / 180.0 * level.PI // max governor speed in rad/s (speed at which blade incidence can be changed)
 	self.PROPELLER_REVERSE_THRUST_SPEED		= 20.0 // aircraft speed above which reverse thrust may be applied automatically m/s
 end

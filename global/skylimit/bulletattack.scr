@@ -28,53 +28,54 @@ fire local.startpos local.inflictor local.inflictor_team local.inflictor_owner l
 
 	local.bullet_endpos = waitthread firebullet local.startpos local.inflictor local.inflictor_team local.inflictor_owner local.weapdata (local.multiplicity * local.hit_factor) local.direction local.trace local.time_fuze
 	
-	for(local.i = 1; local.i <= local.splash; local.i++)
-	{
-		// shell didn't hit anything
-		// explode and do splash damage
+    for(local.i = 1; local.i <= local.splash; local.i++)
+    {
+        // explode and do splash damage
 
-		if(local.i == 1)
-		{
-			// use bullet endpos
-			local.splashpos = local.bullet_endpos
-		}
-		else
-		{
-			if(local.spread == NIL)
-			{
-				local.spread = (vector_length (local.bullet_endpos - local.startpos)) * local.weapdata.spread
-			}
-			
-			// offset slightly from bullet endpos
-			local.splashpos = local.bullet_endpos + (waitthread global/skylimit/common.scr::randomvectoroffset local.spread local.spread local.spread)
-		}
+        if(local.i == 1)
+        {
+            // use bullet endpos
+            local.splashpos = local.bullet_endpos
+        }
+        else
+        {
+            if(local.spread == NIL)
+            {
+                local.spread = (vector_length (local.bullet_endpos - local.startpos)) * local.weapdata.spread
+            }
+            
+            // offset slightly from bullet endpos
+            local.splashpos = local.bullet_endpos + (waitthread global/skylimit/common.scr::randomvectoroffset local.spread local.spread local.spread)
+        }
 
-		// get an EffectEntity from dynamic stack
-		local.e = waitthread global/skylimit/common.scr::getfromstack EffectEntity game.false
-		
-		if(local.e)
-		{
-			if(local.bullet_endpos[2] <= $world.SEALEVEL)
-			{
-				local.e.model = skylimit/fx/explosion_water.tik
-				local.splashpos[2] = $world.SEALEVEL - 1.0
-				local.e.origin = local.splashpos
-				local.e.scale = local.weapdata.splash_scale * local.splash_factor * 0.1
-			}
-			else
-			{
-				local.e.model = local.weapdata.splash_model
-				local.e.origin = local.splashpos
-				local.e.scale = 0.5 * local.weapdata.splash_scale * local.splash_factor
-			}
-			
-			local.e anim start
-			local.e thread global/skylimit/common.scr::releasetostack 0.5
-		}
-		
-		// shrapnel damage
-		waitthread global/skylimit/damage.scr::radiusdamage local.splashpos (local.weapdata.splash_radius * local.splash_factor / level.SL_UNITSCALE) (local.weapdata.splash_damage_center * local.splash_factor) (local.weapdata.splash_damage_bounds * local.splash_factor) level.MODM_SHRAPNEL local.inflictor local.inflictor_team local.inflictor_owner game.false game.false
-	}
+        // get an EffectEntity from dynamic stack
+        local.e = waitthread global/skylimit/common.scr::getfromstack EffectEntity game.false
+        
+        if(local.e)
+        {
+            /*
+            if(local.bullet_endpos[2] <= $world.SEALEVEL)
+            {
+                local.e.model = skylimit/fx/explosion_water.tik
+                local.splashpos[2] = $world.SEALEVEL - 1.0
+                local.e.origin = local.splashpos
+                local.e.scale = local.weapdata.splash_scale * local.splash_factor * 0.1
+            }
+            else
+            {
+            */
+                local.e.model = local.weapdata.splash_model
+                local.e.origin = local.splashpos
+                local.e.scale = 0.5 * local.weapdata.splash_scale * local.splash_factor
+            //}
+            
+            local.e anim start
+            local.e thread global/skylimit/common.scr::releasetostack 0.5
+        }
+        
+        // shrapnel damage
+        waitthread global/skylimit/damage.scr::radiusdamage local.splashpos (local.weapdata.splash_radius * local.splash_factor / level.SL_UNITSCALE) (local.weapdata.splash_damage_center * local.splash_factor) (local.weapdata.splash_damage_bounds * local.splash_factor) level.MODM_SHRAPNEL local.inflictor local.inflictor_team local.inflictor_owner game.false game.false
+    }
 end
 
 firebullet local.startpos local.inflictor local.inflictor_team local.inflictor_owner local.weapdata local.dmg_mult local.direction local.trace local.time_fuze:
@@ -199,6 +200,32 @@ firebullet local.startpos local.inflictor local.inflictor_team local.inflictor_o
 				local.b commanddelay 0.05 remove
 			}
 			
+            if(local.pos[2] < $world.SEALEVEL)
+            {
+                if(local.lastpos == local.pos)
+                {
+                    local.endpos = local.lastpos
+                }
+                else
+                {
+                    local.endpos = local.lastpos + (local.pos - local.lastpos) * ((local.lastpos[2] - $world.SEALEVEL) / (local.lastpos[2] - local.pos[2])) + (0 0 0.1)
+                }
+                local.endpos[2] = $world.SEALEVEL
+                
+                // grab a splash from stack
+                local.splash = waitthread global/skylimit/common.scr::getfromstack EffectEntity game.false
+                if(local.splash)
+                {
+                    local.splash model skylimit/fx/water_splash.tik
+                    local.splash origin local.endpos
+                    local.splash angles ( -90 0 0)
+                    local.splash scale (local.dmg / 300.0) // should use dmg_mult?
+                    local.splash anim start
+                    local.splash thread global/skylimit/common.scr::releasetostack 0.2
+                }
+                break
+            }
+            
 			// backward trace
 			if(local.lastpos[2] < $world.OBSTACLEHEIGHT || local.pos[2] < $world.OBSTACLEHEIGHT)
 			{
@@ -227,35 +254,6 @@ firebullet local.startpos local.inflictor local.inflictor_team local.inflictor_o
 			}
 			
 			local.lastpos = local.pos
-		}
-		
-		if(local.pos[2] < $world.SEALEVEL)
-		{
-			//local.endpos = local.pos
-			//local.endpos[2] = $world.SEALEVEL
-			
-			if(local.lastpos == local.pos)
-			{
-				local.endpos = local.lastpos
-			}
-			else
-			{
-				local.endpos = local.lastpos + (local.pos - local.lastpos) * ((local.lastpos[2] - $world.SEALEVEL) / (local.lastpos[2] - local.pos[2])) + (0 0 0.1)
-			}
-			local.endpos[2] = $world.SEALEVEL
-			
-			// grab a splash from stack
-			local.splash = waitthread global/skylimit/common.scr::getfromstack EffectEntity game.false
-			if(local.splash)
-			{
-				local.splash model skylimit/fx/water_splash.tik
-				local.splash origin local.endpos
-				local.splash angles ( -90 0 0)
-				local.splash scale (local.dmg / 300.0)
-				local.splash anim start
-				local.splash thread global/skylimit/common.scr::releasetostack 0.2
-			}
-			break
 		}
 		
 		wait local.DT

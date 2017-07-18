@@ -1,7 +1,7 @@
 sl_clouds1_grey
 {
 	qer_editorimage textures/skylimit/clouds/clouds1.tga
-	sort opaque
+	//sort opaque
 	{
 		map textures/skylimit/clouds/clouds1.tga
 		rgbGen const 1.0 1.0 1.0
@@ -47,7 +47,7 @@ sl_clouds1_dark
 sl_clouds2_grey
 {
 	qer_editorimage textures/skylimit/clouds/clouds2.tga
-	sort opaque
+	//sort opaque
 	{
 		map textures/skylimit/clouds/clouds2.tga
 		rgbGen const 1.0 1.0 1.0

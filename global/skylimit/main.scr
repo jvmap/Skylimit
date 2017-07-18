@@ -54,10 +54,9 @@ main:
 	level.SL_HEALTH_RADARSTATION = 10000.0 // hp
 	
 	level.SL_SND_ENGINE_PITCH_IDLE 			= 0.5
-	level.SL_SND_ENGINE_PITCH_FULLPOWER 	= 3.0 //2.0
+	level.SL_SND_ENGINE_PITCH_FULLPOWER 	= 1.6
 	
-	level.SL_SND_ENGINE_VOLUME_IDLE			= 0.25
-	level.SL_SND_ENGINE_VOLUME_FULLPOWER	= 1.0
+	level.SL_SND_ENGINE_VOLUME_MIN			= 0.5
 	
 	//level.SL_SND_ENGINE_VOLUME	= 2.0
 	level.SL_SND_PROP_VOLUME	= 0.5
@@ -66,10 +65,10 @@ main:
 	level.SL_SND_ENGINE_MINDIST	= 128.0 / level.SL_UNITSCALE
 	level.SL_SND_ENGINE_MAXDIST = 640.0 / level.SL_UNITSCALE
 	
-	level.SL_SND_PROP_MINDIST = 400.0
-	level.SL_SND_PROP_MAXDIST = 2000.0 //1500.0
+	level.SL_SND_PROP_MINDIST = 400.0 / level.SL_UNITSCALE
+	level.SL_SND_PROP_MAXDIST = 2000.0 / level.SL_UNITSCALE //1500.0
 	level.SL_SND_PROP_MINPITCH = 0.25 //0.5
-	level.SL_SND_PROP_PITCHMULT = 1.2
+	//level.SL_SND_PROP_PITCHMULT = 1.7 //1.2
 	
 	level.SL_SFX_WHEELDUST = skylimit/fx/aircraft_dust_emitter.tik
 	
@@ -162,9 +161,10 @@ main:
 	level.master aliascache aircraft_boom4 sound/weapons/explo/Explo_MetalMed4.wav soundparms 0.9 0.2 0.8 0.2 150 1600 weapon loaded maps local.mapstring
 	//level.master aliascache aircraft_impending_stall sound/skylimit/impending_stall.wav soundparms 2.5 0.0 1.0 0.0 100 100 auto loaded maps local.mapstring
 	//level.master aliascache aircraft_stall sound/skylimit/stall.wav soundparms 2.5 0.0 1.0 0.0 100 100 dialog loaded maps local.mapstring
-	level.master aliascache aircraft_skid sound/skylimit/skid.wav soundparms 0.4 0.1 0.5 0.3 150 500 auto loaded maps local.mapstring
-	level.master aliascache aircraft_gear_down sound/skylimit/gear_down.wav soundparms 1.0 0.1 1.0 0.1 150 300 body loaded maps local.mapstring
-	level.master aliascache aircraft_gear_up sound/skylimit/gear_up.wav soundparms 1.0 0.1 1.0 0.1 150 300 body loaded maps local.mapstring
+	//level.master aliascache aircraft_skid sound/skylimit/skid.wav soundparms 0.4 0.1 0.5 0.3 150 500 auto loaded maps local.mapstring
+    level.master aliascache aircraft_brake sound/skylimit/brake.wav soundparms 1.0 0.0 1.0 0.0 150 500 auto loaded maps local.mapstring
+	level.master aliascache aircraft_gear_down sound/skylimit/gear_down.wav soundparms 1.0 0.1 0.8 0.1 150 300 body loaded maps local.mapstring
+	level.master aliascache aircraft_gear_up sound/skylimit/gear_up.wav soundparms 1.0 0.1 0.8 0.1 150 300 body loaded maps local.mapstring
 	
 	level.master aliascache aircraft_collide1 sound/mechanics/damage_vehicle_2.wav soundparms 1.0 0.5 1.1 0.5 300 300 auto loaded maps local.mapstring
 	level.master aliascache aircraft_collide2 sound/mechanics/damage_vehicle_3.wav soundparms 1.0 0.5 1.1 0.5 300 300 auto loaded maps local.mapstring
@@ -206,12 +206,12 @@ main:
 	level.master aliascache mk108_fire_loop sound/skylimit/weapons/mk108_loop.wav soundparms 0.8 0.0 1.0 0.0 160 900 auto loaded maps local.mapstring
 	level.master aliascache mk108_fire_echo sound/skylimit/weapons/mk108_echo.wav soundparms 0.8 0.0 1.0 0.0 160 900 auto loaded maps local.mapstring
 
-	level.master aliascache aircraft_engine_servo sound/skylimit/servo_run.wav soundparms 2.0 0.0 1.0 0.0 200 600 weaponidle loaded maps local.mapstring
-	level.master aliascache aircraft_engine_start sound/skylimit/engine_start.wav soundparms 2.0 0.0 1.0 0.0 200 600 weaponidle loaded maps local.mapstring
+	level.master aliascache aircraft_engine_servo sound/skylimit/servo_run.wav soundparms 1.0 0.0 0.8 0.0 200 600 weaponidle loaded maps local.mapstring
+	level.master aliascache aircraft_engine_start sound/skylimit/engine_start.wav soundparms 1.0 0.0 0.8 0.0 200 600 weaponidle loaded maps local.mapstring
 	level.master aliascache aircraft_engine_cutoff sound/skylimit/engine_cutoff.wav soundparms 1.00 0.0 0.50 0.0 200 600 weaponidle loaded maps local.mapstring
 	
-	level.master aliascache aircraft_taxi sound/skylimit/taxi.wav soundparms 0.8 0.0 1.0 0.0 200 600 auto loaded maps local.mapstring
-	level.master aliascache aircraft_taxi_halt sound/skylimit/taxi_halt.wav soundparms 0.8 0.0 1.0 0.0 200 600 auto loaded maps local.mapstring
+	level.master aliascache aircraft_taxi sound/skylimit/taxi2.wav soundparms 1.0 0.0 1.0 0.0 200 600 auto loaded maps local.mapstring
+	//level.master aliascache aircraft_taxi_halt sound/skylimit/taxi_halt.wav soundparms 0.8 0.0 1.0 0.0 200 600 auto loaded maps local.mapstring
 	
 	level.master aliascache aircraft_rearm1 sound/weapons/foley/SpringfieldReloadFill1.wav soundparms 1.3 0.2 0.8 0.15 150 300 auto loaded maps local.mapstring
 	level.master aliascache aircraft_rearm2 sound/weapons/foley/SpringfieldReloadFill2.wav soundparms 1.3 0.2 0.8 0.15 150 300 auto loaded maps local.mapstring
@@ -246,16 +246,18 @@ main:
 	local.dist = 160.0
 	local.maxdist = 200.0
 	
-	level.master aliascache aircraft_engineA sound/skylimit/engine/A.wav soundparms 4.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
-	level.master aliascache aircraft_engineB sound/skylimit/engine/B.wav soundparms 4.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
-	level.master aliascache aircraft_engineC sound/skylimit/engine/C.wav soundparms 4.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
-	level.master aliascache aircraft_engineD sound/skylimit/engine/D.wav soundparms 4.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
-	level.master aliascache aircraft_engineE sound/skylimit/engine/E.wav soundparms 4.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
+	level.master aliascache aircraft_engineA sound/skylimit/engine/A.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
+	level.master aliascache aircraft_engineB sound/skylimit/engine/B.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
+	level.master aliascache aircraft_engineC sound/skylimit/engine/C.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist "local" loaded maps local.mapstring
+	level.master aliascache aircraft_engineD sound/skylimit/engine/D.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
+	level.master aliascache aircraft_engineE sound/skylimit/engine/E.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
 
 	// new prop sound
-	level.master aliascache aircraft_prop sound/skylimit/engine/prop.wav soundparms 8.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
-	level.master aliascache aircraft_prop_local sound/skylimit/engine/prop_local.wav soundparms 10.0 0.0 1.0 0.0 local.dist local.maxdist "local" loaded maps local.mapstring
+	level.master aliascache aircraft_prop sound/skylimit/engine/prop.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
+	level.master aliascache aircraft_prop_local sound/skylimit/engine/prop_local.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist "local" loaded maps local.mapstring
 
+    level.master aliascache wind sound/skylimit/wind.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist weaponidle loaded maps local.mapstring
+    
 	// gametype selector
 	local.gt = int (getcvar g_gametype)
 	if(local.gt == 0)
@@ -348,7 +350,7 @@ main:
 	// init sound system
 	waitthread global/skylimit/sound.scr::init
 	
-	soundtrack global/skylimit/soundtrack.mus
+	//soundtrack global/skylimit/soundtrack.mus
 	
 	// cache some fx
 	waitthread cache

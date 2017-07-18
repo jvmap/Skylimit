@@ -56,6 +56,8 @@ plane_assembly:
 	self.DAMAGETYPE = self.PLANETYPE.DAMAGETYPE
 	self.MASS += self.PLANETYPE.EQUIPMENT_MASS
 
+    self.EMPTY_MASS = self.MASS
+    
 	local.NUMWHEELS = 3
 
 	// hide unused skins
@@ -76,7 +78,7 @@ plane_assembly:
 		self.secondary_weapon_sound_ent = spawn Animate model skylimit/utils/8tags.tik
 		self.secondary_weapon_sound_ent waitthread attach self "auxorigin" game.true
 	}
-
+    
 	// wheels
 	self.hasretractablegear = game.false
 	if(self.wheels.size != local.NUMWHEELS)
@@ -158,7 +160,7 @@ plane_assembly:
 			
 			local.p.sfx_boost = spawn skylimit/fx/aircraft_engine_boost.tik
 			local.p.sfx_boost waitthread attach self local.p.tag game.true
-			
+            
 			if(local.i == self.unlucky_engine_number)
 			{
 				local.p.sfx_fire = spawn skylimit/fx/aircraft_fire.tik

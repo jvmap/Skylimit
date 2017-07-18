@@ -10,7 +10,9 @@ init:
 	level.SL_SND_TIKI = fx/dummy.tik	// TIKI model used to play the sounds
 										// init server section should specify a classname
 	
-	level.SL_SND_LOOPSOUNDERROR = 0.001 //0.005
+	//level.SL_SND_LOOPSOUNDERROR = 0.001 //0.005
+    level.SL_SND_LOOPSOUNDERROR_PITCH = 0.01
+    level.SL_SND_LOOPSOUNDERROR_VOLUME = 0.1
 	
 	// ents are shared by all clients to keep entity count constant
 	// so we don't have problems with edicts running out
@@ -343,7 +345,10 @@ update_sound local.sound_ent local.ent local.vec local.new:
 		}
 	}
 	
-	if(local.playsound)
+    if (local.volume > 2)
+        local.volume = 2
+    
+	if(local.playsound && local.volume >= 0.1)
 	{
 		if(local.alias != local.sound_ent.last_alias)
 		{
@@ -356,11 +361,13 @@ update_sound local.sound_ent local.ent local.vec local.new:
 		{
 			local.dv = local.volume - local.sound_ent.last_volume
 			local.dp = local.pitch - local.sound_ent.last_pitch
-			local.e = local.dv * local.dv + local.dp * local.dp
+			//local.e = local.dv * local.dv + local.dp * local.dp
 			
-			if(local.e > level.SL_SND_LOOPSOUNDERROR)
+			//if(local.e > level.SL_SND_LOOPSOUNDERROR)
+            if (abs local.dv > level.SL_SND_LOOPSOUNDERROR_VOLUME ||  local.sound_ent.last_volume * (abs local.dp) > level.SL_SND_LOOPSOUNDERROR_PITCH)
 			{
-				local.sound_ent loopsound local.alias local.volume local.SOUND_DIST local.SOUND_DIST local.pitch
+				//println "self loopsound " local.alias " " local.volume " " local.pitch
+                local.sound_ent loopsound local.alias local.volume local.SOUND_DIST local.SOUND_DIST local.pitch
 				local.sound_ent.last_volume = local.volume
 				local.sound_ent.last_pitch = local.pitch
 			}

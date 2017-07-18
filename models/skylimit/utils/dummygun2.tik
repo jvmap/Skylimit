@@ -23,4 +23,16 @@ init
 animations
 {
 	idle	dummy2.skc
+    shake dummy2.skc
+    {
+        server
+        {
+            last idle
+        }
+        client
+        {
+            entry sound bar_snd_fire
+            entry viewkick 	     -1.96 -1.96  -1.2 1.2   3.2  "T" 10 0.60 12.0
+        }
+    }
 }

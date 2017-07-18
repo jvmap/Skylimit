@@ -3,7 +3,8 @@
 specs:
 	self.name = "MG17 7.92mm"
 	self.hud_shader = "sl_wmg17"
-	self.damage = 7.92
+	self.damage = 3.1 //1.55
+    //self.firedelay = 0.05
 	
 	self.bulletvelocity = 800.0 // m/s
 	self.bulletlife = 0.75

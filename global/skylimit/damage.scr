@@ -553,16 +553,18 @@ end local.query
 
 // line damage check
 // checks if w/e bullet hits self in any of the dmg boxes
-// returns whether something is hit
+// returns whether something was hit
 calclinedamage local.bullet_position local.bullet_velocity local.timestep local.dmg local.means_of_damage local.inflictor local.inflictor_team local.inflictor_owner local.zing local.intersection_only:
 
 	if(self.isphysicsobject)
 	{
-		local.relvel = local.bullet_velocity - self.p_velocity - level.SL_UNITSCALE * (vector_cross self.p_avelocity (local.bullet_position - self.origin))
+        local.myvel = self.p_velocity + level.SL_UNITSCALE * (vector_cross self.p_avelocity (local.bullet_position - self.origin))
+        local.relvel = local.bullet_velocity - local.myvel
 	}
 	else
 	{
 		// disregard own velocity w.r.t. bullet velocity
+        local.myvel = (0 0 0)
 		local.relvel = local.bullet_velocity
 	}
 	
@@ -577,12 +579,41 @@ calclinedamage local.bullet_position local.bullet_velocity local.timestep local.
 	{
 		local.hitpos = local.result
 		local.knockback_nvec = vector_normalize local.relvel
-		waitthread dodamage local.dmg local.means_of_damage local.inflictor local.inflictor_team local.inflictor_owner local.hitpos local.knockback_nvec
+        // if I have a velocity perpendicular to the bullet trajectory, it reduces the probability of a hit.
+        local.bspeed = vector_length local.bullet_velocity
+        local.bnvec = (1.0 / local.bspeed) * local.bullet_velocity
+        local.perp_vel = local.myvel - local.bnvec * local.myvel * local.bnvec
+        
+        // just an approximation
+        local.fact = 1 - (vector_length local.perp_vel) * local.timestep / (3 * self.dmg_radius)
+        
+        // reduce chance of hitting, since hit boxes are quite large.
+        local.fact = 0.75 * local.fact
+        
+        local.hit = randomfloat 1.0 <= local.fact
+        
+        // TODO: take number of bullets into account
+        
+        //println "fact: " local.fact
+        
+        if (local.hit)
+        {
+            waitthread dodamage local.dmg local.means_of_damage local.inflictor local.inflictor_team local.inflictor_owner local.hitpos local.knockback_nvec
+        }
+        else
+        {
+            local.nearmiss = true
+        }
 	}
+    
+    //if (local.nearmiss)
+    //{
+        //println "miss"
+    //}
 	
 	if(local.zing && self.SL_notify_zings && local.nearmiss)
 	{
-		// whiz by
+        // whiz by
 		self playsound sl_b_zing
 	}
 end local.hit

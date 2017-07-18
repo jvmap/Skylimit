@@ -231,6 +231,7 @@ textures/sky_sicily/sky
 	surfaceparm nolightmap
 	surfaceparm noimpact
 	surfaceparm sky
+    surfaceparm notsolid
 	skyParms textures/skylimit/sicily/sky/sicily 512 -
 }
 

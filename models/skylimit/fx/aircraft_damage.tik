@@ -23,6 +23,17 @@ init
 		cache models/fx/hatchcover.tik
 		cache models/fx/metal_section.tik
 		cache models/fx/shard_piece.tik
+        
+        aliascache cl_plane_hit1 sound/weapons/impact/wpn_impmetal05.wav soundparms 0.5 0.2 0.5 0.1 100 200 auto loaded maps "obj dm"
+        aliascache cl_plane_hit2 sound/weapons/impact/wpn_impmetal06.wav soundparms 0.5 0.2 0.5 0.1 100 200 auto loaded maps "obj dm"
+        aliascache cl_plane_hit3 sound/weapons/impact/wpn_impmetal13.wav soundparms 0.5 0.2 0.5 0.1 100 200 auto loaded maps "obj dm"
+        aliascache cl_plane_hit5 sound/weapons/impact/wpn_impmetal16.wav soundparms 0.5 0.2 0.5 0.1 100 200 auto loaded maps "obj dm"
+        aliascache cl_plane_hit6 sound/weapons/impact/wpn_impmetal19.wav soundparms 0.5 0.2 0.5 0.1 100 200 auto loaded maps "obj dm"
+        aliascache cl_plane_hit7 sound/weapons/impact/wpn_impmetal23.wav soundparms 0.5 0.2 0.5 0.1 100 200 auto loaded maps "obj dm"
+        aliascache cl_plane_hit8 sound/weapons/impact/wpn_impmetal46.wav soundparms 0.5 0.2 0.5 0.1 100 200 auto loaded maps "obj dm"
+        aliascache cl_plane_hit9 sound/weapons/impact/wpn_impmetal47.wav soundparms 0.5 0.2 0.5 0.1 100 200 auto loaded maps "obj dm"
+        aliascache cl_plane_hit10 sound/weapons/impact/wpn_impmetal54.wav soundparms 0.5 0.2 0.5 0.1 100 200 auto loaded maps "obj dm"
+        aliascache cl_plane_hit11 sound/weapons/impact/wpn_impmetal67.wav soundparms 0.5 0.2 0.5 0.1 100 200 auto loaded maps "obj dm"
 	}
 }
 
@@ -57,7 +68,7 @@ animations
 				sphere
 			)
 			
-			entry sound snd_bh_metal
+			entry sound cl_plane_hit
 			entry originspawn
 			(
 				model gren_explosion.spr
@@ -78,7 +89,7 @@ animations
 				fadein 0.05
 				sphere
 			)
-			
+			/*
 			//entry commanddelay 0.02 sound snd_bh_metal
 			entry commanddelay 0.02 originspawn
 			(
@@ -101,7 +112,7 @@ animations
 				sphere
 			)
 			
-			entry commanddelay 0.04 sound snd_bh_metal
+			entry commanddelay 0.04 sound cl_plane_hit
 			entry commanddelay 0.04 originspawn
 			(
 				model gren_explosion.spr
@@ -122,6 +133,7 @@ animations
 				fadein 0.05
 				sphere
 			)
+            */
 		}
 	}
 }

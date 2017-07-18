@@ -1,0 +1,2 @@
+$define tracer_color yellow
+$include models/skylimit/fx/tracer.tik

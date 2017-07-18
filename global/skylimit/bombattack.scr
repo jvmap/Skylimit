@@ -247,7 +247,7 @@ dropbomb local.plane local.gunner local.gunner_team local.no_detach local.drop_f
 				if(local.ent)
 				{
 					local.ent model skylimit/fx/explosion_water.tik
-					local.ent scale self.info.sfx_scale
+					local.ent scale (0.2 * self.info.sfx_scale)
 					local.ent angles ( -90 0 0)
 					local.ent origin local.sfxpos
 					local.ent anim start

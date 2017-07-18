@@ -3,7 +3,8 @@
 specs:
 	self.name = "Browning .303Cal"
 	self.hud_shader = "sl_wb3"
-	self.damage = 7.7
+	self.damage = 2.8 //1.4
+    //self.firedelay = 0.05
 	
 	self.bulletvelocity = 800.0 // m/s
 	self.bulletlife = 0.75
