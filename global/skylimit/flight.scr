@@ -198,6 +198,12 @@ fly local.pilot local.plane_opt local.team:
 	// add primary weapons
 	waitthread global/skylimit/weapons.scr::assembly
 	
+    if (self.has_flexible_weapons)
+    {
+        self.self_protection_targets = NULL::NULL
+        self.self_protection_numtargets = 0
+    }    
+    
 	// whether we are vomiting anything
 	for(local.i = 1; local.i <= self.EMITTERS.size; local.i++)
 	{
@@ -331,9 +337,9 @@ fly local.pilot local.plane_opt local.team:
     self.taxi_sound_volume = 0.0
     self.taxi_sound_playing = game.false
     
-    //self.wheel_brake_sound_volume = 0.0
-    //self.want_wheel_brake_sound_volume = self.wheel_brake_sound_volume
-    //self.wheel_brake_sound_playing = game.false
+    self.wheel_brake_sound_volume = 0.0
+    self.want_wheel_brake_sound_volume = self.wheel_brake_sound_volume
+    self.wheel_brake_sound_playing = game.false
     
 	self.spawntime = level.time
 	
@@ -672,6 +678,8 @@ fly local.pilot local.plane_opt local.team:
 		waitthread ctrl_rudder
 		
 		waitthread update_primary_weapons
+        if (self.has_flexible_weapons)
+            waitthread tick_self_protection
 		waitthread ctrl_weapswitch_secondary
 		
 		waitthread ctrl_fire_primary
@@ -1255,6 +1263,9 @@ fm_prop local.timestep:
 		
 	self.prop_ang_accel = local.shaft_torque / self.PROPELLER_INERTIA
 	self.prop_ang_speed += self.prop_ang_accel * local.timestep
+    
+    if (self.prop_ang_speed < 0)
+        self.prop_ang_speed = 0.0
 
 	// can also brake on propeller only with some effort
 	waitthread global/skylimit/physics.scr::impulse (self.forwardvector * local.thrust)
@@ -1263,7 +1274,10 @@ fm_prop local.timestep:
 	local.totaltipspeed = vector_length (local.Vinf local.tipspeed 0)
 	local.tipmach = local.totaltipspeed / self.air_soundspeed
 
-    self.prop_dissipated_power = local.dragmoment * self.prop_ang_speed - local.thrust * self.speed    
+    if (self.prop_ang_speed <= 0)
+        self.prop_dissipated_power = 0.0
+    else
+        self.prop_dissipated_power = local.dragmoment * self.prop_ang_speed - local.thrust * self.speed    
     
 	//println (int(self.prop_ang_speed*self.ENGINE_GEAR_RATIO*30.0/level.PI)) " rpm, thrust: " (int (local.thrust/1000.0)) " kN , torque: " (int (self.engine_torque/1000.0)) " kNm, power: " (int(local.thrust*self.speed/1000.0)) " kW (" (int(local.dragmoment*self.prop_ang_speed/1000.0)) " kW), pitch: " (int (self.propeller_pitch_angle/level.PI*180.0)) " deg, np: " (int(self.prop_dissipated_power/1000)) " kW, " self.p_vload " g (" local.tipmach " M)"
     //, CL: " local.CL " (" (local.comp_correction_cl * (waitthread global/skylimit/math.scr::sqrt (0.25 * self.PROPELLER_CD0 * level.PI * self.PROPELLER_DIAMETER * self.PROPELLER_DIAMETER * self.PROPELLER_BLADE_OSWALD_FACTOR / self.PROPELLER_BLADE_AREA))) ") cc: " local.comp_correction_cl " (" local.mach " M) " self.p_vload " g pin: " local.incidence
@@ -1549,7 +1563,7 @@ fm_wheel local.side local.wheel:
 				
                     local.vel_fwd = abs (local.groundvel * local.wheelfwdvec)
                 
-					if(local.wheel.braked && self.pilotcontrol && self.ucmd[BRAKE])
+					if(local.wheel.braked && self.pilotcontrol && self.ucmd[BRAKE] && self.angles[0] > 10.0)
 					{
 						local.mu_fwd = local.mu_fwd * self.GROUNDBRAKEMULTIPLIER
                         self.wheel_brake_power += local.mu_fwd * local.force * local.vel_fwd
@@ -1923,12 +1937,17 @@ ctrl_throttle:
 	// engine sound
 	local.rpm_fact = self.prop_ang_speed * 30 / level.PI / self.ENGINE_LIMIT_RPM * self.ENGINE_GEAR_RATIO
 
+    // TODO:
+    // - touch down sound
+    // - smoke when starting engine.
+    // - increase volume of guns
+    
 	if (local.rpm_fact > 0.01) //(self.engine_started)
 	{	
 		local.alias = "aircraft_engine" + self.ENGINE_SOUND
 		//local.pitch = level.SL_SND_ENGINE_PITCH_IDLE + local.rpm_fact * (level.SL_SND_ENGINE_PITCH_FULLPOWER - level.SL_SND_ENGINE_PITCH_IDLE) //local.throttle_fact
         local.pitch = local.rpm_fact * level.SL_SND_ENGINE_PITCH_FULLPOWER
-		local.volume = 2 * (level.SL_SND_ENGINE_VOLUME_MIN + self.throttlelevel * (1 - level.SL_SND_ENGINE_VOLUME_MIN))
+		local.volume = 2 * (level.SL_SND_ENGINE_VOLUME_MIN + self.throttlelevel * self.throttlelevel * (1 - level.SL_SND_ENGINE_VOLUME_MIN))
         // fade out
         //if (local.rpm_fact < 0.01)
         //    local.volume = local.volume * local.rpm_fact * 100
@@ -1938,12 +1957,13 @@ ctrl_throttle:
 		local.dv = local.volume - self.engine_sound_volume
 		local.dp = local.pitch - self.engine_sound_pitch
 		
-		//local.e = local.dv * local.dv + local.dp * local.dp
+		local.e = local.dv * local.dv + local.dp * local.dp
 		
-		//if( !self.engine_sound_playing || local.e > level.SL_SND_LOOPSOUNDERROR)
-        if( !self.engine_sound_playing || abs local.dv > level.SL_SND_LOOPSOUNDERROR_VOLUME ||  self.engine_sound_volume * (abs local.dp) > 8 * level.SL_SND_LOOPSOUNDERROR_PITCH)
+		if( !self.engine_sound_playing || local.e > level.SL_SND_LOOPSOUNDERROR)
+        //if( !self.engine_sound_playing || abs local.dv > level.SL_SND_LOOPSOUNDERROR_VOLUME ||  self.engine_sound_volume * (abs local.dp) > 8 * level.SL_SND_LOOPSOUNDERROR_PITCH)
 		{
-			//println "self loopsound " local.alias " " local.volume " " local.pitch
+			//local.volume = local.volume * 10
+            //println "self loopsound " local.alias " " local.volume " " local.pitch
             self loopsound local.alias local.volume local.mindist local.maxdist local.pitch
             
 			self.engine_sound_volume = local.volume
@@ -1953,11 +1973,11 @@ ctrl_throttle:
 	}
 	else
 	{
-		self stoploopsound
+		//println "self stoploopsound"
+        self stoploopsound
 		self.engine_sound_volume = 0.0
 		self.engine_sound_pitch = 0.0
 		self.engine_sound_playing = game.false
-            
 	}
 	
     if (self.pilot && self.pilot.isplayer)
@@ -2008,11 +2028,18 @@ ctrl_throttle:
     local.blade_frequency = self.prop_ang_speed * 30 / level.PI * 60 * self.PROPELLER_NUMBLADES / self.props.size
 	local.pitch = local.blade_frequency / 360000
     
-    local.volume = self.prop_dissipated_power / self.props.size / 75 / 1000
+    // air sound
+    local.volume = self.prop_dissipated_power / self.props.size / 75 / 1000 / 2
+    
+    if (self.prop_ang_speed <= 0.01)
+        local.volume = 0.0
+    
+    local.volume = local.volume * 3   
     
 	//if(local.pitch >= level.SL_SND_PROP_MINPITCH)
-    if (local.volume >= 0.1)
+    if (local.volume >= 0.1 && local.pitch >= 0.05)
 	{
+        //println "prop volume: " local.volume " pitch: " local.pitch
         local.alias = "aircraft_prop"
 		//local.volume = 2 * (local.pitch - level.SL_SND_PROP_MINPITCH) / (1.0 - level.SL_SND_PROP_MINPITCH)        
 		local.mindist = level.SL_SND_PROP_MINDIST
@@ -2021,7 +2048,8 @@ ctrl_throttle:
 	}
 	else
 	{
-		waitthread global/skylimit/sound.scr::stoploopsound
+		//println "stoploopsound"
+        waitthread global/skylimit/sound.scr::stoploopsound
 	}
 	
 	local.engine_was_started = self.engine_started
@@ -2101,14 +2129,14 @@ ctrl_throttle:
     
     if (self.onground)
     {
-        local.volume  = abs ((self.p_velocity - self.ground_velocity) * self.groundfwdvec / 10)
+        local.volume  = abs ((self.p_velocity - self.ground_velocity) * self.groundfwdvec / 10) / 5.0
         if (local.volume > 2)
             local.volume = 2
     }
     else
         local.volume = 0.0
     
-	if(local.volume >= 0.2)
+	if(local.volume >= 0.1)
 	{
 		local.dv = local.volume - self.taxi_sound_volume
         if (!self.taxi_sound_playing || abs local.dv > 2 * level.SL_SND_LOOPSOUNDERROR_VOLUME)
@@ -2129,10 +2157,10 @@ ctrl_throttle:
     //if (self.wheel_brake_power > 0)
     //    println "brakiness: " (int (self.wheel_brake_power / self.EMPTY_MASS / 40))
     
-    /*
+    
     // brake sound
     if (self.onground && self.pilotcontrol && self.ucmd[BRAKE])
-        local.volume  = self.wheel_brake_power / self.EMPTY_MASS / 400
+        local.volume  = self.wheel_brake_power / self.EMPTY_MASS / 400 / 8
     else
         local.volume = 0.0
     
@@ -2144,31 +2172,34 @@ ctrl_throttle:
     else
     {
         // fast fade out
-        local.volume = 0.1 * local.volume + 0.9 * self.want_wheel_brake_sound_volume
+        local.volume = 0.2 * local.volume + 0.8 * self.want_wheel_brake_sound_volume
     }
     self.want_wheel_brake_sound_volume = local.volume
     
     if (local.volume > 2)
         local.volume = 2
     
-	if(local.volume >= 0.1)
+	if(local.volume > 0.02 || (local.volume >= 0.001 && self.wheel_brake_sound_playing))
 	{
 		local.dv = local.volume - self.wheel_brake_sound_volume
-        if (!self.wheel_brake_sound_playing || 2 * (abs local.dv) > level.SL_SND_LOOPSOUNDERROR_VOLUME)
+        if (!self.wheel_brake_sound_playing || 10 * (abs local.dv) > level.SL_SND_LOOPSOUNDERROR_VOLUME)
         {
             //println "loopsound aircraft_brake " local.volume " (power: " (int (self.wheel_brake_power/1000)) " kW)"
-            //self.wheel_right.sfx loopsound aircraft_brake local.volume 160 160 (0.6 + 0.05 * local.volume)
+            //local.brake_pitch = (0.6 + 0.05 * local.volume) * 5
+            local.brake_pitch = 4 //3 + local.volume
+            self.wheel_right.sfx loopsound aircraft_brake local.volume 160 160 local.brake_pitch
             self.wheel_brake_sound_volume = local.volume
             self.wheel_brake_sound_playing = game.true
         }
     }
 	else if (self.wheel_brake_sound_playing)
 	{
+        //println "stoploopsound " local.volume self.want_wheel_brake_sound_volume
         self.wheel_right.sfx stoploopsound
 		self.wheel_brake_sound_playing = game.false
         self.wheel_brake_sound_volume = 0.0
 	}
-    */
+    
 	// update prop
 	if(self.prop_ang_speed < group.PROP_ANG_SPEED_MAXPOLY)
 	{
@@ -2500,6 +2531,9 @@ update_primary_weapons:
 			
 			local.select = local.inside_interval && (local.vangles[0] >= local.w.pitchmin && local.vangles[0] <= local.w.pitchmax)
 			
+            // temp!!
+            local.select = !local.w.flexible
+            
 			if(local.select != local.w.selected)
 			{
 				local.something_has_changed = game.true
@@ -2648,6 +2682,143 @@ update_primary_weapons:
 				else
 				{
 					waitthread updatecvarstring ("sl_wstr" + local.i) local.weap_str[local.i]
+				}
+			}
+		}
+	}
+end
+
+tick_self_protection:
+    if (self.last_self_protection_findtargets_time == NIL || level.time > self.last_self_protection_findtargets_time + 1.0)
+    {
+        waitthread self_protection_findtargets 2.5
+    }
+
+    // try to fire all of the self defense weapons
+    local.snd_channel = level.SL_SND_WEAPONSOUND_CHANNELS // ug, remap sound channels..
+    for(local.j = 1; local.j <= self.weapon_primary_list.size; local.j++)
+    {
+        local.w = self.weapon_primary_list[local.j]            
+        if (local.w.flexible && local.w.rounds_per_gun > 0 && !local.w.selected)
+        {
+            // shoot at will at the targets
+            for(local.i = 1; local.i <= self.self_protection_numtargets; local.i++)
+            {
+                local.tgt = self.self_protection_targets[local.i]
+                local.range = vector_length (local.tgt.origin - self.origin)
+                local.aimleadtime = local.range * level.SL_UNITSCALE / local.w.bulletvelocity // could be recycled for all primary weapons...
+                
+                // make it more inaccurate
+                // real gunners usually overled
+                local.aimleadtime = 1.5 * local.aimleadtime
+                
+                local.aimpoint = local.tgt.origin + local.tgt.w_velocity * local.aimleadtime
+                
+                // make it more inaccurate
+                // error in direction of relative velocity
+                local.aimpoint = local.aimpoint + (local.tgt.w_velocity - self.w_velocity) * local.aimleadtime * (randomfloat 2.0 - 1.0) * 0.5
+                
+                // error in direction of own velocity
+                local.aimpoint = local.aimpoint + self.w_velocity * local.aimleadtime * (randomfloat 2.0 - 1.0) * 0.25
+                
+                local.weap_org = self gettagposition local.w.ent.tag
+                local.aimvec = local.aimpoint - local.weap_org
+                local.aimdist = vector_length local.aimvec
+                local.aimnvec = (1.0/local.aimdist) * local.aimvec
+                
+                // dissect nvec in base's coordinate system
+                // so we can determine yaw and pitch w.r.t. a sloped base.
+                local.x = local.aimnvec * self.forwardvector
+                local.y = local.aimnvec * self.leftvector
+                local.z = local.aimnvec * self.upvector
+                local.relvec = (local.x local.y local.z)
+                
+                // determine relative angles
+                local.angles = vector_toangles local.relvec
+                
+                local.aimyaw = waitthread global/skylimit/math.scr::rerangeangle local.angles[1]
+                local.aimpitch = waitthread global/skylimit/math.scr::rerangeangle local.angles[0]
+                
+                if(local.w.yawmin <= local.w.yawmax)
+                {
+                    local.inside_interval = local.aimyaw > local.w.yawmin && local.aimyaw <= local.w.yawmax
+                }
+                else
+                {
+                    // for rearward facing weaponry
+                    local.inside_interval = local.aimyaw > local.w.yawmin || local.aimyaw <= local.w.yawmax
+                }
+                
+                if (local.inside_interval && local.aimpitch >= local.w.pitchmin && local.aimpitch <= local.w.pitchmax)
+                {
+                    if (!local.w.jammed && local.w.readytofire && local.aimleadtime < 0.9 * local.w.bulletlife && local.w.forwardvector != NIL && local.w.forwardvector * local.aimnvec > 0.75)
+                    {
+                        waitthread local.w.handler::updateangles local.w (local.aimpitch local.aimyaw 0)
+                        local.w.update_angles_time = level.time + local.w.angles_update_delay
+                        thread local.w.handler::fire local.w
+                        local.w.rounds_per_gun--
+                        local.w.bulletjam += 1.0
+                        if (local.snd_channel > 0)
+                        {
+                            self.weapon_loopsound[local.snd_channel] = local.w.soundset
+                            self.weapon_sustain_time[local.snd_channel] = level.time + local.w.firedelay
+                            local.snd_channel--
+                        }
+                    }
+                    else if (local.w.update_angles_time == NIL || level.time >= local.w.update_angles_time)
+                    {
+                        waitthread local.w.handler::updateangles local.w (local.aimpitch local.aimyaw 0)
+                        local.w.update_angles_time = level.time + local.w.angles_update_delay
+                    }
+                    break // only track one target per gun.
+                }
+            }
+        }
+    }
+end
+
+self_protection_findtargets local.lead_time:
+
+	local.SELF_PROTECTION_SHUFFLE_DELAY = 10.0
+	local.SHOOT_AFTER_KILL_TIME = 1.0
+
+	// empty the targets array
+	self.self_protection_numtargets = 0
+
+	// shuffle on i so target ordering randomizes
+	// (this should eliminate any possibly to deadlock the self_protections
+	// by using bait targets just out of effective range but in search range)
+	
+	local.shuffle = int (level.time/local.SELF_PROTECTION_SHUFFLE_DELAY)
+    
+	for(local.i = 1; self.pilotcontrol && local.i <= $SL_plane.size && self.self_protection_numtargets < self.self_protection_targets.size; local.i++)
+	{		
+		// shuffle!!
+		local.j = (local.shuffle + local.i - 1)%$SL_plane.size + 1
+		local.p = $SL_plane[local.j]
+
+		if(local.p.isplane && local.p.dmteam != self.dmteam)
+		{
+			// Might want to shoot down this plane,
+			// considering it's unfriendly.
+			
+			// get vector to target
+			local.vec = local.p.origin - self.origin
+			
+			// keep shooting at burning planes if they're coming at me
+			if(!local.p.killed || level.time - local.p.killtime <= local.SHOOT_AFTER_KILL_TIME)
+			{
+				// lead correction
+				local.vec += local.p.w_velocity * local.lead_time
+				local.sqdist = local.vec * local.vec
+ 
+				if(local.sqdist < self.self_protection_max_sqrange)
+				{
+					// in range..
+                    
+					// not necessary to sort by range, unlikely to have so many targets in range anyway
+					self.self_protection_numtargets++
+					self.self_protection_targets[self.self_protection_numtargets] = local.p
 				}
 			}
 		}
@@ -3564,7 +3735,7 @@ updatehudlights:
 	waitthread updatelight "sl_ltflk" game.true (self.flak_acquired && level.time - self.flak_last_time_acquired <= group.FLAKWARNINGTIMEOUT)
 
 	// brake
-	waitthread updatelight "sl_ltbrk" game.true (self.ucmd[BRAKE] && (self.onground || self.CDBRAKE > 0.0))
+	waitthread updatelight "sl_ltbrk" game.true (self.ucmd[BRAKE] && ((self.onground && self.angles[0] > 10.0) || self.CDBRAKE > 0.0))
 	
 	// servo
 	waitthread updatelight "sl_ltsrv" game.true self.engine_servo_engaged

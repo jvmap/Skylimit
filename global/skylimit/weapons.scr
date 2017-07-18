@@ -45,7 +45,14 @@ setweap_primary local.weapstash:
 	local.weap.handler = "global/skylimit/weaponhandlers/" + local.weapname + ".scr"
 
 	local.weap waitthread local.weap.handler::main self local.wd local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8
-
+    
+    if (local.weap.flexible)
+    {
+        self.has_flexible_weapons = game.true
+        local.range_wu =  local.weap.bulletvelocity  * local.weap.bulletlife / level.SL_UNITSCALE
+        self.self_protection_max_sqrange = waitthread global/skylimit/common.scr::max self.self_protection_max_sqrange (local.range_wu * local.range_wu)
+    }
+    
 	// yaw and pitch in [-180,180] range
 	local.weap.yawmin = local.yawmin
 	local.weap.yawmax = local.yawmax
@@ -62,6 +69,8 @@ end
 
 assembly:
 	// add all the weaps from the planetype def
+    self.has_flexible_weapons = game.false
+    self.self_protection_max_sqrange = 0.0
 	for(local.i = 1; local.i <= self.PLANETYPE.weapon_primary_list.size; local.i++)
 	{
 		waitthread setweap_primary self.PLANETYPE.weapon_primary_list[local.i]

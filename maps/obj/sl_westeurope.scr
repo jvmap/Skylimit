@@ -56,6 +56,9 @@ main:
 	waitthread global/skylimit/reload_point.scr::setreloadbox axis -3136 5120 448 192
 
 	thread airalarm
+    
+    level.ai_target[allies] = ( -3136 5120 -6232)
+    level.ai_target[axis] = (3880 -5264 -7232)
 end
 
 //-//-//-//-//-//-//-//-//-//-//-//->

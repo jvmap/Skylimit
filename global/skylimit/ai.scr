@@ -4,14 +4,14 @@
 main:
 	wait 2.0
 
-	for(local.i = 1; local.i <= 3; local.i++)
+	for(local.i = 1; local.i <= 0; local.i++)
 	{
-		waitframe
+		wait 0.1
 		thread botloop allies local.i
 	}
-	for(local.i = 1; local.i <= 3; local.i++)
+	for(local.i = 1; local.i <= 0; local.i++)
 	{
-		waitframe
+		wait 0.1
 		thread botloop axis local.i
 	}
 end
@@ -23,9 +23,8 @@ botloop local.team local.delay:
 		local.pilot.dmteam = local.team
 		local.pilot.script_viewangles = (0 0 0)
 		local.pilot.SL_ucmd = waitthread ucmd_none
-
-		local.pilot.SL_ucmd[THROTTLE_UP] = game.true
 		
+        local.optnum = 0
 		while(1)
 		{
 			while !(local.pilot waitthread level.SL_GAMETYPESCR::canrespawn)
@@ -39,7 +38,8 @@ botloop local.team local.delay:
 				end
 			}
 			
-			local.optnum = randomint level.SL_PLANEOPTIONS[local.pilot.dmteam].size + 1
+			//local.optnum = randomint level.SL_PLANEOPTIONS[local.pilot.dmteam].size + 1
+            local.optnum++
 			local.plane_opt = level.SL_PLANEOPTIONS[local.pilot.dmteam][local.optnum]
 			if( !level.SL_FINITE_PLANES || level.SL_SERVICEGROUPS[local.team][local.plane_opt.servicegroup] > 0)
 			{
@@ -54,221 +54,278 @@ botloop local.team local.delay:
 		
         if ( !local.plane.airspawn)
         {
-            while (local.pilot && local.plane && !local.plane.engine_started)
-                waitframe
-        
-            if (local.pilot) 
-            {
-                local.pilot.SL_ucmd[THROTTLE_UP] = game.false
-                waitframe
-            }
-            
-            if (local.pilot) 
-            {
-                local.pilot.SL_ucmd[THROTTLE_UP] = game.true            
-                waitframe
-            }
+            waitthread takeoff local.plane local.pilot
         }
 		
-        thread fly_like_an_idiot local.plane local.pilot
-        
-		while !(local.pilot.killed)
-		{
-			//local.plane waitthread global/skylimit/damage.scr::dodamage 20.0 level.MODM_BULLET_MG $world NULL NULL local.plane.origin NIL
-			wait 1.0
-		}
-		
+        if (!local.pilot.killed)
+            waitthread fly_like_a_pro local.plane local.pilot
+
+        local.pilot remove            
 		wait 5.0
-		
-		local.pilot remove
 	}
+end
+
+takeoff local.plane local.pilot:
+
+    // start engine
+    local.pilot.SL_ucmd[BRAKE] = game.true
+    local.pilot.SL_ucmd[THROTTLE_UP] = game.true
+    
+    while (!local.pilot.killed && local.plane && !local.plane.engine_started)
+        waitframe
+
+    wait 0.5
+    local.pilot.SL_ucmd[THROTTLE_UP] = game.false
+    wait 0.5
+    local.pilot.SL_ucmd[THROTTLE_UP] = game.true
+
+    // give prop some time to spin up
+    wait 3.0
+    local.pilot.SL_ucmd[BRAKE] = game.false
+    
+    // take off run	
+        
+    local.af_height = local.plane.origin[2]
+    while(!local.pilot.killed && local.plane && local.plane.onground)
+    {
+        // keep wings level
+        if(local.plane.leftvector[2] < -0.1)
+        {
+            local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
+            local.pilot.SL_ucmd[ROLL_RIGHT] = game.true
+        }
+        else if(local.plane.leftvector[2] > 0.1)
+        {
+            local.pilot.SL_ucmd[ROLL_LEFT]  = game.true
+            local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
+        }
+        else
+        {
+            local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
+            local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
+        }
+        
+        // don't sink
+        if(local.plane.p_velocity[2] < 0)
+        {
+            local.pilot.SL_ucmd[PITCH_UP] = game.true
+        }
+        else
+        {
+            local.pilot.SL_ucmd[PITCH_UP] = game.false
+        }
+        waitframe
+    }
+    
+    local.pilot.SL_ucmd[PITCH_UP] = game.true
+    wait 0.5
+    local.pilot.SL_ucmd[TOGGLE_GEAR] = game.true
+    waitframe
+    local.pilot.SL_ucmd[TOGGLE_GEAR] = game.false
+    
+    // climb 
+    local.climb_pitch = 20.0 // deg
+    local.release_height = 300.0 // m
+    while(!local.pilot.killed && local.plane && local.plane.origin[2] - local.af_height <= local.release_height / level.SL_UNITSCALE)
+    {
+        // keep wings level
+        if(local.plane.leftvector[2] < -0.1)
+        {
+            local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
+            local.pilot.SL_ucmd[ROLL_RIGHT] = game.true
+        }
+        else if(local.plane.leftvector[2] > 0.1)
+        {
+            local.pilot.SL_ucmd[ROLL_LEFT]  = game.true
+            local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
+        }
+        else
+        {
+            local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
+            local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
+        }
+        
+        if(local.plane.p_pitch < local.climb_pitch)
+        {
+            local.pilot.SL_ucmd[PITCH_UP] = game.true
+        }
+        else
+        {
+            local.pilot.SL_ucmd[PITCH_UP] = game.false
+        }
+        waitframe
+    }
+end
+
+fly_like_a_pro local.plane local.pilot:
+    //local.target_attitude_nvec = vector_normalize ( -0.5 0.4 0.1) // ( 1.0 0.1 0.0)
+    local.target_attitude_roll = 0.0
+    //local.target_angles = (0 0 0)
+    
+    local.pilot.SL_ucmd[PITCH_UP] 	= game.false
+    local.pilot.SL_ucmd[PITCH_DOWN] = game.false
+    local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
+    local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
+    
+    local.turning = false
+    
+    while(!local.pilot.killed && local.plane)
+    {
+        local.target_attitude_nvec = vector_normalize (level.ai_target[local.pilot.dmteam] - local.plane.origin)
+        
+        //local.target_attitude_roll = (int (90 * level.time)) % 360 - 180
+        
+        // first get yaw right
+        local.fwd_dot = local.plane.forwardvector * local.target_attitude_nvec
+        
+        if ((local.turning && local.fwd_dot > 0.95) || (!local.turning && local.fwd_dot > 0.90))
+        {
+            local.turning = game.false
+            
+            // very shallow turn
+            local.proj_up_dot = local.target_attitude_nvec * local.plane.upvector
+            local.pitchrate = local.plane.p_avelocity * local.plane.leftvector
+            local.pitchfact = 0.5 * local.proj_up_dot + 0.25 * local.pitchrate
+            //println "pitchfact " (0.5 * local.proj_up_dot) " " (0.25 * local.pitchrate)
+            local.pilot.SL_ucmd[PITCH_UP] 	= local.pitchfact > 0.01
+            local.pilot.SL_ucmd[PITCH_DOWN] = local.pitchfact < -0.01
+            
+            local.roll_angle_diff = waitthread global/skylimit/math.scr::getanglediff local.plane.angles[2] local.target_attitude_roll
+            if (game.false && local.roll_angle_diff < -60.0)
+            {
+                local.pilot.SL_ucmd[ROLL_LEFT]  = game.true
+                local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
+            }
+            else if (game.false && local.roll_angle_diff > 60.0)
+            {
+                local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
+                local.pilot.SL_ucmd[ROLL_RIGHT] = game.true
+            }
+            else
+            {
+                local.proj_lf_dot = local.target_attitude_nvec * local.plane.leftvector
+                local.rollrate = local.plane.p_avelocity * local.plane.forwardvector
+                local.rollfact = -0.005 * local.roll_angle_diff + 0.25 * local.plane.upvector[2] * local.proj_lf_dot + 0.1 * local.rollrate
+                //println "rollfact: " ( -0.005 * local.roll_angle_diff) " " (  0.25 * local.plane.upvector[2] * local.proj_lf_dot) " "  (0.1 * local.rollrate)
+                local.pilot.SL_ucmd[ROLL_LEFT]  = local.rollfact > 0.01
+                local.pilot.SL_ucmd[ROLL_RIGHT] = local.rollfact < -0.01
+            }
+            
+            println "local.plane.angles: " local.plane.angles
+        }
+        else if (game.false && local.fwd_dot > 0.5)
+        {
+            // shallow turn (TODO?)
+            local.pilot.SL_ucmd[PITCH_UP] 	= game.false
+            local.pilot.SL_ucmd[PITCH_DOWN] = game.false
+            local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
+            local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
+        }
+        else
+        {
+            local.turning = game.true
+            /*
+            local.turn_vec = vector_cross local.plane.forwardvector local.target_attitude_nvec
+            local.turn_vec_len = vector_length local.turn_vec
+            
+            if (local.turn_vec_len == 0.0)
+            {
+                // edge case: I want to go exactly the other way.
+                local.pilot.SL_ucmd[PITCH_UP] 	= game.true
+                local.pilot.SL_ucmd[PITCH_DOWN] = game.false
+                local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
+                local.pilot.SL_ucmd[ROLL_RIGHT] = game.true
+            }
+            else
+            {
+                // try to align right vector with turn vec, then pull up
+                local.proj_lf_dot = -1 * (local.turn_vec * local.plane.leftvector) / local.turn_vec_len
+                local.rollrate = local.plane.p_avelocity * local.plane.forwardvector
+                local.rollfact = local.proj_lf_dot + 0.5 * local.rollrate
+                if (local.rollfact > 0.01)
+                {
+                    // turn (more) left
+                    local.pilot.SL_ucmd[ROLL_LEFT]  = game.true
+                    local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
+                } 
+                else if (local.rollfact < -0.01)
+                {
+                    // turn (more) right
+                    local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
+                    local.pilot.SL_ucmd[ROLL_RIGHT] = game.true
+                }
+                else
+                {
+                    local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
+                    local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
+                }
+            }
+            */
+            
+            // steep turn
+            // TODO: proper turn inclination (should be more horizontal)
+            // maybe use an aimvec when going around?                  
+            //if (local.fwd_dot >= 0)
+                local.aimvec = local.target_attitude_nvec
+            //else
+            //    local.aimvec = ...?? // ignore upvector component? but the upvector doesn't matter...
+            
+            // first get roll angle right for the turn
+            // project target vector on (lf,up)-plane
+            
+            local.proj = local.aimvec - local.fwd_dot * local.plane.forwardvector
+            local.proj_len = vector_length local.proj
+            if (local.proj_len == 0.0)
+            {
+                // edge case: I want to go exactly the other way.
+                local.pilot.SL_ucmd[PITCH_UP] 	= game.true
+                local.pilot.SL_ucmd[PITCH_DOWN] = game.false
+                local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
+                local.pilot.SL_ucmd[ROLL_RIGHT] = game.true
+            }
+            else
+            {
+                //local.proj_lf_dot = (local.proj * local.plane.leftvector) / local.proj_len
+                local.proj_lf_dot = (local.aimvec * local.plane.leftvector) / local.proj_len
+                local.rollrate = local.plane.p_avelocity * local.plane.forwardvector
+                local.rollfact = local.proj_lf_dot + local.rollrate
+                if (local.rollfact > 0.01)
+                {
+                    // turn (more) left
+                    local.pilot.SL_ucmd[ROLL_LEFT]  = game.true
+                    local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
+                } 
+                else if (local.rollfact < -0.01)
+                {
+                    // turn (more) right
+                    local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
+                    local.pilot.SL_ucmd[ROLL_RIGHT] = game.true
+                }
+                else
+                {
+                    local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
+                    local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
+                }
+                // pull up or push down if roll angle is good enough
+                //local.proj_up_dot = (local.proj * local.plane.upvector) / local.proj_len
+                //local.pilot.SL_ucmd[PITCH_UP] = local.proj_up_dot >= -0.2 // 0.1
+                //local.pilot.SL_ucmd[PITCH_DOWN] = local.proj_up_dot < -0.2
+                if (abs local.rollfact < 0.1)
+                {
+                    local.pilot.SL_ucmd[PITCH_UP] = game.true
+                    local.pilot.SL_ucmd[PITCH_DOWN] = game.false
+                }
+            }
+        }        
+        waitframe
+    }
 end
 
 fly_like_an_idiot local.plane local.pilot:
 
-	if (!local.pilot || !local.plane) end
-
-	//local.pilot.SL_ucmd[ATTACK_PRIMARY] 		= game.true
-
-	if(!local.plane.airspawn)
-	{
-		local.af_height = local.plane.origin[2]
-		
-		local.screenheight = 4.0 // m
-		
-        // spin up
-        local.pilot.SL_ucmd[BRAKE] = game.true
-        wait 3.0
-        local.pilot.SL_ucmd[BRAKE] = game.false
-        
-		// take off run	
-        
-		//while(local.pilot && local.plane && local.plane.origin[2] - local.af_height <= local.screenheight / level.SL_UNITSCALE)
-        while(local.pilot && local.plane && local.plane.onground)
-		{
-			// keep wings level
-			if(local.plane.leftvector[2] < -0.1)
-			{
-				local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
-				local.pilot.SL_ucmd[ROLL_RIGHT] = game.true
-			}
-			else if(local.plane.leftvector[2] > 0.1)
-			{
-				local.pilot.SL_ucmd[ROLL_LEFT]  = game.true
-				local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
-			}
-			else
-			{
-				local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
-				local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
-			}
-			
-            // don't sink
-            if(local.plane.p_velocity[2] < 0)
-			{
-                local.pilot.SL_ucmd[PITCH_UP] 			= game.true
-				local.pilot.SL_ucmd[PITCH_DOWN] 		= game.false
-			}
-			else
-			{
-				local.pilot.SL_ucmd[PITCH_UP] 			= game.false
-				local.pilot.SL_ucmd[PITCH_DOWN] 		= game.false
-			}
-            
-			waitframe
-		}
-		
-		if !(local.pilot) end
-		
-        local.pilot.SL_ucmd[PITCH_UP] 			= game.true
-		local.pilot.SL_ucmd[TOGGLE_GEAR] 		= game.true
-	
-		waitframe
-	
-		if !(local.pilot) end
-	
-		local.pilot.SL_ucmd[TOGGLE_GEAR] 		= game.false
-		
-		// climb 
-		local.climb_pitch = 20.0 // deg
-		local.release_height = 100.0 // m
-		while(local.pilot && local.plane && local.plane.origin[2] - local.af_height <= local.release_height / level.SL_UNITSCALE)
-		{
-			// keep wings level
-			if(local.plane.leftvector[2] < -0.1)
-			{
-				local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
-				local.pilot.SL_ucmd[ROLL_RIGHT] = game.true
-			}
-			else if(local.plane.leftvector[2] > 0.1)
-			{
-				local.pilot.SL_ucmd[ROLL_LEFT]  = game.true
-				local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
-			}
-			else
-			{
-				local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
-				local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
-			}
-			
-			if(local.plane.p_pitch < local.climb_pitch)
-			{
-				local.pilot.SL_ucmd[PITCH_UP] 			= game.true
-				local.pilot.SL_ucmd[PITCH_DOWN] 		= game.false
-			}
-			else
-			{
-				local.pilot.SL_ucmd[PITCH_UP] 			= game.false
-				local.pilot.SL_ucmd[PITCH_DOWN] 		= game.false
-			}
-			
-			waitframe
-		}
-	}
-	
-	/*
-	local.prev_fpa = 0.0
-	local.prev_roll = 0.0
-	local.dt = 0.05
-	
-	while(local.pilot && local.plane)
-	{
-		// flight path angle (tan)
-		local.fpa = (local.plane.p_velocity[2] / (local.plane.p_velocity * (local.plane.normalvel  - local.plane.normalvel[2] * $world.upvector))) * 180.0 / level.PI
-		
-		/*
-		local.climb_height = 300.0 // m
-		if(local.plane.origin[2] - local.af_height <= local.climb_height / level.SL_UNITSCALE)
-		{
-			local.targetfpa = 5.0
-		}
-		else
-		{
-			local.targetfpa = 1.0
-		}
-		*-/
-		local.targetfpa = 10.0
-		local.targetroll = 0.0
-		
-		local.updown = 0.5 * (local.targetfpa - local.fpa) - 8.0 * (local.fpa - local.prev_fpa) / local.dt
-		local.prev_fpa = local.fpa
-		
-		if(local.updown > 1.0)
-		{
-			local.pilot.SL_ucmd[PITCH_UP] 	= game.true
-			local.pilot.SL_ucmd[PITCH_DOWN] = game.false
-		}
-		else if(local.updown < -1.0)
-		{
-			local.pilot.SL_ucmd[PITCH_UP] 	= game.false
-			local.pilot.SL_ucmd[PITCH_DOWN] = game.true
-		}
-		else
-		{
-			local.pilot.SL_ucmd[PITCH_UP] 	= game.false
-			local.pilot.SL_ucmd[PITCH_DOWN] = game.false
-		}
-		
-		local.leftright = 10.0 * (local.targetroll - local.plane.p_roll) - 8.0 * (local.plane.p_roll - local.prev_roll) / local.dt
-		local.prev_roll = local.plane.p_roll
-		
-		if(local.leftright > 1.0)
-		{
-			local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
-			local.pilot.SL_ucmd[ROLL_RIGHT] = game.true
-		}
-		else if(local.leftright < -1.0)
-		{
-			local.pilot.SL_ucmd[ROLL_LEFT]  = game.true
-			local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
-		}
-		else
-		{
-			local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
-			local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
-		}
-		
-		wait local.dt
-	}
-	
-	end // TEMP!
-	*/
-	
-	//wait 2.0
-	
-	// TEMP!
-	/*
-	if(local.plane)
-	{
-		local.plane.means_of_death = local.plane.MOD_EXPLODE
-		local.plane.destroyed = game.true // :P
-	}
-	*/
-	// ...TEMP!
-	
 	local.update_turn_time = 0.0
 	
-	while(local.pilot && local.plane)
+	while(!local.pilot.killed && local.plane)
 	{
 		if(local.plane.origin[2] <= $world.OBSTACLEHEIGHT + 500.0 && local.plane.p_velocity[2] <= 0.0)
 		{		
@@ -311,9 +368,7 @@ fly_like_an_idiot local.plane local.pilot:
 			
 			local.update_turn_time = level.time + ((1 + randomint 20) * 0.05)
 		}
-		wait 0.05
-		//local.pilot.SL_ucmd[ATTACK_PRIMARY] = randomint 2
-		
+		wait 0.05		
 	}
 end
 

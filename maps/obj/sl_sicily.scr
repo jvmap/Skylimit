@@ -62,6 +62,18 @@ main:
 	
 	// clouds
 	waitthread global/skylimit/clouds.scr::sunset
+    
+    level.ai_target[allies] = ( -2240 -3528 -6227) 
+    
+    thread bleh
+end
+
+bleh:
+    while (1)
+    {
+        level.ai_target[axis] = $formidable.origin + (0 0 20) + $formidable.forwardvector * 60
+        waitframe
+    }
 end
 
 PLANETYPES_DM:

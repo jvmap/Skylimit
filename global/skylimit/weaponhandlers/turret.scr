@@ -75,7 +75,8 @@ updateangles local.w local.vangles:
 	{
 		// correct for flight velocity
 		local.yawbonus = -(self.p_velocity * self.forwardvector) * (self.leftvector * local.w.forwardvector) / local.w.bulletvelocity / level.PI * 180.0
-		local.vangles += (0 local.yawbonus 0)
+		// temp
+        //local.vangles += (0 local.yawbonus 0)
 	}
 	
 	if(local.base_roll > 90.0 || local.base_roll < -90.0)
@@ -125,7 +126,7 @@ fire local.w:
 	// pick shelltype
 	local.type = local.w.shell_types[randomint local.w.shell_types.size + 1]
 	
-	thread global/skylimit/bulletattack.scr::fire local.pos self.pilot self.pilot.dmteam self local.w local.w.tag_multiplicity local.w.forwardvector local.type
+	thread global/skylimit/bulletattack.scr::fire local.pos self.pilot self.dmteam self local.w local.w.tag_multiplicity local.w.forwardvector local.type
 	
 	wait local.w.firedelay
 	
