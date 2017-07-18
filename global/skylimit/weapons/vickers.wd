@@ -3,10 +3,10 @@
 specs:
 	self.name = "Vickers .303Cal"
 	self.hud_shader = "sl_wb3" // TODO
-	self.damage = 5.0
+	self.damage = 7.7
 	
 	self.bulletvelocity = 700.0 // m/s
-	self.bulletlife = 0.5
+	self.bulletlife = 0.75
 	
 	self.soundset = "browning303"
 	

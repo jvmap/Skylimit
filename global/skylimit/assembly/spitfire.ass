@@ -6,13 +6,17 @@ main:
 	self.CAM_COCKPITOFFSET 	= (80.0 0.0 35.0) //(80.0 0.0 10.0)
 	self.CAM_CHASEOFFSET	= (0.0 0.0 240.0)
 
+	self.COM_OFFSET = ( 0.0 0.0 -0.6)
+
 	self.HASNOSEWHEEL = game.false
 	
 	self.ENGINE_SOUND = "B"
 	
 	self.HASFRONTALPROTECTION = game.true
 	
-	waitthread global/skylimit/collision.scr::set_collision_sphere ( -40 0 8) 168 // there you save lifes w/
+	//self.GROUNDSTABILIZER = 400000.0 // Nm
+	
+	waitthread global/skylimit/collision.scr::set_collision_sphere ( -40 0 8) 168
 	
 	// fuselage
 	waitthread global/skylimit/damage.scr::add_damage_box ( -272 -24 -40) (192 24 64)
@@ -26,17 +30,20 @@ main:
 	self.wheel_left.tag = wheel_left
 	self.wheel_left.groundtag = tag_wheel
 	self.wheel_left.retractable = bool 1
+	self.wheel_left.braked = game.true
 	
 	self.wheel_right = waitthread global/skylimit/flightmodel.scr::addwheel "right"
 	self.wheel_right.tag = wheel_right
 	self.wheel_right.groundtag = tag_wheel
 	self.wheel_right.retractable = bool 1
+	self.wheel_right.braked = game.true
 	
 	self.wheel_center = waitthread global/skylimit/flightmodel.scr::addwheel
 	self.wheel_center.groundtag = tag_wheel_tail
 	self.wheel_center.retractable = bool 0
+	self.wheel_center.braked = game.false
 	
 	// add the props
-	self.prop = waitthread global/skylimit/flightmodel.scr::addprop game.false
+	self.prop = waitthread global/skylimit/flightmodel.scr::addprop game.true
 	self.prop.tag = prop
 end

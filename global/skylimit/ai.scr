@@ -2,12 +2,12 @@
 // by jv_map
 
 main:
-	wait 4.0
+	wait 2.0
 
 	for(local.i = 1; local.i <= 0; local.i++)
 	{
-		wait 0.2
-		thread botloop allies 0 //local.i
+		wait 0.5
+		thread botloop allies local.i
 	}
 	for(local.i = 1; local.i <= 0; local.i++)
 	{
@@ -54,15 +54,20 @@ botloop local.team local.delay:
 		
 		wait 1.5
 		
-		local.pilot.SL_ucmd[THROTTLE_UP] = game.false
-		
-		wait 0.5
-		
-		wait (randomfloat 2.0)
-		//wait (local.delay * 2.0)
-		
-		local.pilot.SL_ucmd[THROTTLE_UP] = game.true
-		thread fly_like_an_idiot local.plane local.pilot
+		if(local.plane)
+		{
+			if(!local.plane.airspawn)
+			{
+				local.pilot.SL_ucmd[THROTTLE_UP] = game.false
+				
+				wait 0.5
+				
+				//wait (randomfloat 2.0)
+			}
+			
+			local.pilot.SL_ucmd[THROTTLE_UP] = game.true
+			thread fly_like_an_idiot local.plane local.pilot
+		}
 		
 		while !(local.pilot.killed)
 		{
@@ -80,38 +85,84 @@ fly_like_an_idiot local.plane local.pilot:
 
 	if (!local.pilot || !local.plane) end
 
-	local.af_height = local.plane.origin[2]
+	//local.pilot.SL_ucmd[ATTACK_PRIMARY] 		= game.true
 
-	wait 4.0
-	
-	local.screenheight = 100.0 //50.0 // m
-	local.climb_pitch = 20.0 // deg
-	while(local.pilot && local.plane && local.plane.origin[2] - local.af_height <= local.screenheight / level.SL_UNITSCALE)
+	if(!local.plane.airspawn)
 	{
-		if(local.plane.p_pitch < local.climb_pitch)
+		local.af_height = local.plane.origin[2]
+		
+		local.screenheight = 4.0 // m
+		
+		// take off run
+		
+		while(local.pilot && local.plane && local.plane.origin[2] - local.af_height <= local.screenheight / level.SL_UNITSCALE)
 		{
-			local.pilot.SL_ucmd[PITCH_UP] 			= game.true
-			local.pilot.SL_ucmd[PITCH_DOWN] 		= game.false
-		}
-		else
-		{
-			local.pilot.SL_ucmd[PITCH_UP] 			= game.false
-			local.pilot.SL_ucmd[PITCH_DOWN] 		= game.false
+			// keep wings level
+			if(local.plane.leftvector[2] < -0.1)
+			{
+				local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
+				local.pilot.SL_ucmd[ROLL_RIGHT] = game.true
+			}
+			else if(local.plane.leftvector[2] > 0.1)
+			{
+				local.pilot.SL_ucmd[ROLL_LEFT]  = game.true
+				local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
+			}
+			else
+			{
+				local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
+				local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
+			}
+			
+			waitframe
 		}
 		
+		if !(local.pilot) end
+		
+		local.pilot.SL_ucmd[TOGGLE_GEAR] 		= game.true
+	
 		waitframe
+	
+		if !(local.pilot) end
+	
+		local.pilot.SL_ucmd[TOGGLE_GEAR] 		= game.false
+		
+		// climb 
+		local.climb_pitch = 20.0 // deg
+		local.release_height = 100.0 // m
+		while(local.pilot && local.plane && local.plane.origin[2] - local.af_height <= local.release_height / level.SL_UNITSCALE)
+		{
+			// keep wings level
+			if(local.plane.leftvector[2] < -0.1)
+			{
+				local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
+				local.pilot.SL_ucmd[ROLL_RIGHT] = game.true
+			}
+			else if(local.plane.leftvector[2] > 0.1)
+			{
+				local.pilot.SL_ucmd[ROLL_LEFT]  = game.true
+				local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
+			}
+			else
+			{
+				local.pilot.SL_ucmd[ROLL_LEFT]  = game.false
+				local.pilot.SL_ucmd[ROLL_RIGHT] = game.false
+			}
+			
+			if(local.plane.p_pitch < local.climb_pitch)
+			{
+				local.pilot.SL_ucmd[PITCH_UP] 			= game.true
+				local.pilot.SL_ucmd[PITCH_DOWN] 		= game.false
+			}
+			else
+			{
+				local.pilot.SL_ucmd[PITCH_UP] 			= game.false
+				local.pilot.SL_ucmd[PITCH_DOWN] 		= game.false
+			}
+			
+			waitframe
+		}
 	}
-	
-	if !(local.pilot) end
-	
-	local.pilot.SL_ucmd[TOGGLE_GEAR] 		= game.true
-
-	wait 0.5
-	//waitframe
-
-	if !(local.pilot) end
-
-	local.pilot.SL_ucmd[TOGGLE_GEAR] 		= game.false
 	
 	/*
 	local.prev_fpa = 0.0
@@ -181,7 +232,7 @@ fly_like_an_idiot local.plane local.pilot:
 	end // TEMP!
 	*/
 	
-	wait 2.0
+	//wait 2.0
 	
 	// TEMP!
 	/*
@@ -193,6 +244,7 @@ fly_like_an_idiot local.plane local.pilot:
 	*/
 	// ...TEMP!
 	
+	local.update_turn_time = 0.0
 	
 	while(local.pilot && local.plane)
 	{
@@ -227,30 +279,17 @@ fly_like_an_idiot local.plane local.pilot:
 					local.pilot.SL_ucmd[PITCH_DOWN] 	= game.true
 				}
 			}
-			
-			wait 0.05
 		}
-		else
+		else if(level.time > local.update_turn_time)
 		{
 			local.pilot.SL_ucmd[PITCH_UP] 		= randomint 2
 			local.pilot.SL_ucmd[PITCH_DOWN] 	= randomint 2 //!local.pilot.SL_ucmd[PITCH_UP]
 			local.pilot.SL_ucmd[ROLL_LEFT] 		= randomint 2
 			local.pilot.SL_ucmd[ROLL_RIGHT] 	= randomint 2 //!local.pilot.SL_ucmd[ROLL_LEFT]
-			/*
-			local.p = local.pilot.SL_ucmd[PITCH_UP] - local.pilot.SL_ucmd[PITCH_DOWN]
-			local.r = local.pilot.SL_ucmd[ROLL_LEFT] - local.pilot.SL_ucmd[ROLL_RIGHT]
 			
-			if(local.p == 1 && local.r == 0 && self.p_rol)
-			{
-				wait 1.0
-			}
-			else
-			{
-				waitframe
-			}
-			*/
-			wait 0.5 //((1 + randomint 20) * 0.05)
+			local.update_turn_time = level.time + ((1 + randomint 20) * 0.05)
 		}
+		wait 0.05
 		//local.pilot.SL_ucmd[ATTACK_PRIMARY] = randomint 2
 		
 	}
@@ -268,6 +307,7 @@ ucmd_none:
 	local.ucmd[THROTTLE_DN] 		= game.false
 	local.ucmd[BRAKE] 				= game.false
 	local.ucmd[TOGGLE_NOSE_CAM] 	= game.false
+	local.ucmd[THRUST_REVERSE] 		= game.false
 	local.ucmd[CAM_FREE] 			= game.false
 	local.ucmd[ITEM_NEXT] 			= game.false
 	local.ucmd[ITEM_PREV] 			= game.false

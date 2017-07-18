@@ -1,0 +1,23 @@
+TIKI
+setup
+{
+	scale 0.63	// Set default scale to 16/30.5 since world is in 16 units per foot and model is in cm's
+	path models/skylimit/weapons/german_bomb
+	skelmodel german_bomb.skd
+	surface all shader ju87_europe
+}
+
+init
+{
+	server
+	{
+      	classname Animate
+      	setsize "-32 -32 -32" "32 32 32"
+      	notsolid
+	}
+}
+
+animations
+{
+	idle	german_bomb.skc
+}

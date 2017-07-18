@@ -13,7 +13,7 @@ init
 		// MG17
 		tagemitter tag_barrel_left mg1
 		(
-			model models/skylimit/fx/muzzle/s800R.tik
+			model models/skylimit/fx/muzzle/s800.tik
 			spawnrate 20.0
 			life 0.02
 			anim fire
@@ -21,8 +21,26 @@ init
 		)
 		tagemitter tag_barrel_right mg2
 		(
-			model models/skylimit/fx/muzzle/s800L.tik
+			model models/skylimit/fx/muzzle/s800.tik
 			spawnrate 20.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		
+		// MG151
+		tagemitter tag_barrel_left mg151_1
+		(
+			model models/skylimit/fx/muzzle/l700.tik
+			spawnrate 10.0
+			life 0.02
+			anim fire
+			startoff
+		)
+		tagemitter tag_barrel_right mg151_2
+		(
+			model models/skylimit/fx/muzzle/l700.tik
+			spawnrate 10.0
 			life 0.02
 			startoff
 			anim fire
@@ -49,6 +67,24 @@ animations
 		{
 			enter emitteroff mg1
 			enter emitteroff mg2
+		}
+	}
+	
+	emitteron_mg151 	body.skc
+	{
+		client
+		{
+			enter emitteron mg151_1
+			enter emitteron mg151_2
+		}
+	}
+	
+	emitteroff_mg151	body.skc
+	{
+		client
+		{
+			enter emitteroff mg151_1
+			enter emitteroff mg151_2
 		}
 	}
 }

@@ -3,10 +3,10 @@
 specs:
 	self.name = "Browning .303Cal"
 	self.hud_shader = "sl_wb3"
-	self.damage = 10.0
+	self.damage = 7.7
 	
 	self.bulletvelocity = 800.0 // m/s
-	self.bulletlife = 0.5
+	self.bulletlife = 0.75
 	
 	self.soundset = "browning303"
 	

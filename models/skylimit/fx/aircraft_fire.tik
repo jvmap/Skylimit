@@ -103,4 +103,18 @@ animations
 	    	enter emitteroff firesmoke
 		}
 	}
+//	blowup dummy3.skc
+//	{
+//		client
+//		{
+//			enter originspawn
+//			(
+//				count 1
+//				life 1.0
+//				model models/skylimit/fx/cannon_shell.tik
+//				anim start
+//				scale 16.0
+//			)
+//		}
+//	}
 }

@@ -28,7 +28,47 @@ animations
 {
 	idle     		turret45_barrels.skc
 	
-	fire     		turret45_barrels_fire.skc
+	// alternate barrels
+	fire1    		turret45_barrels_fire1.skc
+	{
+		client
+		{
+			first stopaliaschannel cl_naval_fire
+			first sound cl_naval_fire
+			
+			// muzzle flash
+			first tagdlight tag_barrel1 0.25 0.2 0.05 200 0.11
+			
+			first tagspawn tag_barrel1
+			(
+				model models/skylimit/fx/muzzle/naval114mm.tik
+				life 0.06
+				anim fire
+			)
+		}
+	}
+	
+	// alternate barrels
+	fire2     		turret45_barrels_fire2.skc
+	{
+		client
+		{
+			first stopaliaschannel cl_naval_fire
+			first sound cl_naval_fire
+			
+			// muzzle flash
+			first tagdlight tag_barrel2 0.25 0.2 0.05 200 0.11
+			
+			first tagspawn tag_barrel2
+			(
+				model models/skylimit/fx/muzzle/naval114mm.tik
+				life 0.06
+				anim fire
+			)
+		}
+	}
+	
+	fire_dual     		turret45_barrels_fire.skc
 	{
 		client
 		{

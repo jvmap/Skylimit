@@ -1,0 +1,16 @@
+TIKI
+
+setup
+{
+	path models/skylimit/aircraft/includes/prop
+	skelmodel prop3.skd
+	surface all shader spitfire_prop
+	scale 0.66
+}
+
+$include models/skylimit/aircraft/includes/classdef.tik
+
+animations
+{
+	idle			prop3.skc
+}

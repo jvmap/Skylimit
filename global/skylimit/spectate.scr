@@ -1,8 +1,8 @@
 // player spectate handler
 // by jv_map
 
-spectate:
-	if(self.last_plane)
+spectate local.dont_force_lookat_last_plane:
+	if(self.last_plane && !local.dont_force_lookat_last_plane)
 	{
 		// keep watching last plane as it crashes
 		// switch back to freelook cam and watch plane die
@@ -28,7 +28,7 @@ spectate:
 		}
 		self.last_spectate_useheld = self.useheld
 		
-		if(self.spectatee)
+		if (self.spectatee)
 		{
 			self.cam_target = self.spectatee
 			self.cam_mode = "freelook"
@@ -96,7 +96,7 @@ getspectatee:
 		if(local.i <= local.psize)
 		{
 			local.p = $SL_plane[local.i]
-			if(local.take_next && ( !level.teambased || self.dmteam == "spectator" || local.p.dmteam == self.dmteam))
+			if(local.take_next && local.p != self.last_plane && ( !level.teambased || self.dmteam == "spectator" || local.p.dmteam == self.dmteam))
 			{
 				self.spectatee = local.p
 				break
@@ -142,3 +142,19 @@ getspectatee:
 		}
 	}
 end
+
+// returns specables for this player
+get_personal_specables:
+
+	local.j = 0
+	for(local.i = 1; local.i <= $SL_specable.size; local.i++)
+	{
+		local.spec = $SL_specable[local.i]
+		if(local.spec.spec_owner == self)
+		{
+			local.j++
+			local.specs[local.j] = local.spec
+		}
+	}
+	
+end local.specs

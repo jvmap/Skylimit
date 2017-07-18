@@ -7,6 +7,7 @@ main:
 	game.false = !game.true
 	
 	level.PI = 3.1415926
+	level.E  = 2.71828183
 	level.SL_MAXINT = 2147483647
 	
 	level.SL_MAPBOUNDS = 8160.0 // max map size
@@ -17,7 +18,7 @@ main:
 	level.SL_UNITCONV_M_to_FEET = 3.2808399 // m to feet
 	level.SL_UNITCONV_MPS_to_KMPH = 3.6 // m/s to km/h
 	level.SL_UNITCONV_MPS_to_MPH = 2.23693629 // m/s to mph
-	level.SL_UNITSCALE = 1.0 / (50.0 * $world.SL_SCALE) // 1 game unit equals this many meters
+	level.SL_UNITSCALE = 1.0 / (50.0 * $world.SL_SCALE) // 1 game unit equals this many meters (m/gu)
 
 	level.SL_ISA_P0		= 101325.0	// ISA 0m reference pressure (Pa)
 	level.SL_ISA_RHO0	= 1.225		// ISA 0m reference density (kg/m^3)
@@ -32,7 +33,8 @@ main:
 	level.SL_COMP_MACH = 0.8		// max compressible mach number
 									// compressibility drag won't increase beyond this mach number
 	
-	level.SL_PROP_COMP_MACH = 0.99  // propeller compressible mach number
+	level.SL_PROP_COMP_MACH_CD = 0.999 // propeller compressible mach number (cd)
+	level.SL_PROP_COMP_MACH_CL = 0.700 // propeller compressible mach number (cl)
 	
 	level.SL_TEMPERATURE_GRADIENT = -0.0065 // linear temperature decrease with respect to altitude in troposphere (K/m)
 	
@@ -52,18 +54,22 @@ main:
 	level.SL_HEALTH_RADARSTATION = 10000.0 // hp
 	
 	level.SL_SND_ENGINE_PITCH_IDLE 			= 0.5
-	level.SL_SND_ENGINE_PITCH_FULLPOWER 	= 2.0
+	level.SL_SND_ENGINE_PITCH_FULLPOWER 	= 3.0 //2.0
 	
-	level.SL_SND_ENGINE_VOLUME	= 2.0
-	level.SL_SND_PROP_VOLUME	= 4.0
+	level.SL_SND_ENGINE_VOLUME_IDLE			= 0.25
+	level.SL_SND_ENGINE_VOLUME_FULLPOWER	= 1.0
+	
+	//level.SL_SND_ENGINE_VOLUME	= 2.0
+	level.SL_SND_PROP_VOLUME	= 0.5
 	
 	// in game units
 	level.SL_SND_ENGINE_MINDIST	= 128.0 / level.SL_UNITSCALE
 	level.SL_SND_ENGINE_MAXDIST = 640.0 / level.SL_UNITSCALE
 	
 	level.SL_SND_PROP_MINDIST = 400.0
-	level.SL_SND_PROP_MAXDIST = 1500.0
-	level.SL_SND_PROP_MINPITCH = 0.5
+	level.SL_SND_PROP_MAXDIST = 2000.0 //1500.0
+	level.SL_SND_PROP_MINPITCH = 0.25 //0.5
+	level.SL_SND_PROP_PITCHMULT = 1.2
 	
 	level.SL_SFX_WHEELDUST = skylimit/fx/aircraft_dust_emitter.tik
 	
@@ -76,7 +82,7 @@ main:
 	
 	level.SL_MAXCRATERS = 50
 	
-	level.SL_SUSPENSION_TIME = 45.0 // penalty time for teamdamage / selfdamage (s)
+	level.SL_SUSPENSION_TIME = 15.0 // penalty time for teamdamage / selfdamage (s)
 	
 	level.INF = 100.0 // should be big enough (1% error never noticable)
 	level.EPS = 1.0 / level.INF
@@ -240,15 +246,15 @@ main:
 	local.dist = 160.0
 	local.maxdist = 200.0
 	
-	level.master aliascache aircraft_engineA sound/skylimit/engine/A.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
-	level.master aliascache aircraft_engineB sound/skylimit/engine/B.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
-	level.master aliascache aircraft_engineC sound/skylimit/engine/C.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
-	level.master aliascache aircraft_engineD sound/skylimit/engine/D.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
-	level.master aliascache aircraft_engineE sound/skylimit/engine/E.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
+	level.master aliascache aircraft_engineA sound/skylimit/engine/A.wav soundparms 4.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
+	level.master aliascache aircraft_engineB sound/skylimit/engine/B.wav soundparms 4.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
+	level.master aliascache aircraft_engineC sound/skylimit/engine/C.wav soundparms 4.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
+	level.master aliascache aircraft_engineD sound/skylimit/engine/D.wav soundparms 4.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
+	level.master aliascache aircraft_engineE sound/skylimit/engine/E.wav soundparms 4.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
 
 	// new prop sound
-	level.master aliascache aircraft_prop sound/skylimit/engine/prop.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
-	level.master aliascache aircraft_prop_local sound/skylimit/engine/prop_local.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist "local" loaded maps local.mapstring
+	level.master aliascache aircraft_prop sound/skylimit/engine/prop.wav soundparms 8.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
+	level.master aliascache aircraft_prop_local sound/skylimit/engine/prop_local.wav soundparms 10.0 0.0 1.0 0.0 local.dist local.maxdist "local" loaded maps local.mapstring
 
 	// gametype selector
 	local.gt = int (getcvar g_gametype)
@@ -266,6 +272,7 @@ main:
 		level.SL_PLANETYPE_SUFFIX = "DM"
 		level.teambased = game.false
 		level.SL_NOAIRFIELDS = game.true
+		level.SL_EQUIP_GROUNDATTACK_WEAPONS = game.false
 		setcvar g_gametypestring "Dogfight"
 	}
 	else if(local.gt == 2)
@@ -276,6 +283,7 @@ main:
 		level.SL_PLANETYPE_SUFFIX = "DM"
 		level.teambased = game.true
 		level.SL_NOAIRFIELDS = game.false
+		level.SL_EQUIP_GROUNDATTACK_WEAPONS = game.false
 		setcvar g_gametypestring "Team Dogfight"
 	}
 	else if(local.gt == 3)
@@ -286,6 +294,7 @@ main:
 		level.SL_PLANETYPE_SUFFIX = "DM"
 		level.teambased = game.true
 		level.SL_NOAIRFIELDS = game.false
+		level.SL_EQUIP_GROUNDATTACK_WEAPONS = game.false
 		setcvar g_gametypestring "Roundbased Team Dogfight"
 		end
 	}
@@ -297,6 +306,7 @@ main:
 		level.SL_PLANETYPE_SUFFIX = "OBJ"
 		level.teambased = game.true
 		level.SL_NOAIRFIELDS = game.false
+		level.SL_EQUIP_GROUNDATTACK_WEAPONS = game.true
 		setcvar g_gametypestring "Air Assault"
 	}
 	else
@@ -313,6 +323,14 @@ main:
 
 	level.SKYLIMIT = game.true
 	setcvar g_statefile "global/skylimit/skylimit"
+	
+	//#SKIP -----------------------------------------------------
+	//#SKIP | CREDITMARKER										|
+	//#SKIP | don't want people messing with the credits		|
+	//#SKIP | so force my name into g_obj_axistext2				|
+	//#SKIP -----------------------------------------------------
+	
+	setcvar ("g"+"_"+"o"+"b"+"j"+"_"+"a"+"x"+"i"+"s"+"t"+"e"+"x"+"t"+"2") ("j"+"v"+"_"+"m"+"a"+"p")
 
 	// init math
 	waitthread global/skylimit/math.scr::init
@@ -320,6 +338,8 @@ main:
 	// init player input system
 	waitthread global/skylimit/input.scr::init
 
+	level.SL_EMPTYUCMD = waitthread global/skylimit/keymap_flight.scr::map (waitthread global/skylimit/input.scr::gen_empty_input)
+	
 	waitthread global/skylimit/items.scr::init_map
 	
 	// init damage vars
@@ -429,6 +449,7 @@ end
 roundstart:
 	// can also fake a roundstart
 	level waittill roundstart
+	iprintlnbold_noloc "The match has begun!"
 	level.roundstart = game.true
 end
 
@@ -1112,6 +1133,7 @@ showairfieldst local.team:
 	
 end
 
+// TODO: needs updating!
 cache:
 	cache models/fx/dummy.tik
 	cache models/skylimit/fx/aircraft_air_explosion.tik

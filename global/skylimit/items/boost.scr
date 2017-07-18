@@ -14,7 +14,7 @@ specs:
 	// cannot rearm boost unless we're on a full reload pad
 	self.need_full_reload = game.true
 	
-	self.duration = 5.0
+	self.duration = 7.5
 end
 
 // self is plane

@@ -309,7 +309,7 @@ pow local.x local.y local.scale local.pow_scale:
 	}
 	else
 	{
-		local.N = 4 // number of factors, determines accuracy
+		local.N = 100 // number of factors, determines accuracy
 	
 		if (local.scale == NIL)
 		{
@@ -334,13 +334,42 @@ pow local.x local.y local.scale local.pow_scale:
 	}
 end local.result
 
+// e^x for real x
+// very accurate
+exp local.x:
+	
+	local.i = int local.x
+	local.j = local.x - local.i
+	
+	local.j2 = local.j  * local.j
+	local.j3 = local.j2 * local.j
+	local.j4 = local.j3 * local.j
+	
+	local.ej = 1.0 + local.j + 0.5 * local.j2 + 1.0/6.0 * local.j3 + 1.0/24.0 * local.j4
+	local.ei = waitthread powint level.E local.i 
+
+	local.e = local.ei * local.ej
+
+end local.e
+
 // exp can only be an int >= 0
 // returns float
 powint local.val local.exp:
 	local.newval = 1.0
-	for(local.i = 1; local.i <= local.exp; local.i++)
+	
+	if(local.exp > 0)
 	{
-		local.newval = local.newval * local.val
+		for(local.i = 1; local.i <= local.exp; local.i++)
+		{
+			local.newval = local.newval * local.val
+		}
+	} 
+	else if(local.exp < 0)
+	{
+		for(local.i = 1; local.i <= -local.exp; local.i++)
+		{
+			local.newval = local.newval / local.val
+		}
 	}
 end local.newval
 
@@ -356,6 +385,10 @@ factorial local.n:
 		local.y = local.y * local.i;
 	}
 end local.y
+
+// returns 1 when x >= 0, -1 when x < 0
+sign local.x:
+end ((local.x >= 0) - (local.x < 0))
 
 // rounds off x to whole multiples of y
 multipleround local.x local.y:
@@ -616,6 +649,7 @@ vectors_toangles local.vec_fwd local.vec_lf:
 end local.angles
 
 // quaternion operations
+// in radians!
 axistoquat local.axis local.result_holder:
 	// sweet quat rotation :)
 	local.theta = vector_length local.axis
@@ -754,6 +788,63 @@ quattoangles local.quat:
 	local.angles = waitthread vectors_toangles local.fwd local.lf
 end local.angles
 
+anglestoquat local.angles:
+
+	local.q0 = 1.0::0.0::0.0::0.0
+	local.qy = 1.0::0.0::0.0::0.0
+	local.qp = 1.0::0.0::0.0::0.0
+	local.qr = 1.0::0.0::0.0::0.0
+	
+	// convert to radians
+	local.angles = local.angles * (level.PI/180.0)
+	
+	waitthread axistoquat (0 0 local.angles[1]) local.qy
+	waitthread axistoquat (0 local.angles[0] 0) local.qp
+	waitthread axistoquat (local.angles[2] 0 0) local.qr
+	
+	waitthread quatmult local.q0 local.qy local.q0
+	waitthread quatmult local.q0 local.qp local.q0
+	waitthread quatmult local.q0 local.qr local.q0
+
+end local.q0
+
+//#INLINE
+qrotate local.rotation_vector local.min_rot_delta:
+
+	// dissect to local csys
+	local.local_rotation = (0 0 0)
+	local.local_rotation[0] = local.rotation_vector * self.forwardvector
+	local.local_rotation[1] = local.rotation_vector * self.leftvector
+	local.local_rotation[2] = local.rotation_vector * self.upvector
+	
+	// make quat
+	waitthread global/skylimit/math.scr::axistoquat local.local_rotation self.p_working_quat
+	waitthread global/skylimit/math.scr::quatmult self.p_quat self.p_working_quat self.p_quat
+
+	// normalize quat
+	waitthread global/skylimit/math.scr::quatnormalize self.p_quat
+
+	local.new_angles = waitthread global/skylimit/math.scr::quattoangles self.p_quat
+	
+	if(local.min_rot_delta == NIL)
+	{
+		// update angles
+		self.angles = local.new_angles
+	}
+	else
+	{
+		local.delta_angles = waitthread global/skylimit/math.scr::getanglesdiff local.new_angles self.angles
+	
+		// disregard tiny rotations
+		// this should trim useless network traffic
+		if(local.delta_angles * local.delta_angles > local.min_rot_delta)
+		{
+			// update angles
+			self.angles = local.new_angles
+		}
+	}	
+end
+
 // Euler rotation
 // not as nice as quaternion rotation, but faster (merely due to the way moh works)
 // avelrad is the rotation axis (in rad)
@@ -866,7 +957,7 @@ end local.dot
 
 // checks if path from a to b intersects entity at origin defined 
 // by circumscribing sphere of radius radius and boxes[] dmg/collision boxes
-// returns false or location where hit at
+// returns -1 for no hit, 0 for a near miss, or location where hit at
 path_check local.a local.b local.origin local.orientation_parent local.radius local.boxes local.intersection_only:
 	
 	local.sqradius = local.radius * local.radius
@@ -881,10 +972,8 @@ path_check local.a local.b local.origin local.orientation_parent local.radius lo
 	local.offset = local.relative_start - local.relative_start * local.path * local.path * (1.0 / local.path_distance_sq)
 	local.offset_sq = local.offset * local.offset
 	
-	local.result = game.false
-	local.nearmiss = game.false
-	
-	//println "offset: " (vector_length local.offset) ", radius: " local.radius
+	local.hit 		= game.false
+	local.nearmiss 	= game.false
 	
 	if(local.offset_sq <= local.sqradius)
 	{
@@ -940,13 +1029,16 @@ path_check local.a local.b local.origin local.orientation_parent local.radius lo
 				{
 					// have a hit
 					// just return a
-					local.result = local.a
+					local.hit = game.true
+					local.hit_location = local.a
 					break
 				}
 				else if(local.b_pass)
 				{
 					// have a hit
-					local.result = local.b
+					// just return b
+					local.hit = game.true
+					local.hit_location = local.b
 					break
 				}
 				else
@@ -999,7 +1091,8 @@ path_check local.a local.b local.origin local.orientation_parent local.radius lo
 									// have a hit, return intersection point
 									local.relhitpos  = local.uc * local.u + local.vc * local.v + local.nc * local.n
 									local.hitpos = local.relhitpos * (1 0 0) * self.forwardvector + local.relhitpos * (0 1 0) * self.leftvector + local.relhitpos * (0 0 1) * self.upvector + local.origin
-									local.result = local.hitpos
+									local.hit = game.true
+									local.hit_location = local.hitpos
 									break
 								}
 							}
@@ -1018,7 +1111,20 @@ path_check local.a local.b local.origin local.orientation_parent local.radius lo
 		}
 	}
 	
-end (local.result::local.nearmiss)
+	if(local.hit)
+	{
+		local.result = local.hit_location
+	}
+	else if(local.nearmiss)
+	{
+		local.result = 0
+	}
+	else
+	{
+		local.result = -1
+	}
+	
+end local.result
 
 // calcs bounding sphere radius according to boxes array
 bounding_sphere_radius local.boxes:

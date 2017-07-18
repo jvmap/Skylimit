@@ -65,25 +65,38 @@ isnear local.pos:
 	{
 		local.e = level.DYN_ENTS[local.i]
 		
-		local.vec = local.e.origin - local.pos
-		local.sqdist = local.vec * local.vec
-		
-		if(local.sqdist <= local.NEARDIST * local.NEARDIST)
+		if(local.e)
 		{
-			local.near = game.true
-			break
+			local.vec = local.e.origin - local.pos
+			local.sqdist = local.vec * local.vec
+			
+			if(local.sqdist <= local.NEARDIST * local.NEARDIST)
+			{
+				local.near = game.true
+				break
+			}
 		}
 	}
 	
 end local.near
 
-// static
-trace local.start local.end:
+init_working_array:
+end (game.false::(0 0 0)::(0 0 0)::NULL)
+
+// returns 0 if nothing hit,
+// an array with useful data otherwise
+trace local.start local.end local.working_array:
 	
 	local.hit = game.false
 	local.hitpos = local.end
+	local.hitnormal = (0 0 0)
+	local.ent = NULL
 	
-	waitthread cleanup_dyn_array
+	if(level.DYN_CLEANUP_TIME == NIL || level.time > level.DYN_CLEANUP_TIME)
+	{
+		waitthread cleanup_dyn_array
+		level.DYN_CLEANUP_TIME = level.time + 10.0
+	}
 	
 	if(local.end[2] < $world.OBSTACLEHEIGHT || local.start[2] < $world.OBSTACLEHEIGHT)
 	{
@@ -93,15 +106,24 @@ trace local.start local.end:
 		for(local.i = 1; local.i <= level.DYN_ENTS.size; local.i++)
 		{
 			local.e = level.DYN_ENTS[local.i]
-			waitthread trace_object local.e local.start local.end local
-			
-			if(local.hit)
+			if(local.e)
 			{
-				break
+				waitthread trace_object local.e local.start local.end local
+				if(local.hit)
+				{
+					break
+				}
 			}
 		}
 	}
-end (local.hit::local.hitpos::local.hitnormal::local.ent)
+	
+	// write to working array
+	local.working_array[1] = local.hit
+	local.working_array[2] = local.hitpos
+	local.working_array[3] = local.hitnormal
+	local.working_array[4] = local.ent
+	
+end local.hit
 
 // writes results to data_holder
 // so this can be inlined easily

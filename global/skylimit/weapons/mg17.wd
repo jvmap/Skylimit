@@ -3,10 +3,10 @@
 specs:
 	self.name = "MG17 7.92mm"
 	self.hud_shader = "sl_wmg17"
-	self.damage = 5.0
+	self.damage = 7.92
 	
 	self.bulletvelocity = 800.0 // m/s
-	self.bulletlife = 0.5
+	self.bulletlife = 0.75
 	
 	self.soundset = "mg17"
 	

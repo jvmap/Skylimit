@@ -51,10 +51,63 @@ addoption local.v local.skin local.hangar:
 	}
 end
 
+// returns weapon/item mass (bombs etc) of this variant
+weapon_mass local.opt:
+
+	local.mass = 0.0
+	
+	for(local.i = 1; local.i <= local.opt.loadout.size; local.i++)
+	{
+		local.l = local.opt.loadout[local.i]
+		local.itype = local.l[1]
+		local.mass += level.SL_item[local.itype].mass
+	}
+	
+	for(local.i = 1; local.i <= level.ITEMS.size; local.i++)
+	{
+		local.itype = level.ITEMS[local.i]
+		local.mass += local.opt.inventory[local.itype] * level.SL_item[local.itype].mass
+	}
+
+end local.mass
+
+// returns weapon/item drag (bombs etc) of this variant
+// not normalized for wingarea
+weapon_drag local.opt:
+
+	local.drag = 0.0
+	
+	for(local.i = 1; local.i <= local.opt.loadout.size; local.i++)
+	{
+		local.l = local.opt.loadout[local.i]
+		local.itype = local.l[1]
+		
+		if(!level.SL_item[local.itype].internal && level.SL_item[local.itype].drag)
+		{
+			local.drag += level.SL_item[local.itype].drag * 0.25 * level.PI * level.SL_item[local.itype].diameter * level.SL_item[local.itype].diameter
+		}
+	}
+	
+	for(local.i = 1; local.i <= level.ITEMS.size; local.i++)
+	{
+		local.itype = level.ITEMS[local.i]
+
+		if(!level.SL_item[local.itype].internal && level.SL_item[local.itype].drag)
+		{
+			local.drag += local.opt.inventory[local.itype] * level.SL_item[local.itype].drag * 0.25 * level.PI * level.SL_item[local.itype].diameter * level.SL_item[local.itype].diameter
+		}
+	}
+	
+end local.drag
+
 // rack = NULL for direct plane attachment (without the usage of a bomb rack)
 addloadout local.type local.model local.tag local.rack:
-	local.modelstr = "skylimit/weapons/" + local.model + ".tik"
-	self.loadout = waitthread global/skylimit/common.scr::addtoarray self.loadout (local.type::local.modelstr::local.tag::local.rack)
+
+	if(level.SL_EQUIP_GROUNDATTACK_WEAPONS)
+	{
+		local.modelstr = "skylimit/weapons/" + local.model + ".tik"
+		self.loadout = waitthread global/skylimit/common.scr::addtoarray self.loadout (local.type::local.modelstr::local.tag::local.rack)
+	}
 end
 
 addinventory local.type local.amount:
@@ -62,8 +115,12 @@ addinventory local.type local.amount:
 end
 
 addrack local.model local.tag local.name:
-	local.modelstr = "skylimit/weapons/racks/" + local.model + ".tik"
-	self.racks = waitthread global/skylimit/common.scr::addtoarray self.racks (local.modelstr::local.tag::local.name)
+
+	if(level.SL_EQUIP_GROUNDATTACK_WEAPONS)
+	{
+		local.modelstr = "skylimit/weapons/racks/" + local.model + ".tik"
+		self.racks = waitthread global/skylimit/common.scr::addtoarray self.racks (local.modelstr::local.tag::local.name)
+	}
 end
 
 inithangar local.team:
@@ -427,29 +484,37 @@ hangar_switchto local.h:
 	}
 		
 	// set performance info
-	local.mass = int local.h.option.showroom_plane.MASS
-	local.speed = int (local.h.option.PERFORMANCE_speed * level.SL_UNITCONV_MPS_to_KNOTS)
-	local.turn = int local.h.option.PERFORMANCE_turnradius
-	local.climb = int (local.h.option.PERFORMANCE_climb * level.SL_UNITCONV_M_to_FEET * 60.0)
+	
+	// empty
+	local.mass = waitthread numberformat local.h.option.PERFORMANCE_mass
+	local.speed = waitthread numberformat (local.h.option.PERFORMANCE_speed * level.SL_UNITCONV_MPS_to_KNOTS)
+	local.turn = waitthread numberformat local.h.option.PERFORMANCE_turnradius
+	local.climb = waitthread numberformat (local.h.option.PERFORMANCE_climb * level.SL_UNITCONV_M_to_FEET * 60.0)
+	
+	// loaded
+	local.LD_mass = waitthread numberformat local.h.option.PERFORMANCE_LD_mass
+	local.LD_speed = waitthread numberformat (local.h.option.PERFORMANCE_LD_speed * level.SL_UNITCONV_MPS_to_KNOTS)
+	local.LD_turn = waitthread numberformat local.h.option.PERFORMANCE_LD_turnradius
+	local.LD_climb = waitthread numberformat (local.h.option.PERFORMANCE_LD_climb * level.SL_UNITCONV_M_to_FEET * 60.0)
 	
 	if(local.h.option.showroom_plane.props.size > 1)
 	{
-		local.powerstr = local.h.option.showroom_plane.props.size + "x" + int (local.h.option.showroom_plane.ENGINE_RATED_POWER / 1000.0 / local.h.option.showroom_plane.props.size) + " kW"
+		local.powerstr = local.h.option.showroom_plane.props.size + "x " + (waitthread numberformat (local.h.option.showroom_plane.ENGINE_RATED_POWER / 1000.0 / local.h.option.showroom_plane.props.size)) + " kW"
 	}
 	else if(local.h.option.showroom_plane.props.size == 1)
 	{
-		local.powerstr = int (local.h.option.showroom_plane.ENGINE_RATED_POWER / 1000.0) + " kW"
+		local.powerstr = (waitthread numberformat (local.h.option.showroom_plane.ENGINE_RATED_POWER / 1000.0)) + " kW"
 	}
 	else
 	{
 		local.powerstr = "(unpowered)"
 	}
 	
-	self stufftext ("set sl_psl1 Weigth			: " + local.mass + " kg")
-	self stufftext ("set sl_psl2 Power			: " + local.powerstr)
-	self stufftext ("set sl_psl3 Speed			: " + local.speed + " kts")
-	self stufftext ("set sl_psl4 Turn Radius	: " + local.turn + " m")
-	self stufftext ("set sl_psl5 Rate Of Climb	: " + local.climb + " ft/min")
+	self stufftext ("set sl_psl1 Weight	: " + local.LD_mass + " (" + local.mass + ") kg")
+	self stufftext ("set sl_psl2 Power	: " + local.powerstr)
+	self stufftext ("set sl_psl3 Speed	: " + local.LD_speed + " (" + local.speed + ") kts")
+	self stufftext ("set sl_psl4 Turn	: " + local.LD_turn + " (" + local.turn + ") m")
+	self stufftext ("set sl_psl5 Climb	: " + local.LD_climb + " (" + local.climb + ") ft/min")
 	
 	// armament info
 	
@@ -509,6 +574,37 @@ hangar_switchto local.h:
 		self stufftext ("set sl_psr" + local.i + " -")
 	}
 end
+
+numberformat local.number:
+	
+	local.prestr = ""
+
+	if(local.number < 0)
+	{
+		local.prestr += "-"
+		local.number = -local.number
+	}
+
+	local.number = int local.number
+	
+	local.str = "" + local.number
+	local.outstr  = ""
+
+	for(local.i = 0; local.i < local.str.size; local.i++)
+	{
+		local.j = local.str.size-local.i-1
+		
+		local.outstr = local.str[local.j] + local.outstr
+		
+		if(local.i < local.str.size-1 && (local.i+1)%3 == 0)
+		{
+			local.outstr = "," + local.outstr
+		}
+	}
+
+	local.fstr = local.prestr + local.outstr
+
+end local.fstr
 
 update_amount local.option:
 

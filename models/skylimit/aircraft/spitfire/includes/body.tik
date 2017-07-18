@@ -44,6 +44,40 @@ init
 			anim fire
 		)
 		
+		// inboard MG 303s
+		tagemitter tag_barrel9 mg5s
+		(
+			model models/skylimit/fx/muzzle/s800L.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+		tagemitter tag_barrel10 mg6s
+		(
+			model models/skylimit/fx/muzzle/s800R.tik
+			spawnrate 20.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		tagemitter tag_barrel11 mg7s
+		(
+			model models/skylimit/fx/muzzle/s800L.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+		tagemitter tag_barrel12 mg8s
+		(
+			model models/skylimit/fx/muzzle/s800R.tik
+			spawnrate 20.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		
 		// MG50
 		tagemitter tag_barrel3 mg1m
 		(
@@ -121,7 +155,37 @@ animations
 			enter emitteroff mg2m
 		}
 	}
-		
+	
+	emitteron_allmg303 	body.skc
+	{
+		client
+		{
+			enter emitteron mg1s
+			enter emitteron mg2s
+			enter emitteron mg3s
+			enter emitteron mg4s
+			enter emitteron mg5s
+			enter emitteron mg6s
+			enter emitteron mg7s
+			enter emitteron mg8s
+		}
+	}
+	
+	emitteroff_allmg303	body.skc
+	{
+		client
+		{
+			enter emitteroff mg1s
+			enter emitteroff mg2s
+			enter emitteroff mg3s
+			enter emitteroff mg4s
+			enter emitteroff mg5s
+			enter emitteroff mg6s
+			enter emitteroff mg7s
+			enter emitteroff mg8s
+		}
+	}
+	
 	emitteron_mg303 	body.skc
 	{
 		client

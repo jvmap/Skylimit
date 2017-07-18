@@ -37,9 +37,11 @@ animations
 			0 stopaliaschannel cl_pompom_fire
 			0 sound cl_pompom_fire
 			
+			// use 2 pdr tiki instead (no tracer)
+			
 			0 tagspawn tag_barrel2
 			(
-				model models/skylimit/fx/muzzle/xxl600.tik
+				model models/skylimit/fx/muzzle/2pdr.tik
 				life 0.02
 				anim fire
 			)
@@ -47,7 +49,7 @@ animations
 			//1 sound cl_pompom_fire
 			1 tagspawn tag_barrel7
 			(
-				model models/skylimit/fx/muzzle/xxl600.tik
+				model models/skylimit/fx/muzzle/2pdr.tik
 				life 0.02
 				anim fire
 			)
@@ -55,7 +57,7 @@ animations
 			//2 sound cl_pompom_fire
 			2 tagspawn tag_barrel8
 			(
-				model models/skylimit/fx/muzzle/xxl600.tik
+				model models/skylimit/fx/muzzle/2pdr.tik
 				life 0.02
 				anim fire
 			)
@@ -63,7 +65,7 @@ animations
 			//3 sound cl_pompom_fire
 			3 tagspawn tag_barrel5
 			(
-				model models/skylimit/fx/muzzle/xxl600.tik
+				model models/skylimit/fx/muzzle/2pdr.tik
 				life 0.02
 				anim fire
 			)
@@ -71,7 +73,7 @@ animations
 			//4 sound cl_pompom_fire
 			4 tagspawn tag_barrel3
 			(
-				model models/skylimit/fx/muzzle/xxl600.tik
+				model models/skylimit/fx/muzzle/2pdr.tik
 				life 0.02
 				anim fire
 			)
@@ -79,7 +81,7 @@ animations
 			//5 sound cl_pompom_fire
 			5 tagspawn tag_barrel1
 			(
-				model models/skylimit/fx/muzzle/xxl600.tik
+				model models/skylimit/fx/muzzle/2pdr.tik
 				life 0.02
 				anim fire
 			)
@@ -87,7 +89,7 @@ animations
 			//6 sound cl_pompom_fire
 			6 tagspawn tag_barrel6
 			(
-				model models/skylimit/fx/muzzle/xxl600.tik
+				model models/skylimit/fx/muzzle/2pdr.tik
 				life 0.02
 				anim fire
 			)
@@ -95,7 +97,7 @@ animations
 			//7 sound cl_pompom_fire
 			7 tagspawn tag_barrel4
 			(
-				model models/skylimit/fx/muzzle/xxl600.tik
+				model models/skylimit/fx/muzzle/2pdr.tik
 				life 0.02
 				anim fire
 			)

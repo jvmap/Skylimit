@@ -27,17 +27,14 @@ init_player:
 	self.SL_input_wswitchdelta = 0
 	self.SL_lastwid = 1
 	self.SL_input_last_lean_controller = 0.0
+	self.SL_ucmd[PLAYERMARKER] = game.true
 end
 
 processrawinput local.rawinput:
-	//print level.time " " local.rawinput " "
 	for(local.i = 1; local.i <= level.SL_INPUT_CONDITIONS.size; local.i++)
 	{
 		local.input[level.SL_INPUT_CONDITIONS[local.i]] = (local.rawinput & level.SL_INPUT_KEYINT[local.i]) > 0
-		//if(local.input[level.SL_INPUT_CONDITIONS[local.i]])
-		//	print level.SL_INPUT_CONDITIONS[local.i] " "
 	}
-	//println ""
 end local.input
 
 // called from state file when input cycle has completed
@@ -98,42 +95,28 @@ set_next_input local.rawinput:
 
 	// trivial
 	local.input[USE] = self.useheld
-
-	// convenient :)
-	// fires when user stops running
-	// -> fires on shift press when always run is enabled (default)
-	// -> fires on shift release when always run is disabled
-	//local.input[TOGGLE_RUN] = !local.input[RUN] && self.SL_last_run
-	//self.SL_last_run = local.input[RUN]
-
-	// determine pushtypes
-	/*
-	local.ADDITIONAL_INPUT = MWHEEL_UP::MWHEEL_DN::HOLSTER::LEAN_LEFT::LEAN_RIGHT::USE
-	local.INPUTLIST = waitthread global/skylimit/common.scr::arrayadd level.SL_INPUT_CONDITIONS local.ADDITIONAL_INPUT
-
-	for(local.i = 1; local.i <= local.INPUTLIST.size; local.i++)
-	{
-		local.kn = local.INPUTLIST[local.i]
-		if(self.SL_prev_input)
-		{
-			local.delta = self.SL_input[local.kn] - self.SL_prev_input[local.kn]
-		}
-		else
-		{
-			local.delta = self.SL_input[local.kn]	
-		}
-		local.pushtype[local.kn] = local.delta
-	}
-	*/
 	self.SL_input = local.input
-	/*
-	self.SL_input_pushtype = local.pushtype
 	
-	self.SL_prev_input = waitthread global/skylimit/common.scr::stringarraycopy local.input local.INPUTLIST
-	*/
 	// determine ucmd from the input cycle
-	self.SL_ucmd = waitthread ("global/skylimit/keymap_" + self.keymap + ".scr")::map local.input local.pushtype
+	self.SL_ucmd = waitthread ("global/skylimit/keymap_" + self.keymap + ".scr")::map local.input self.SL_ucmd
 end
+
+// 'generates' zero input
+gen_empty_input:
+
+	local.input = waitthread processrawinput 0
+	
+	// extra inputs
+	local.input[MWHEEL_UP] = 0
+	local.input[MWHEEL_DN] = 0
+	local.input[HOLSTER] = 0
+	local.input[LEAN_LEFT] = 0
+	local.input[LEAN_RIGHT] = 0
+
+	// trivial
+	local.input[USE] = 0
+
+end local.input
 
 // called from weapon
 // sets weapon ID

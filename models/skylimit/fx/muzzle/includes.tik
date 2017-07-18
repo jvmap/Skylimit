@@ -24,7 +24,7 @@ animations
 				velocity $velocity$
 				alignstretch 0.2
 				life $life$
-				accel 0 0 -15.3
+				accel 0 0 -3.83
 				dietouch
 				scale $scale$
 				offsetalongaxis range 0.0 400.0 0.0 0.0

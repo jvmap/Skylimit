@@ -194,7 +194,7 @@ torpedo local.plane local.inflictor local.inflictor_team:
 			if(local.ent)
 			{
 				local.ent model skylimit/fx/explosion_water.tik
-				local.ent scale (0.2 * self.info.sfx_scale)
+				local.ent scale (2.0 * self.info.sfx_scale)
 				local.ent angles ( -90 0 0)
 				local.ent origin local.boom_pos
 				local.ent anim start

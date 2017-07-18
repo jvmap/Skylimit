@@ -73,73 +73,70 @@ message:
 	else // merely damaged
 	{
 		wait 0.2
+
+		local.ff = level.teambased && self.lastdamageinflictor_team == self.dmteam
 		
-		if (!self.destroyed)
+		// message inflictor if player
+		if(local.ff)
 		{
-			local.ff = level.teambased && self.lastdamageinflictor_team == self.dmteam
+			// friendly fire
+			waitthread msg self.lastdamageinflictor self.msg_damaged_inflictor_friendlyfire
+		}
+		else
+		{
+			// not friendly fire
+			waitthread msg self.lastdamageinflictor self.msg_damaged_inflictor_enemyfire
+		}
+		
+		// message all other players if necessary
+		for(local.i = 1; local.i <= $player.size; local.i++)
+		{
+			local.p = $player[local.i]
 			
-			// message inflictor if player
-			if(local.ff)
+			if(local.p == self.lastdamageinflictor)
 			{
-				// friendly fire
-				waitthread msg self.lastdamageinflictor self.msg_damaged_inflictor_friendlyfire
-			}
-			else
-			{
-				// not friendly fire
-				waitthread msg self.lastdamageinflictor self.msg_damaged_inflictor_enemyfire
+				continue
 			}
 			
-			// message all other players if necessary
-			for(local.i = 1; local.i <= $player.size; local.i++)
+			if(level.teambased)
 			{
-				local.p = $player[local.i]
-				
-				if(local.p == self.lastdamageinflictor)
+				if(local.p.dmteam == "spectator" || self.dmteam == "neutral")
 				{
-					continue
-				}
-				
-				if(level.teambased)
-				{
-					if(local.p.dmteam == "spectator" || self.dmteam == "neutral")
+					if(local.ff)
 					{
-						if(local.ff)
-						{
-							waitthread msg local.p self.msg_damaged_neutralteam_friendlyfire
-						}
-						else
-						{
-							waitthread msg local.p self.msg_damaged_neutralteam_enemyfire
-						}
-					}
-					else if(local.p.dmteam == self.dmteam)
-					{
-						if(local.ff)
-						{
-							waitthread msg local.p self.msg_damaged_friendlyteam_friendlyfire
-						}
-						else
-						{
-							waitthread msg local.p self.msg_damaged_friendlyteam_enemyfire
-						}
+						waitthread msg local.p self.msg_damaged_neutralteam_friendlyfire
 					}
 					else
 					{
-						if(local.ff)
-						{
-							waitthread msg local.p self.msg_damaged_enemyteam_friendlyfire
-						}
-						else
-						{
-							waitthread msg local.p self.msg_damaged_enemyteam_enemyfire
-						}
+						waitthread msg local.p self.msg_damaged_neutralteam_enemyfire
+					}
+				}
+				else if(local.p.dmteam == self.dmteam)
+				{
+					if(local.ff)
+					{
+						waitthread msg local.p self.msg_damaged_friendlyteam_friendlyfire
+					}
+					else
+					{
+						waitthread msg local.p self.msg_damaged_friendlyteam_enemyfire
 					}
 				}
 				else
 				{
-					waitthread msg local.p self.msg_damaged_neutral
+					if(local.ff)
+					{
+						waitthread msg local.p self.msg_damaged_enemyteam_friendlyfire
+					}
+					else
+					{
+						waitthread msg local.p self.msg_damaged_enemyteam_enemyfire
+					}
 				}
+			}
+			else
+			{
+				waitthread msg local.p self.msg_damaged_neutral
 			}
 		}
 	}

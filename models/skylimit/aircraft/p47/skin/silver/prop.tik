@@ -2,7 +2,15 @@ TIKI
 
 setup
 {
+	path models/skylimit/aircraft/p47/skel
+	skelmodel prop.skd
 	surface all shader p47
+	scale 0.815 // 4.01 m diameter (the stock prop is much too small)
 }
 
-$include models/skylimit/aircraft/p47/includes/prop.tik
+$include models/skylimit/aircraft/includes/classdef.tik
+
+animations
+{
+	idle			prop.skc
+}

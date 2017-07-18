@@ -1,0 +1,105 @@
+// by jv_map
+
+specs:
+	self.name = "500lbs HE Internal"
+	self.hud_shader = "sl_ibmbg"
+
+	// mass of each bomb
+	self.mass = 250.0 // kg
+	self.inertia = 72.0 // kg
+	self.diameter = 0.34 // m
+	self.drag = 0.5
+	
+	self.bomb_model = skylimit/weapons/bomb_250kg_brown.tik
+	self.bomb_spread = 0.9 // bomb dropping spread in meters
+
+	self.ammo = 1
+	self.firedelay = 0.30
+	self.semiauto = game.true
+	self.expendable = game.false
+	self.external = game.false
+	self.internal = game.true // opens bombbay doors when rearming
+	self.kamikazable = game.true
+	self.rearm_time = 0.40
+	self.bulletcount = 0 // rounds fired per shot
+	self.cooldowntime = 2.0
+	
+	// bomb parameters
+	self.damage_center = 25000.0 // zero speed damage at point of impact
+	self.damage_boundary = 0.0 // damage at max blast radius
+	self.sfx_scale = 1.12
+	self.blast_radius = 85.0
+end
+
+// self is plane
+fire local.item:
+	if (self.carpet_bombing)
+	{
+		// hmmm maybe stop bombing?? dunno...
+	}
+	else
+	{
+		// start bombing
+		self.carpet_bombing = game.true
+
+		local.numbombs = self.item_amount[local.item.type]
+
+		// stash
+		local.pilot = self.pilot
+		
+		self.bombbay_request++
+		
+		while(self && !self.bombbay_state == level.BB_OPEN)
+		{
+			wait 0.5
+		}
+		
+		wait 0.5
+		
+		for(local.i = 1; local.i <= local.numbombs && self && self.bombbay_state == level.BB_OPEN; local.i++)
+		{
+			while(self && self.p_vload <= 0.0)
+			{
+				waitframe
+			}
+			
+			if !(self)
+			{ 
+				break
+			}
+			
+			local.ent = waitthread makebomb local.item
+			local.ent.info = local.item
+			local.ent thread global/skylimit/bombattack.scr::dropbomb self local.pilot self.dmteam game.true game.true
+			self.MASS -= local.item.mass
+			self.item_amount[local.item.type]--
+			
+			// update hud -> activate item if we had none selected
+			waitthread global/skylimit/flight.scr::item_switch 1 game.true
+			
+			wait local.item.firedelay
+		}
+		
+		wait 2.0
+		
+		if(self)
+		{
+			self.carpet_bombing = game.false
+			
+			if( self.pilotcontrol)
+			{
+				self.bombbay_request--
+			}
+		}
+	}
+end
+
+makebomb local.item:
+	local.vec = (self.bombbay gettagposition centerbomb) - self.bombbay.origin
+	local.pos = (self gettagposition self.bombbay.tag) + (local.vec[0] * self.forwardvector + local.vec[1] * self.leftvector + local.vec[2] * self.upvector) * self.SCALE
+
+	local.spread = local.item.bomb_spread / level.SL_UNITSCALE
+	local.pos += self.leftvector * local.spread * ((randomfloat 2.0) - 1.0)
+
+	local.e = spawn Animate model local.item.bomb_model scale self.SCALE origin local.pos angles self.angles
+end (local.e)

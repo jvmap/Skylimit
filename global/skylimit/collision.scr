@@ -29,9 +29,16 @@ end
 collision:
 	local.dt = 0.10
 	
+	local.next_cleanup_time = level.time
+	
 	while(1)
 	{
-		waitthread cleanup_collision_array
+		if(level.time >= local.next_cleanup_time)
+		{
+			// costly so don't clean too often
+			waitthread cleanup_collision_array
+			local.next_cleanup_time = level.time + 10.0
+		}
 		
 		// some preprocessing
 		waitthread precalc_collision level.COL_ENTS
@@ -39,9 +46,15 @@ collision:
 		// check each object against every other object, once
 		for(local.i = 1; local.i <= level.COL_ENTS.size; local.i++)
 		{
-			for(local.j = local.i + 1; local.j <= level.COL_ENTS.size; local.j++)
+			if(level.COL_ENTS[local.i])
 			{
-				waitthread check_mutual_collision level.COL_ENTS[local.i] level.COL_ENTS[local.j] local.dt
+				for(local.j = local.i + 1; local.j <= level.COL_ENTS.size; local.j++)
+				{
+					if(level.COL_ENTS[local.j])
+					{
+						waitthread check_mutual_collision level.COL_ENTS[local.i] level.COL_ENTS[local.j] local.dt
+					}
+				}
 			}
 		}
 		
@@ -55,11 +68,14 @@ precalc_collision local.ents:
 	{
 		local.ent = local.ents[local.i]
 		
-		// oriented sphere offset
-		local.ent.col_ooffset = local.ent.col_offset[0] * local.ent.forwardvector + local.ent.col_offset[1] * local.ent.leftvector + local.ent.col_offset[2] * local.ent.upvector
-		
-		// local velocity
-		local.ent.col_offset_vel = vector_cross local.ent.p_avelocity local.ent.col_ooffset
+		if(local.ent)
+		{
+			// oriented sphere offset
+			local.ent.col_ooffset = local.ent.col_offset[0] * local.ent.forwardvector + local.ent.col_offset[1] * local.ent.leftvector + local.ent.col_offset[2] * local.ent.upvector
+			
+			// local velocity
+			local.ent.col_offset_vel = vector_cross local.ent.p_avelocity local.ent.col_ooffset
+		}
 	}
 end
 

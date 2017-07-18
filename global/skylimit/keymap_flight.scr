@@ -2,7 +2,7 @@
 // this way key mappings can easily be altered without having to modify AI or flight model code.
 // by jv_map
 
-map local.input local.pushtype:
+map local.input local.ucmd:
 	local.ucmd[PITCH_UP] = local.input[BACKWARD]
 	local.ucmd[PITCH_DOWN] = local.input[FORWARD]
 	local.ucmd[ROLL_LEFT] = local.input[STRAFE_LEFT]

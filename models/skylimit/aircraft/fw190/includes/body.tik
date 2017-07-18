@@ -97,7 +97,7 @@ init
 			anim fire
 		)
 		
-		// CANNON MGFF 20mm, only outboard
+		// CANNON MGFF 20mm, outboard only
 		tagemitter tag_barrel5 cannon5l
 		(
 			model models/skylimit/fx/muzzle/l600R.tik
@@ -109,6 +109,24 @@ init
 		tagemitter tag_barrel6 cannon6l
 		(
 			model models/skylimit/fx/muzzle/l600L.tik
+			spawnrate 10.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		
+		// CANNON MK108 30mm, outboard only
+		tagemitter tag_barrel5 cannon7xl
+		(
+			model models/skylimit/fx/muzzle/xl500R.tik
+			spawnrate 10.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		tagemitter tag_barrel6 cannon8xl
+		(
+			model models/skylimit/fx/muzzle/xl500L.tik
 			spawnrate 10.0
 			life 0.02
 			startoff
@@ -252,6 +270,24 @@ animations
 		{
 			enter emitteroff cannon5l
 			enter emitteroff cannon6l
+		}
+	}
+	
+	emitteron_mk108_outboard	body.skc
+	{
+		client
+		{
+			enter emitteron cannon7xl
+			enter emitteron cannon8xl
+		}
+	}
+	
+	emitteroff_mk108_outboard	body.skc
+	{
+		client
+		{
+			enter emitteroff cannon7xl
+			enter emitteroff cannon8xl
 		}
 	}
 }

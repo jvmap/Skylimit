@@ -27,7 +27,6 @@ end
 
 // returns size of stack for class
 stacksize local.class:
-
 end level.SL_ENT_STACK[local.class].size
 
 // returns first free ent from stack
@@ -336,6 +335,8 @@ arty_echo_player local.pos:
 	}
 end 
 
+// No longer used
+/*
 // returns an array with all entries of entity_list
 // with dmteam variable not equal to exclude_team
 inverse_team_selection local.entity_list local.exclude_team:
@@ -412,3 +413,4 @@ sort_by_sqrange_asc local.entity_list local.score_list:
 	}
 	
 end local.new_array
+*/

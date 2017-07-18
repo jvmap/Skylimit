@@ -85,7 +85,7 @@ chutethink local.pickupable local.cowner:
 				{
 					local.someoneisnear = game.true
 					
-					if(local.pickupable && local.plane.pilot)
+					if(local.pickupable && local.plane.pilot && local.plane.SL_health > 0.0)
 					{
 						if(local.sqdist <= local.PICKUPSQDIST)
 						{

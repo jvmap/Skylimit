@@ -197,42 +197,55 @@ end
 // to be called before each damage evaluation
 //#INLINE
 update_dmg_array:
-	// also need to check if ents have been removed during this frame
-	// wipe
-	local.j = 0
-	for(local.i = 1; local.i <= level.DMG_ENTS.size; local.i++)
+
+	// this is rather costly.. don't need to call it more than once every 10 seconds or so
+	// just so the array doesn't grow excessively full of crap
+	if(level.__DMG_WIPETIME == NIL || level.time - level.__DMG_WIPETIME > 10.0)
 	{
-		local.ent = level.DMG_ENTS[local.i]
-		if (local.ent && local.ent.takedamage)
+		level.__DMG_WIPETIME = level.time
+		
+		// wipe
+		local.j = 0
+		for(local.i = 1; local.i <= level.DMG_ENTS.size; local.i++)
 		{
-			// prolongate this ent
-			local.j++
-			local.new_array[local.j] = local.ent
+			local.ent = level.DMG_ENTS[local.i]
+			if (local.ent && local.ent.takedamage)
+			{
+				// prolongate this ent
+				local.j++
+				local.new_array[local.j] = local.ent
+			}
 		}
+		
+		level.DMG_ENTS = local.new_array
 	}
-	
-	level.DMG_ENTS = local.new_array
 end
 
 // removes non-existant or non-damageable objects from the damage array for faster processing
 // to be called before each damage evaluation
 //#INLINE
 update_brushdmg_array:
-	// also need to check if ents have been removed during this frame
-	// wipe
-	local.j = 0
-	for(local.i = 1; local.i <= level.DMG_BRUSHENTS.size; local.i++)
-	{
-		local.ent = level.DMG_BRUSHENTS[local.i]
-		if (local.ent && local.ent.takedamage)
-		{
-			// prolongate this ent
-			local.j++
-			local.new_array[local.j] = local.ent
-		}
-	}
 	
-	level.DMG_BRUSHENTS = local.new_array
+	// this is rather costly.. don't need to call it more than once every 10 seconds or so
+	// just so the array doesn't grow excessively full of crap
+	if(level.__DMG_BRUSH_WIPETIME == NIL || level.time - level.__DMG_BRUSH_WIPETIME > 10.0)
+	{
+		level.__DMG_BRUSH_WIPETIME = level.time
+	
+		local.j = 0
+		for(local.i = 1; local.i <= level.DMG_BRUSHENTS.size; local.i++)
+		{
+			local.ent = level.DMG_BRUSHENTS[local.i]
+			if (local.ent && local.ent.takedamage)
+			{
+				// prolongate this ent
+				local.j++
+				local.new_array[local.j] = local.ent
+			}
+		}
+		
+		level.DMG_BRUSHENTS = local.new_array
+	}
 end
 
 
@@ -300,36 +313,10 @@ dodamage local.dmg local.means_of_damage local.inflictor local.inflictor_team lo
 	}
 end
 
-//#SKIP
-//damagable local.means_of_damage local.inflictor_team local.inflictor_owner local.can_damage_owner local.force_teamdamage:
-//end (self.damagability[local.means_of_damage] > 0.0 && ((self == local.inflictor_owner && local.can_damage_owner) || (self.isplane || level.roundstart) && ( !level.teambased || bool (getcvar g_teamdamage) || local.force_teamdamage || self.dmteam != local.inflictor_team)))
-
 // check if this type of damage can damage this ent
 damagable local.means_of_damage local.inflictor_team local.inflictor_owner local.can_damage_owner local.force_teamdamage:
 end (self.damagability[local.means_of_damage] > 0.0 && ( (self == local.inflictor_owner && local.can_damage_owner) || (self != local.inflictor_owner && (self.isplane || level.roundstart) && ( !level.teambased || bool (getcvar g_teamdamage) || local.force_teamdamage || self.dmteam != local.inflictor_team))))
 
-/*
-//#SKIP
-damagable local.means_of_damage local.inflictor_team local.inflictor_owner local.can_damage_owner local.force_teamdamage:
-	// check if this type of damage can damage this ent
-	if(self.damagability[local.means_of_damage] > 0.0)
-	{
-		// no damage can be done to map objects until round has started
-		if(self == local.inflictor_owner)
-		{
-			local.dmgable = local.can_damage_owner
-		}
-		else
-		{
-			local.dmgable = (self.isplane || level.roundstart) && ( !level.teambased || bool (getcvar g_teamdamage) || local.force_teamdamage || self.dmteam != local.inflictor_team)
-		}
-	}
-	else
-	{
-		local.dmgable = game.false
-	}
-end local.dmgable
-*/
 // radius damage
 // no hit testing; primarily for explosions / shrapnel
 radiusdamage local.pos local.radius local.dmg_center local.dmg_boundary local.means_of_damage local.inflictor local.inflictor_team local.inflictor_owner local.can_damage_owner local.force_teamdamage:
@@ -343,7 +330,7 @@ radiusdamage local.pos local.radius local.dmg_center local.dmg_boundary local.me
 	{
 		local.ent = level.DMG_ENTS[local.i]
 	
-		if(local.ent waitthread damagable local.means_of_damage local.inflictor_team local.inflictor_owner local.can_damage_owner local.force_teamdamage)
+		if(local.ent && local.ent waitthread damagable local.means_of_damage local.inflictor_team local.inflictor_owner local.can_damage_owner local.force_teamdamage)
 		{
 			// this ent is the 'peanut'
 			local.vec = local.ent.origin - local.pos
@@ -356,7 +343,14 @@ radiusdamage local.pos local.radius local.dmg_center local.dmg_boundary local.me
 				
 				// not really a nvec
 				// so knockback decreases linearly based on distance
-				local.knockback_nvec = local.vec * (1.0 / local.sqdist)
+				if(local.sqdist == 0.0)
+				{
+					local.knockback_nvec = (0 0 0)
+				}
+				else
+				{
+					local.knockback_nvec = local.vec * (1.0 / local.sqdist)
+				}
 				
 				local.ent waitthread dodamage local.dmg local.means_of_damage local.inflictor local.inflictor_team local.inflictor_owner local.ent.origin local.knockback_nvec
 			}
@@ -372,7 +366,7 @@ radiusdamage local.pos local.radius local.dmg_center local.dmg_boundary local.me
 	{
 		local.ent = level.DMG_BRUSHENTS[local.i]
 		
-		if(local.ent waitthread damagable local.means_of_damage local.inflictor_team local.inflictor_owner local.can_damage_owner local.force_teamdamage)
+		if(local.ent && local.ent waitthread damagable local.means_of_damage local.inflictor_team local.inflictor_owner local.can_damage_owner local.force_teamdamage)
 		{
 			local.vec = local.pos - local.ent.origin
 			
@@ -417,7 +411,7 @@ linedamage local.bullet_position local.bullet_velocity local.timestep local.dmg 
 	{
 		local.ent = level.DMG_ENTS[local.i]
 	
-		if(local.ent.dmg_boxes && local.ent waitthread damagable local.means_of_damage local.inflictor_team local.inflictor_owner local.can_damage_owner local.force_teamdamage)
+		if(local.ent && local.ent.dmg_boxes && local.ent waitthread damagable local.means_of_damage local.inflictor_team local.inflictor_owner local.can_damage_owner local.force_teamdamage)
 		{
 			local.hit = local.ent waitthread calclinedamage local.bullet_position (local.bullet_velocity * (1.0 / level.SL_UNITSCALE)) local.timestep local.dmg local.means_of_damage local.inflictor local.inflictor_team local.inflictor_owner local.zing local.intersection_only
 		}
@@ -427,14 +421,16 @@ end local.hit
 // querylinedamage
 // predicting line damage tester on any infinitely small object solely subjected to a constant vertical acceleration (aka bullet)
 // acceleration is a scalar and should not be zero; z up is positive
+// returns the number of damagable entities in the updated query (0 < x < n) or -1 if hit something
 querylinedamage local.query local.vec_x local.vec_y local.vec_z local.current_position local.current_velocity local.acceleration_z local.time_to_live local.timestep local.dmg local.means_of_damage local.inflictor local.inflictor_team local.inflictor_owner local.zing:
 	
-	// set to true if/when bullet is destroyed (b/c of hitting something)
-	local.end_of_flight = game.false
+	// changed query system for better performance:
+	// don't make a new query, instead fill existing query with NULL entries
+	// (saves memory allocations)
 	
-	local.velocity_x = local.current_velocity * local.vec_x * (1.0 / level.SL_UNITSCALE)
+	local.velocity_x = local.current_velocity * local.vec_x //* (1.0 / level.SL_UNITSCALE)
 	local.velocity_y = 0.0
-	local.velocity_z = local.current_velocity * local.vec_z * (1.0 / level.SL_UNITSCALE)
+	local.velocity_z = local.current_velocity * local.vec_z //* (1.0 / level.SL_UNITSCALE)
 	
 	// bullet bounds
 	local.bullet_xmin = 0.0
@@ -455,6 +451,9 @@ querylinedamage local.query local.vec_x local.vec_y local.vec_z local.current_po
 		local.bullet_zmax = 0.0
 	}
 	
+	// this is gonna be our return value
+	local.entities_in_query = 0
+	
 	local.j = 0 // updated query index
 	for(local.i = 1; local.i <= local.query.size; local.i++)
 	{
@@ -462,6 +461,7 @@ querylinedamage local.query local.vec_x local.vec_y local.vec_z local.current_po
 		
 		if ( !local.ent || !local.ent.takedamage)
 		{
+			local.query[local.i] = NULL
 			continue
 		}
 		
@@ -509,25 +509,29 @@ querylinedamage local.query local.vec_x local.vec_y local.vec_z local.current_po
 		if(local.pass_x && local.pass_y && local.pass_z)
 		{
 			// perform a damage check
-			//println "-- check damage -- " local.ent.entnum " " local.ent.model
-			local.end_of_flight = local.ent waitthread calclinedamage local.current_position local.current_velocity local.timestep local.dmg local.means_of_damage local.inflictor local.inflictor_team local.inflictor_owner local.zing
+			local.hit = local.ent waitthread calclinedamage local.current_position local.current_velocity local.timestep local.dmg local.means_of_damage local.inflictor local.inflictor_team local.inflictor_owner local.zing
 			
 			// can only damage 1 ent
-			if(local.end_of_flight)
+			if(local.hit)
 			{
+				// don't need to update query further as we're gonna exit anyway
+				local.entities_in_query = -1
 				break
 			}
-			
-			// prolongate ent's stay in query
-			local.j++
-			local.new_query[local.j] = local.ent
+			else
+			{
+				// prolongate ent's stay in query
+				local.entities_in_query++
+			}
 		}
 		else
 		{
-			//println "-- removed ent from query -- " local.ent.entnum " " local.ent.model
+			// remove this ent from the query
+			local.query[local.i] = NULL
 		}
 	}
-end local.end_of_flight::local.new_query
+
+end local.entities_in_query
 
 // creates damage predictor query
 create_query local.means_of_damage local.inflictor_team local.inflictor_owner local.can_damage_owner local.force_teamdamage:
@@ -539,7 +543,7 @@ create_query local.means_of_damage local.inflictor_team local.inflictor_owner lo
 	{
 		local.ent = level.DMG_ENTS[local.i]
 		
-		if(local.ent.dmg_boxes && local.ent waitthread damagable local.means_of_damage local.inflictor_team local.inflictor_owner local.can_damage_owner local.force_teamdamage)
+		if(local.ent && local.ent.dmg_boxes && local.ent waitthread damagable local.means_of_damage local.inflictor_team local.inflictor_owner local.can_damage_owner local.force_teamdamage)
 		{
 			local.j++
 			local.query[local.j] = local.ent
@@ -551,8 +555,6 @@ end local.query
 // checks if w/e bullet hits self in any of the dmg boxes
 // returns whether something is hit
 calclinedamage local.bullet_position local.bullet_velocity local.timestep local.dmg local.means_of_damage local.inflictor local.inflictor_team local.inflictor_owner local.zing local.intersection_only:
-
-	//println "calclinedamage " self.entnum " angles: " self.dmg_orientation_parent.angles
 
 	if(self.isphysicsobject)
 	{
@@ -566,26 +568,24 @@ calclinedamage local.bullet_position local.bullet_velocity local.timestep local.
 	
 	local.bullet_end_pos = local.bullet_position + local.relvel * local.timestep * (1.0 / level.SL_UNITSCALE)
 
-	local.results = waitthread global/skylimit/math.scr::path_check local.bullet_position local.bullet_end_pos self.origin self.dmg_orientation_parent self.dmg_radius self.dmg_boxes local.intersection_only
+	local.result = waitthread global/skylimit/math.scr::path_check local.bullet_position local.bullet_end_pos self.origin self.dmg_orientation_parent self.dmg_radius self.dmg_boxes local.intersection_only
 	
-	local.hitpos = local.results[1]
-	local.nearmiss = local.results[2]
+	local.nearmiss = local.result == 0
+	local.hit = local.result != 0 && local.result != -1
 	
-	if(local.hitpos)
+	if(local.hit)
 	{
+		local.hitpos = local.result
 		local.knockback_nvec = vector_normalize local.relvel
 		waitthread dodamage local.dmg local.means_of_damage local.inflictor local.inflictor_team local.inflictor_owner local.hitpos local.knockback_nvec
 	}
-	//else
-	//{
-		if(local.zing && self.SL_notify_zings && local.nearmiss)
-		{
-			// whiz by
-			self playsound sl_b_zing
-			//println "-- zing! --"
-		}
-	//}
-end (local.hitpos != game.false)
+	
+	if(local.zing && self.SL_notify_zings && local.nearmiss)
+	{
+		// whiz by
+		self playsound sl_b_zing
+	}
+end local.hit
 
 // convenient for damageable objects (not planes)
 damage_loop local.msg_type:

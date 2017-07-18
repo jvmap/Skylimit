@@ -5,17 +5,17 @@ specs:
 	self.name = "Oerlikon FF 20mm"
 	self.hud_shader = "sl_wmgff"
 	
-	self.damage = 20.0 // also does splash damage
+	self.damage = 10.0 // also does splash damage
 	
 	self.splash = game.true
-	self.splash_damage_center = 15.0
+	self.splash_damage_center = 10.0
 	self.splash_damage_bounds = 0.0
-	self.splash_radius = 40.0 // m
-	self.splash_scale = 0.8
+	self.splash_radius = 19.0 // m
+	self.splash_scale = 4.0
 	
 	// bulletattack info
 	self.bulletvelocity = 600.0 // m/s
-	self.bulletlife = 1.0
+	self.bulletlife = 1.25
 	
 	self.jamlimit = 9.0
 	
@@ -25,5 +25,5 @@ specs:
 	self.calibre = "20mm"
 	self.ammo_capacity_rounds_per_gun = 175
 	
-	self.shell_types = HE::HEM
+	self.shell_types[1] = HE
 end

@@ -8,8 +8,9 @@ $include models/skylimit/utils/client_sound_cache.tik
 setup
 {
 	scale 1.0
-	path models/fx/dummy
-	skelmodel dummy3.skd
+	path models/skylimit/utils/unitconnector
+	skelmodel unitconnector.skd
+	surface all shader sl_inone
 }
 
 init
@@ -24,9 +25,9 @@ init
 
 animations
 {
-    idle dummy3.skc
+    idle idle.skc
     
-    start dummy3.skc
+    start idle.skc
     {
 		client
 		{
@@ -39,7 +40,7 @@ animations
 				model air_explosion.spr
 				alpha 0.40
 				color 1.00 1.00 1.00
-				scale 0.03
+				scale 0.06
 				life 0.10
 				fade
 			)
@@ -47,14 +48,15 @@ animations
 			enter originspawn
 			(
 				model vsssource2.spr
-				count 8
-				alpha 0.70
-				color 0.20 0.20 0.20
-				life 3.00
+				count 7
+				alpha 0.80
+				color 0.0 0.0 0.0
+				life 2.0
 				scale 0.08
-				scalerate 0.25
-				friction 2.00
-				randvel crandom 4.0 crandom 4.0 crandom 4.0
+				scalerate 0.75 //0.25
+				friction 4.0
+				randvel crandom 6.0 crandom 6.0 crandom 6.0
+				fadein 0.1
 				fade
 				randomroll
 			)

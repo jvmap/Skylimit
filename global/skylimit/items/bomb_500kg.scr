@@ -1,0 +1,31 @@
+// by jv_map
+
+specs:
+	self.name = "500kg HE"
+	self.hud_shader = "sl_ibmbg"
+
+	self.mass = 500.0 // kg
+	self.inertia = 229.0 // kgm^2
+	self.diameter = 0.43 // m
+	self.drag = 0.5
+	self.ammo = 1
+	self.firedelay = 0.20
+	self.semiauto = game.true
+	self.expendable = game.true
+	self.external = game.true
+	self.kamikazable = game.true
+	self.cooldowntime = 2.0
+	
+	self.rearm_time = 1.5
+	
+	self.damage_center = 50000.0 // zero speed damage at point of impact
+	self.damage_boundary = 0.0 // damage at max blast radius
+	self.sfx_scale = 1.58
+	self.blast_radius = 107.0
+end
+
+// self is plane
+fire local.item local.ent:
+	local.ent.info = local.item
+	local.ent thread global/skylimit/bombattack.scr::dropbomb self self.pilot self.dmteam
+end

@@ -2,54 +2,78 @@
 // by jv_map
 
 // fire a round and do cannon splash damage when needed
-fire local.startpos local.inflictor local.inflictor_team local.inflictor_owner local.weapdata local.dmg_mult local.direction local.shell_type local.time_fuze:
+fire local.startpos local.inflictor local.inflictor_team local.inflictor_owner local.weapdata local.multiplicity local.direction local.shell_type local.time_fuze:
 
-	if(local.shell_type == "AP")
-	{
-		local.hit_factor 	= 1.0
-		local.splash_factor = 0.0
-	}
-	else if(local.shell_type == "HE")
-	{
-		local.hit_factor 	= 0.5
-		local.splash_factor = 0.5
-	}
-	else if(local.shell_type == "HEM")
-	{
-		local.hit_factor 	= 0.0
-		local.splash_factor = 1.0
-	}
-	
-	local.trace = local.hit_factor > 0.0
-	local.splash = local.weapdata.splash && local.splash_factor > 0.0
+//	if(local.shell_type == "AP")
+//	{
+//		local.hit_factor 	= 2.0
+//		local.splash_factor = 0.0
+//	}
+//	else if(local.shell_type == "HE")
+//	{
+//		local.hit_factor 	= 1.0
+//		local.splash_factor = 1.0
+//	}
+//	else if(local.shell_type == "HEM")
+//	{
+//		local.hit_factor 	= 0.0
+//		local.splash_factor = 2.0
+//	}
 
-	local.result = waitthread global/skylimit/bulletattack.scr::firebullet local.startpos local.inflictor local.inflictor_team local.inflictor_owner local.weapdata (local.dmg_mult * local.hit_factor) local.direction local.trace local.time_fuze
+	local.hit_factor = 1.0
+	local.splash_factor = 1.0
 	
-	local.bullet_alive = local.result[1]
-	local.bullet_endpos = local.result[2]
+	local.trace = game.true //local.hit_factor > 0.0
+	local.splash = (local.weapdata.splash && local.splash_factor > 0.0) * local.multiplicity
+
+	local.bullet_endpos = waitthread firebullet local.startpos local.inflictor local.inflictor_team local.inflictor_owner local.weapdata (local.multiplicity * local.hit_factor) local.direction local.trace local.time_fuze
 	
-	if(local.splash && local.bullet_alive)
+	for(local.i = 1; local.i <= local.splash; local.i++)
 	{
 		// shell didn't hit anything
 		// explode and do splash damage
 
-		// TODO: perhaps make more sfx-es as well (dmg_mult)
+		if(local.i == 1)
+		{
+			// use bullet endpos
+			local.splashpos = local.bullet_endpos
+		}
+		else
+		{
+			if(local.spread == NIL)
+			{
+				local.spread = (vector_length (local.bullet_endpos - local.startpos)) * local.weapdata.spread
+			}
+			
+			// offset slightly from bullet endpos
+			local.splashpos = local.bullet_endpos + (waitthread global/skylimit/common.scr::randomvectoroffset local.spread local.spread local.spread)
+		}
 
 		// get an EffectEntity from dynamic stack
 		local.e = waitthread global/skylimit/common.scr::getfromstack EffectEntity game.false
 		
 		if(local.e)
 		{
-			local.e.model = local.weapdata.splash_model
-			local.e.origin = (local.bullet_endpos ) //- local.direction * 0.1)
+			if(local.bullet_endpos[2] <= $world.SEALEVEL)
+			{
+				local.e.model = skylimit/fx/explosion_water.tik
+				local.splashpos[2] = $world.SEALEVEL - 1.0
+				local.e.origin = local.splashpos
+				local.e.scale = local.weapdata.splash_scale * local.splash_factor * 0.1
+			}
+			else
+			{
+				local.e.model = local.weapdata.splash_model
+				local.e.origin = local.splashpos
+				local.e.scale = 0.5 * local.weapdata.splash_scale * local.splash_factor
+			}
 			
-			local.e.scale = local.weapdata.splash_scale * local.splash_factor
 			local.e anim start
 			local.e thread global/skylimit/common.scr::releasetostack 0.5
 		}
 		
 		// shrapnel damage
-		waitthread global/skylimit/damage.scr::radiusdamage local.bullet_endpos (local.weapdata.splash_radius * local.splash_factor / level.SL_UNITSCALE) (local.weapdata.splash_damage_center * local.dmg_mult * local.splash_factor) (local.weapdata.splash_damage_bounds * local.dmg_mult * local.splash_factor) level.MODM_SHRAPNEL local.inflictor local.inflictor_team local.inflictor_owner game.false game.false
+		waitthread global/skylimit/damage.scr::radiusdamage local.splashpos (local.weapdata.splash_radius * local.splash_factor / level.SL_UNITSCALE) (local.weapdata.splash_damage_center * local.splash_factor) (local.weapdata.splash_damage_bounds * local.splash_factor) level.MODM_SHRAPNEL local.inflictor local.inflictor_team local.inflictor_owner game.false game.false
 	}
 end
 
@@ -60,8 +84,7 @@ firebullet local.startpos local.inflictor local.inflictor_team local.inflictor_o
 	// can spawn debug beams to verify bullet path
 	local.DEBUG_BEAM = game.false
 	
-	// ballistic parameters
-	local.GRAVITY = 9.81
+	local.RIFLING_FACTOR = 0.25 // reduce effective gravity due to rifling
 	
 	// general consts
 	// this sets the bullet simulation time (smaller is better, but more cpu needed)
@@ -121,13 +144,17 @@ firebullet local.startpos local.inflictor local.inflictor_team local.inflictor_o
 		local.query = waitthread global/skylimit/damage.scr::create_query local.means_of_damage local.inflictor_team local.inflictor_owner game.false game.false
 	}
 	
-	local.bullet_alive = game.true
+	local.entities_in_query = local.query.size
+	if(local.entities_in_query < 0)
+	{
+		local.entities_in_query = 0
+	}
 	
 	local.pos = local.startpos
 	local.endpos = local.startpos
 	local.lastpos = local.pos
 	
-	local.acceleration_z = -local.GRAVITY
+	local.acceleration_z = -$world.GRAVITY * local.RIFLING_FACTOR
 	
 	local.last_trace_time = -local.DT_TRACE
 	
@@ -145,17 +172,15 @@ firebullet local.startpos local.inflictor local.inflictor_team local.inflictor_o
 		{
 			local.last_trace_time = local.time
 			
-			if(local.query.size >= 1)
+			if(local.entities_in_query > 0)
 			{
 				// do damage, destroy bullet if it hit anything
 				// forward trace
-				local.result = waitthread global/skylimit/damage.scr::querylinedamage local.query local.vec_x local.vec_y local.vec_z local.pos local.vel local.acceleration_z (local.life - local.time) local.DT_TRACE local.dmg local.means_of_damage local.inflictor local.inflictor_team local.inflictor_owner game.true
+				local.entities_in_query = waitthread global/skylimit/damage.scr::querylinedamage local.query local.vec_x local.vec_y local.vec_z local.pos local.vel local.acceleration_z (local.life - local.time) local.DT_TRACE local.dmg local.means_of_damage local.inflictor local.inflictor_team local.inflictor_owner game.true
 				
-				local.hit = local.result[1]
-				local.query = local.result[2]
-				
-				if(local.hit)
+				if(local.entities_in_query == -1)
 				{
+					// hit something
 					local.endpos = local.pos + 0.5 * (1.0 / level.SL_UNITSCALE) * local.vel * local.DT_TRACE
 					break
 				}
@@ -175,7 +200,7 @@ firebullet local.startpos local.inflictor local.inflictor_team local.inflictor_o
 			}
 			
 			// backward trace
-			if(local.trace && local.lastpos[2] < $world.OBSTACLEHEIGHT || local.pos[2] < $world.OBSTACLEHEIGHT)
+			if(local.lastpos[2] < $world.OBSTACLEHEIGHT || local.pos[2] < $world.OBSTACLEHEIGHT)
 			{
 				local.endpos = trace local.lastpos local.pos 0
 			}
@@ -207,29 +232,33 @@ firebullet local.startpos local.inflictor local.inflictor_team local.inflictor_o
 		if(local.pos[2] < $world.SEALEVEL)
 		{
 			//local.endpos = local.pos
+			//local.endpos[2] = $world.SEALEVEL
+			
+			if(local.lastpos == local.pos)
+			{
+				local.endpos = local.lastpos
+			}
+			else
+			{
+				local.endpos = local.lastpos + (local.pos - local.lastpos) * ((local.lastpos[2] - $world.SEALEVEL) / (local.lastpos[2] - local.pos[2])) + (0 0 0.1)
+			}
 			local.endpos[2] = $world.SEALEVEL
-			
-			//local.sfxpos = local.lastpos + (local.pos - local.lastpos) * ((local.lastpos[2] - $world.SEALEVEL) / (local.lastpos[2] - local.pos[2])) + (0 0 0.1)
-			
-			local.sfxpos = local.endpos + (0 0 0.1)
 			
 			// grab a splash from stack
 			local.splash = waitthread global/skylimit/common.scr::getfromstack EffectEntity game.false
 			if(local.splash)
 			{
 				local.splash model skylimit/fx/water_splash.tik
-				local.splash origin local.sfxpos
+				local.splash origin local.endpos
 				local.splash angles ( -90 0 0)
 				local.splash scale (local.dmg / 300.0)
 				local.splash anim start
 				local.splash thread global/skylimit/common.scr::releasetostack 0.2
 			}
-			
-			local.bullet_alive = game.false
 			break
 		}
 		
 		wait local.DT
 		local.time += local.DT
 	}
-end (local.bullet_alive::local.endpos)
+end local.endpos

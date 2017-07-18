@@ -792,6 +792,17 @@ fockwulf_nocull
 	}
 }
 
+fw190_prop
+{
+	qer_editorimage textures/skylimit/models/bf109/prop_white.tga
+	{
+		map $whiteimage
+		rgbGen lightingSpherical
+	nextbundle
+		rgbGen const 0.10 0.09 0.06
+	}
+}
+
 textures/skylimit/shadow
 {
 	qer_keyword skylimit
@@ -1241,6 +1252,34 @@ spitfire_faa_specular
 	}
 }
 
+spitfire_prop
+{
+	qer_editorimage textures/skylimit/models/bf109/prop_white.tga
+	{
+		map $whiteimage
+		rgbGen lightingSpherical
+	nextbundle
+		rgbGen const 0.06 0.06 0.06
+	}
+}
+
+spitfire_desert_prop
+{
+	qer_editorimage textures/skylimit/models/bf109/prop_white.tga
+	{
+		map $whiteimage
+		rgbGen lightingSpherical
+	nextbundle
+		rgbGen const 0.1 0.1 0.1
+	}
+	{
+		map $whiteimage
+		rgbGen const 0.2 0.2 0.2
+		alphaGen lightingSpecular
+		blendfunc alphaadd
+	}
+}
+
 // not used
 p47_prop_flash
 {
@@ -1309,8 +1348,14 @@ bf109_desert_prop_nolight
 {
 	qer_editorimage textures/skylimit/models/bf109/prop_white.tga
 	{
-		map textures/skylimit/models/bf109/prop_white.tga
-		rgbGen identity
+		map $whiteimage
+		rgbGen const 0.05 0.05 0.05
+	}
+	{
+		map $whiteimage
+		rgbGen const 0.1 0.1 0.1
+		alphaGen lightingSpecular
+		blendfunc alphaadd
 	}
 }
 
@@ -1346,7 +1391,7 @@ bf109_trop_prop
 	qer_editorimage textures/skylimit/models/bf109/prop_white.tga
 	{
 		map textures/skylimit/models/bf109/prop_white.tga
-		rgbGen const 0.25 0.21 0.16 //0.49 0.42 0.32
+		rgbGen const 0.25 0.21 0.16
 	}
 	{
 		map $whiteimage
@@ -1971,7 +2016,9 @@ sl_tracer_front
 	//deformvertexes autosprite
 	{
 		map models/fx/muzflash/flashnode1.tga
-		blendFunc GL_SRC_ALPHA GL_ONE
+		alphaGen vertex
+		blendfunc alphaadd
+		//blendFunc GL_SRC_ALPHA GL_ONE
 	}
 }
 
@@ -1982,7 +2029,9 @@ sl_tracer_side
 	{
 		map textures/skylimit/alphagradient.tga
 		rgbGen const 1.0 1.0 0.8
-		blendfunc GL_SRC_ALPHA GL_ONE
+		alphaGen vertex
+		blendfunc alphaadd
+		//blendfunc GL_SRC_ALPHA GL_ONE
 	}
 }
 
@@ -2151,5 +2200,14 @@ skylimit_flak88_desert
 		alphaGen distFade 1000.0 1500.0
 		blendfunc blend
 		depthWrite
+	}
+}
+
+sl_bomb_brown
+{
+	qer_editorimage textures/skylimit/models/weapons/bomb_brown.tga
+	{
+		map textures/skylimit/models/weapons/bomb_brown.tga
+		rgbGen lightingSpherical
 	}
 }

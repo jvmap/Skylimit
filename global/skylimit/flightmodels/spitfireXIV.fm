@@ -1,0 +1,64 @@
+// Spitfire Mk XIV
+// by jv_map
+
+main:
+	self.CLASS = "Fighter"
+
+	self.MASS = 3534.0 // kg, empty + 500kg
+	self.LENGTH = 9.96 // m
+	self.INERTIA = 1.0 / 24.0 * self.MASS * self.LENGTH * self.LENGTH // kg m^2
+
+	// wing characteristics
+	self.MAXAOA = 18.0 * level.PI / 180.0 // stall angle
+	self.ZEROLIFTANGLE = 0.0 //-1.0 / 180 * level.PI // pitch up is positive
+	self.WINGAREA = 22.5 // m^2
+	self.WINGSPAN = 11.23 // m
+	self.CD0 = 0.021 // profile drag coefficient
+	self.CDBRAKE = 0.0 // brake drag
+	self.CDGEAR = 0.020 // additional gear drag
+	self.CDSTALL = 0.080 // additional stall drag coefficient
+	self.STALLSLOPE = 1.0 // rad^-1
+	
+	self.C_ROLL = 7.0 / 180.0 * level.PI // aileron effectiveness, crudely modelled as entire wing deflection (in rad)
+
+	// tail plane characteristics
+	self.TAILARM = 9.5 // m
+	
+	// max = pitch down, min = pitch up
+	self.TAILMAXPITCH = 20.0 / 180.0 * level.PI
+	self.TAILMINPITCH = -30.0 / 180.0 * level.PI
+
+	self.HTAILLIFTSLOPE = 1.8 * level.PI
+	self.HTAILZEROLIFTANGLE = 0.0
+	self.HTAILWINGAREA = 4.0 // m^2
+	
+	self.VTAILLIFTSLOPE = 1.7 * level.PI
+	self.VTAILZEROLIFTANGLE = 0.0 // symmetrical airfoil
+	self.VTAILWINGAREA = 2.0 // m^2
+	self.VTAILHEIGHT = 1.0
+	
+	// fraction of surface in slipstream
+	self.HTAILSLIPSTREAMFACTOR = 0.5
+	self.VTAILSLIPSTREAMFACTOR = 0.5
+	
+	// skid response
+	self.FUSELAGE_VAREA = 6.0 // m^2
+	self.FUSELAGE_VLIFTSLOPE = 1.0 * level.PI	// rad^-1
+	self.FUSELAGE_VCD0 = 0.30
+
+	self.ENGINE_RATED_POWER						= 1530000.0 // kW
+	self.ENGINE_LIMIT_RPM						= 2500.0
+	self.ENGINE_SUPERCHARGER_CLUTCHED			= game.true
+	self.ENGINE_SUPERCHARGER_MAX_DENSITY_RATIO	= 1.25 // unrealistically low
+	self.ENGINE_GEAR_RATIO						= 2.10
+	self.ENGINE_UNLOADED_RPM					= 5000.0 // rpm
+	self.ENGINE_DIRECTION						= -1 // rotate counter-clockwise from behind
+	
+	// rpm settings
+	self.ENGINE_RPM[level.ES_CRUISE]	= 2500.0
+	self.ENGINE_RPM[level.ES_TAXI]		= 1000.0
+	
+	self.PROPELLER_DIAMETER = 3.22 // m
+	self.PROPELLER_NUMBLADES = 5 // number of blades
+	self.PROPELLER_BLADE_AREA = 0.40
+end

@@ -1,37 +1,39 @@
-// Flak88 AA gun
+// British naval 114mm gun
 
 specs:
-	self.damage = 2000.0 // also does splash damage
+	self.damage = 57.0 // also does splash damage
 	
 	self.splash = game.true
-	self.splash_damage_center = 1600.0
+	self.splash_damage_center = 57.0
 	self.splash_damage_bounds = 0.0
-	self.splash_radius = 120.0 // m
-	self.splash_scale = 2.0
+	self.splash_radius = 108.5 // m
+	self.splash_scale = 1.3
 	self.splash_model = skylimit/fx/flak_shell.tik
 	
 	// bulletattack info
 	self.bulletvelocity = 800.0 // m/s
-	self.bulletlife = 3.0
+	self.bulletlife = 6.0
 	
 	self.means_of_damage = level.MODM_BULLET_MG
-	self.firedelay = 5.0
-	self.acquire_timeout = 0.50
-	self.facquiredelay = 2.0
-	self.sacquiredelay = 4.95
-	self.spread = 0.0064
+	self.firedelay = 2.5
+	self.acquire_timeout = 1.0
+	self.facquiredelay = 1.5
+	self.spread = 0.0096
 	self.time_fuze = game.true
-	self.fuzebias = -0.40 // fuze slightly early
+	self.min_fuze_time = 1.0
+	self.fuze_spread = 0.3
+	self.fuzebias = 0.0
+	self.num_alternating_barrels = 2
 	
 	// flak info
 	self.turnspeed = 15.0 // deg/s (yaw)
-	self.trainspeed = 5.0 // deg/s (pitch)
-	self.pitch_min = -5.0
+	self.trainspeed = 10.0 // deg/s (pitch)
+	self.pitch_min = 0.0
 	self.pitch_max = 45.0
 	self.shell_type = "HE"
-	self.flak_spread = 0.12
-	self.flak_radar_spread_mult = 0.4
+	self.flak_spread = 0.1
+	self.flak_radar_spread_mult = 0.5
 	
 	// (search) range
-	self.range = 3500.0 // m, long range to hinder torpedo attacks
+	self.range = 4000.0 // m, long range to hinder torpedo attacks
 end

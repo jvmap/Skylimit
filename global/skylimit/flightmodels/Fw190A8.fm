@@ -4,18 +4,19 @@
 main:
 	self.CLASS = "Fighter"
 
-	self.MASS = 3000.0 // kg, empty
+	self.MASS = 3700.0 // kg, empty + 500kg
 	self.LENGTH = 9.00 // m
-	self.INERTIA = 1.0 / 12.0 * self.MASS * self.LENGTH * self.LENGTH // kg m^2
+	//self.INERTIA = 1.0 / 12.0 * self.MASS * self.LENGTH * self.LENGTH // kg m^2
+	self.INERTIA = 1.0 / 24.0 * self.MASS * self.LENGTH * self.LENGTH // kg m^2
 	
 	// wing characteristics
-	self.MAXAOA = 22.0 * level.PI / 180.0 // stall angle
-	self.ZEROLIFTANGLE = -1.0 / 180 * level.PI // pitch up is positive
+	self.MAXAOA = 18.0 * level.PI / 180.0 //18.0 * level.PI / 180.0 // stall angle
+	self.ZEROLIFTANGLE = 0.0 / 180 * level.PI // pitch up is positive
 	self.WINGAREA = 18.3 // m^2
 	self.WINGSPAN = 10.51 // m
 	self.CD0 = 0.021 // profile drag coefficient
-	self.CDBRAKE = 1.6 // brake drag (max)
-	self.CDGEAR = 0.040 // additional gear drag
+	self.CDBRAKE = 0.0 //1.6 // brake drag (max)
+	self.CDGEAR = 0.020 // additional gear drag
 	self.CDSTALL = 0.080 // additional stall drag coefficient
 	self.STALLSLOPE = 1.0 // rad^-1
 	
@@ -26,36 +27,38 @@ main:
 	
 	// max = pitch down, min = pitch up
 	self.TAILMAXPITCH = 20.0 / 180.0 * level.PI
-	self.TAILMINPITCH = -30.0 / 180.0 * level.PI
+	self.TAILMINPITCH = -20.0 / 180.0 * level.PI
 
 	self.HTAILLIFTSLOPE = 1.8 * level.PI
-	self.HTAILZEROLIFTANGLE = 0.0
 	self.HTAILWINGAREA = 4.0 // m^2
 	
 	self.VTAILLIFTSLOPE = 1.7 * level.PI
-	self.VTAILZEROLIFTANGLE = 0.0 // symmetrical airfoil
+	self.VTAILZEROLIFTANGLE = 0.0 //1.0/180.0 * level.PI
 	self.VTAILWINGAREA = 2.0 // m^2
 	self.VTAILHEIGHT = 1.0
+	
+	// fraction of surface in slipstream
+	self.HTAILSLIPSTREAMFACTOR = 0.75
+	self.VTAILSLIPSTREAMFACTOR = 0.75
 	
 	// skid response
 	self.FUSELAGE_VAREA = 6.0 // m^2
 	self.FUSELAGE_VLIFTSLOPE = 1.0 * level.PI	// rad^-1
-	self.FUSELAGE_VCD0 = 0.30
+	self.FUSELAGE_VCD0 = 0.1
 	
-	self.ENGINE_RATED_POWER						= 1268000.0 // kW
-	self.ENGINE_LIMIT_RPM						= 2300.0
+	self.ENGINE_RATED_POWER						= 1268000.0 // W
+	self.ENGINE_LIMIT_RPM						= 2500.0
 	self.ENGINE_SUPERCHARGER_CLUTCHED			= game.true
 	self.ENGINE_SUPERCHARGER_MAX_DENSITY_RATIO	= 1.1 // unrealistically low
-	self.ENGINE_GEAR_RATIO						= 1.85
+	self.ENGINE_GEAR_RATIO						= 1.85 // realistic
+	self.ENGINE_UNLOADED_RPM					= 5000.0 // rpm
 	
 	// rpm settings
-	self.ENGINE_RPM[level.ES_CRUISE]	= 2300.0
-	self.ENGINE_RPM[level.ES_TAKEOFF]	= 2700.0
-	self.ENGINE_RPM[level.ES_CLIMB]		= 2600.0
-	self.ENGINE_RPM[level.ES_TAXI]		= 1200.0
+	self.ENGINE_RPM[level.ES_CRUISE]	= 2500.0
+	self.ENGINE_RPM[level.ES_TAXI]		= 1000.0
 	
 	// nice large prop
-	self.PROPELLER_DIAMETER = 3.0 // m
-	self.PROPELLER_BLADE_AREA = 0.25 // area of the individual blades m^2
+	self.PROPELLER_DIAMETER = 3.3 // m
+	self.PROPELLER_BLADE_AREA = 0.42 // area of the individual blades m^2
 	self.PROPELLER_MASS = 100.0
 end

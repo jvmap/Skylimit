@@ -25,6 +25,8 @@ check_reloads:
 	
 	local.cycle_time = 0.5
 	
+	local.RELOAD_ITEM = "return_plane"
+	
 	while(1)
 	{
 		local.numplanes = $SL_plane.size
@@ -62,6 +64,21 @@ check_reloads:
 					local.at_reloadpoint = waitthread check_reload_box local.plpos level.SL_reloadboxes[local.team][local.boxid]
 				}
 			}
+			
+			if(local.at_reloadpoint && !local.plane.at_reloadpoint)
+			{
+				// give the reload item
+				local.plane.item_amount[local.RELOAD_ITEM] = 1
+			}
+			else if(!local.at_reloadpoint && local.plane.at_reloadpoint)
+			{
+				local.plane.item_amount[local.RELOAD_ITEM] = 0
+				if(local.plane.selected_item.type == local.RELOAD_ITEM)
+				{
+					local.plane waitthread global/skylimit/flight.scr::item_switch 1
+				}
+			}
+			
 			local.plane.at_reloadpoint = local.at_reloadpoint
 			local.plane.at_healpoint = local.at_reloadpoint
 		}

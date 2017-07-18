@@ -1,17 +1,30 @@
 // by jv_map
 
 dropbomb local.plane local.gunner local.gunner_team local.no_detach local.drop_from_bay local.is_torpedo:
-	local.MAXLIFE				= 120.0
-	local.DT 					= 0.05
-	local.DT_TRACE				= 0.25
-	local.GRAVITY 				= (0 0 -9.81)
-	local.CD0 					= 0.02 // 'profile' drag
-	local.AREA					= 0.2 // CD0 reference area, m^2
-	//local.LAUNCHSPEED 			= 2.0 // m/s
-	local.ANGLES_UPDATE_TIME 	= 0.5 //s
-	local.ANGLES_UPDATE_TIME_VIEWED = 0.05 // angles update time when someone is specing this bomb
-	local.MIN_VLOAD				= -0.5 // min required 'g' when releasing a bomb
-	local.BAY_DRAG_DELAY		= 2.0 // s
+	local.MAXLIFE					= 120.0
+	local.DT 						= 0.05
+	local.DT_TRACE					= 0.25
+	local.GRAVITY 					= (0 0 -9.81)
+	local.MIN_ROT_DELTA				= 2.0 // degrees
+	local.BAY_DRAG_DELAY			= 2.0 // s
+	local.FIN_EFFECTIVENESS			= 6.0 // =2pi*taillength*finarea/frontal_area/diameter = 8*taillength*finaera/diameter^3
+	local.ROTATION_DAMPING			= 100000.0 // s^-1
+	
+	local.CD0 						= self.info.drag // 'profile' drag
+	
+	if(local.drop_from_bay || local.is_torpedo)
+	{
+		// just let fall
+		local.RELEASE_NORMAL_AVEL = 0.0
+	}
+	else
+	{
+		// bombs are released tail-hinge first so they cannot collide with the aircraft due to drag
+		// this causes the bomb to rotate backwards (nose up) immediately after release
+		local.RELEASE_NORMAL_AVEL = -2.0 // rad/s
+	}
+
+	local.FRONTAL_AREA				= 0.25 * level.PI * self.info.diameter * self.info.diameter // frontal area, m^2
 
 	local.inflictor 		= local.gunner
 	local.inflictor_team 	= local.gunner_team
@@ -28,35 +41,37 @@ dropbomb local.plane local.gunner local.gunner_team local.no_detach local.drop_f
 		end
 	}
 	
-	//local.clear_owner_time = level.time + 2.0 // can hit owner after this time
+	if(!self.info.internal)
+	{
+		local.plane.CD0 -= local.CD0 * local.FRONTAL_AREA / local.plane.WINGAREA
+	}
 
 	if !(local.no_detach)
 	{
 		// detach from plane
-		//self detach
 		waitthread global/skylimit/flightmodel.scr::detach
 		
 		// phew :)
-		if(self.info.mass != NIL)
-		{
-			local.plane.MASS -= self.info.mass
-		}
+		local.plane.MASS -= self.info.mass
 		self scale local.plane.SCALE
 		
+		// need to hack the position :(
 		if(self.rack)
 		{
-			// need to hack the position :(
-			self.origin = (local.plane gettagposition self.rack.tag) - local.plane.SCALE * ( (self.rack gettagposition self.tag) - self.rack.origin )
-			
-			// use pylon angles as rack angles doesn't work :S
-			self angles (local.plane gettagangles self.rack.tag)
+			local.launchpos 	= (local.plane gettagposition self.rack.tag) - local.plane.SCALE * ( (self.rack gettagposition self.tag) - self.rack.origin )
+			local.launchangles 	= local.plane gettagangles self.rack.tag
 		}
 		else
 		{
-			self angles (local.plane gettagangles self.tag)
-			self.origin = local.plane gettagposition self.tag
+			local.launchpos 	= local.plane gettagposition self.tag
+			local.launchangles 	= local.plane gettagangles self.tag
 		}
+		
+		self origin local.launchpos
+		self angles local.launchangles
 	}
+
+	local.p_launcharm = (self.origin - local.plane.origin) * level.SL_UNITSCALE
 	
 	self.dmteam = local.gunner_team
 	self.weapon_owner = local.gunner
@@ -67,22 +82,22 @@ dropbomb local.plane local.gunner local.gunner_team local.no_detach local.drop_f
 	
 	// make self a specable weapon
 	self.targetname = "SL_specable"
+	self.spec_owner = local.gunner
 	if(local.gunner)
 	{
 		local.gunner.last_specable_weapon = self
 	}
 	
-	local.p_velocity = local.plane.p_velocity //- local.plane.upvector * local.LAUNCHSPEED 
+	local.p_velocity = local.plane.p_velocity + vector_cross local.plane.p_avelocity local.p_launcharm
 	local.w_velocity = local.p_velocity * (1.0 / level.SL_UNITSCALE)
 	
 	self.p_velocity = local.p_velocity
+	self.p_avelocity = local.plane.p_avelocity + self.leftvector * local.RELEASE_NORMAL_AVEL * local.plane.p_vload
 	
 	local.endtime = level.time + local.MAXLIFE
 	
 	local.explode = game.false
 	local.sink = game.false
-	
-	local.next_angles_update_time = level.time + local.ANGLES_UPDATE_TIME
 	
 	local.dmg_impact_constant = 1.0 // hp/J
 	local.dmg_multiplier_submerged = 0.5 // fraction of damage done when bomb explodes underwater
@@ -102,6 +117,9 @@ dropbomb local.plane local.gunner local.gunner_team local.no_detach local.drop_f
 		local.dragtime += local.BAY_DRAG_DELAY
 	}
 
+	self.p_quat = waitthread global/skylimit/math.scr::anglestoquat self.angles
+	self.p_working_quat = 1.0::0.0::0.0::0.0
+
 	while(level.time <= local.endtime)
 	{
 		// ultra cheap drag
@@ -111,7 +129,7 @@ dropbomb local.plane local.gunner local.gunner_team local.no_detach local.drop_f
 		
 		if(local.time > local.dragtime)
 		{
-			local.p_accel -= (local.p_velocity * 0.5 * local.CD0 * local.density * local.speed * local.AREA) * (1.0 / self.info.mass)
+			local.p_accel -= (local.p_velocity * 0.5 * local.CD0 * local.density * local.speed * local.FRONTAL_AREA) * (1.0 / self.info.mass)
 		}
 		local.w_accel = local.p_accel * (1.0 / level.SL_UNITSCALE)
 		
@@ -123,20 +141,27 @@ dropbomb local.plane local.gunner local.gunner_team local.no_detach local.drop_f
 		self.p_velocity = local.p_velocity
 		
 		// turn in direction of travel
-		// don't update angles as regularly
-		if(level.time >= local.next_angles_update_time)
+		local.aaccel = local.FIN_EFFECTIVENESS * local.FRONTAL_AREA * self.info.diameter * local.density * local.speed / self.info.inertia * (vector_cross self.forwardvector self.p_velocity)
+		
+		// damping
+		local.aaccel -= local.ROTATION_DAMPING * local.FRONTAL_AREA * local.FRONTAL_AREA * self.info.diameter * local.density / self.info.inertia * self.p_avelocity
+		
+		// update angles
+		local.rotation = self.p_avelocity * local.DT + 0.5 * local.aaccel * local.DT * local.DT
+		
+		if(level.time - self.cam_lastviewtime <= 0.10)
 		{
-			self.angles = vector_toangles local.p_velocity
-			
-			if(level.time - self.cam_lastviewtime <= 0.10)
-			{
-				local.next_angles_update_time = level.time + local.ANGLES_UPDATE_TIME_VIEWED
-			}
-			else
-			{
-				local.next_angles_update_time = level.time + local.ANGLES_UPDATE_TIME
-			}
+			local.min_rot_delta = NIL
 		}
+		else
+		{
+			local.min_rot_delta = local.MIN_ROT_DELTA
+		}
+		
+		waitthread global/skylimit/math.scr::qrotate local.rotation local.min_rot_delta
+		
+		// update avelocity
+		self.p_avelocity += local.aaccel * local.DT
 		
 		// damage done when actually impacting on an ent
 		// proportional to kinetic energy of the projectile
@@ -222,7 +247,7 @@ dropbomb local.plane local.gunner local.gunner_team local.no_detach local.drop_f
 				if(local.ent)
 				{
 					local.ent model skylimit/fx/explosion_water.tik
-					local.ent scale (0.2 * self.info.sfx_scale)
+					local.ent scale self.info.sfx_scale
 					local.ent angles ( -90 0 0)
 					local.ent origin local.sfxpos
 					local.ent anim start
@@ -238,7 +263,7 @@ dropbomb local.plane local.gunner local.gunner_team local.no_detach local.drop_f
 			// splash damage
 			local.hit_a_bobject = waitthread global/skylimit/damage.scr::radiusdamage local.explode_pos self.info.blast_radius self.info.damage_center self.info.damage_boundary level.MODM_EXPLOSION local.inflictor local.inflictor_team local.inflictor_owner game.true game.false
 			
-			if ( !local.explode_in_air && !local.hit_a_bobject)
+			if ( !local.explode_in_air)
 			{
 				local.ent = waitthread global/skylimit/common.scr::getfromstack EffectEntity game.true
 				if(local.ent)
@@ -251,12 +276,15 @@ dropbomb local.plane local.gunner local.gunner_team local.no_detach local.drop_f
 					local.ent thread global/skylimit/common.scr::releasetostack 2.0
 				}
 				
-				local.hit_runway = waitthread global/skylimit/runway.scr::checkdamage local.explode_pos self.info.damage_center self.info.sfx_scale local.inflictor local.inflictor_team
-				
-				if !(local.hit_runway)
+				if(!local.hit_a_bobject)
 				{
-					// add a crater
-					waitthread global/skylimit/sfx.scr::crater local.explode_pos self.info.sfx_scale game.true game.true
+					local.hit_runway = waitthread global/skylimit/runway.scr::checkdamage local.explode_pos self.info.damage_center self.info.sfx_scale local.inflictor local.inflictor_team
+					
+					if !(local.hit_runway)
+					{
+						// add a crater
+						waitthread global/skylimit/sfx.scr::crater local.explode_pos self.info.sfx_scale game.true game.true
+					}
 				}
 			}
 		}

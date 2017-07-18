@@ -67,10 +67,10 @@ fire local.w:
 		local.dir = self.forwardvector + local.w.tag_convergence_list[local.i] * self.leftvector
 		
 		// rescale dir
-		local.length = waitthread global/skylimit/math.scr::sqrt1 (1.0 + local.w.tag_convergence_list[local.i])
+		//local.length = waitthread global/skylimit/math.scr::sqrt1 (1.0 + local.w.tag_convergence_list[local.i])
 		
-		// normalize
-		local.shootvec = local.dir * (1.0 / local.length)
+		// normalize (probably faster anyway)
+		local.shootvec = vector_normalize local.dir //local.dir * (1.0 / local.length)
 		
 		// pick shelltype
 		local.type = local.w.shell_types[randomint local.w.shell_types.size + 1]

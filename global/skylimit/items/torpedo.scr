@@ -4,6 +4,9 @@ specs:
 	self.hud_shader = "sl_itpd"
 
 	self.mass = 765.0 // kg, LT F5b
+	self.inertia = 1020.0 // kgm^2
+	self.diameter = 0.45 // m (= 17.7 inch)
+	self.drag = 0.7
 	self.ammo = 1
 	self.firedelay = 0.20
 	self.semiauto = game.true
@@ -23,8 +26,8 @@ specs:
 	self.damage_center = 50000.0 // damage at point of impact
 	self.damage_boundary = 25000.0 // damage at max blast radius
 	
-	self.swimlife = 120.0 // s
-	self.speed = 20.0 // m/s	
+	self.swimlife = 98.0 // s (~2 km range)
+	self.speed = 20.6 // m/s (40 kts)
 end
 
 // self is plane

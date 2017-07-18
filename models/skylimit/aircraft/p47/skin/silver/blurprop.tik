@@ -1,0 +1,15 @@
+TIKI
+setup
+{
+	scale 0.815				// Set default scale to 16/30.5 since world is in 16 units per foot and model is in cm's
+	path models/skylimit/aircraft/includes/blurprop
+	skelmodel blurprop.skd
+	surface all shader sl_prop
+}
+
+$include models/skylimit/aircraft/includes/classdef.tik
+
+animations
+{
+	idle			blurprop.skc
+}

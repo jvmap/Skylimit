@@ -5,7 +5,7 @@ setup
 	path models/skylimit/aircraft/p47/skel
 	skelmodel prop.skd
 	surface all shader p47
-	scale 0.58
+	scale 0.63
 }
 
 $include models/skylimit/aircraft/includes/classdef.tik

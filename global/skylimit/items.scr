@@ -1,7 +1,7 @@
 // by jv_map
 
 init_map:
-	level.ITEMS = "bomb_small"::"bomb_big"::"anti_tank"::"boost"::"bomb_internal"::"torpedo"
+	level.ITEMS = "bomb_50kg"::"bomb_125kg"::"bomb_250kg"::"bomb_250kg_internal"::"bomb_500kg"::"bomb_1000kg"::"anti_tank"::"boost"::"torpedo"::"spectator"::"return_plane"
 	
 	for(local.i = 1; local.i <= level.ITEMS.size; local.i++)
 	{

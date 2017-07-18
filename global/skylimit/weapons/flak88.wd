@@ -1,12 +1,12 @@
 // Flak88 AA gun
 
 specs:
-	self.damage = 1000.0 // also does splash damage
+	self.damage = 44.0 // also does splash damage
 	
 	self.splash = game.true
-	self.splash_damage_center = 800.0
+	self.splash_damage_center = 44.0
 	self.splash_damage_bounds = 0.0
-	self.splash_radius = 80.0 // m
+	self.splash_radius = 83.6 // m
 	self.splash_scale = 1.0
 	self.splash_model = skylimit/fx/flak_shell.tik
 	
@@ -21,7 +21,9 @@ specs:
 	self.sacquiredelay = 4.95
 	self.spread = 0.0064
 	self.time_fuze = game.true
-	self.fuzebias = -0.20 // fuze slightly early
+	self.min_fuze_time = 0.5
+	self.fuze_spread = 0.3
+	self.fuzebias = 0.0
 	
 	// flak info
 	self.turnspeed = 45.0 // deg/s (yaw)
@@ -29,8 +31,8 @@ specs:
 	self.pitch_min = -3.0
 	self.pitch_max = 85.0
 	self.shell_type = "HE"
-	self.flak_spread = 0.12
-	self.flak_radar_spread_mult = 0.65
+	self.flak_spread = 0.2
+	self.flak_radar_spread_mult = 0.5
 	
 	// dmg box size (approx)
 	self.dmg_mins = ( -72 -72 0)
@@ -39,6 +41,6 @@ specs:
 	self.col_offset = (0 0 0)
 	
 	// (search) range and health (when used as flak)
-	self.range = 1500.0 // m
+	self.range = 2000.0 // m
 	self.SL_health = 250.0
 end

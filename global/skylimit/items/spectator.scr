@@ -1,0 +1,49 @@
+// Spectate while flying... (dangerous)
+// hmmm doesn't really work v/ well... nvm (not used)
+// by jv_map
+
+specs:
+	self.name = "Spectate"
+	self.hud_shader = "sl_inone"
+	
+	self.mass = 0.0
+	self.ammo = 1
+	self.external = game.false
+	self.powerup = game.true
+	self.expendable = game.false
+	self.hideamount = game.true
+	self.bulletcount = 0
+	self.cooldowntime = 2.0
+end
+
+// self is plane
+fire local.item:
+
+	if(self.last_hot_spectate_release_time && level.time - self.last_hot_spectate_release_time <= 1.0)
+	{
+		end
+	}
+
+	if(self.pilotcontrol && self.pilot.isplayer)
+	{
+		self.hot_spectate = game.true
+		
+		while(self && self.pilotcontrol)
+		{
+			local.released_button = local.released_button || !self.pilot.fireheld
+			
+			if(local.released_button && self.pilot.fireheld)
+			{
+				break
+			}
+			
+			waitframe
+		}
+		
+		if(self)
+		{
+			self.hot_spectate = game.false
+			self.last_hot_spectate_release_time = level.time
+		}
+	}
+end

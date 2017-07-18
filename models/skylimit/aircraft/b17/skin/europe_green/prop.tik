@@ -1,0 +1,16 @@
+TIKI
+
+setup
+{
+	path models/skylimit/aircraft/includes/prop
+	skelmodel prop3.skd
+	surface all shader bf109_desert_prop_nolight
+	scale 0.689
+}
+
+$include models/skylimit/aircraft/includes/classdef.tik
+
+animations
+{
+	idle			prop3.skc
+}

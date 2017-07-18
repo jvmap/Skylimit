@@ -1,7 +1,7 @@
 TIKI
 
 $define velocity 40000.0
-$define life 0.5
+$define life 0.75
 $define scale 0.5
 $define convergence 400.0
 

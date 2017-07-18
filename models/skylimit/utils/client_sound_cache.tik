@@ -27,6 +27,8 @@ init
 		aliascache cl_bomb3 sound/skylimit/bomb/bomb3.wav soundparms 1.0 0.5 1.0 0.5 200 1600 auto loaded maps "obj dm"
 		aliascache cl_bomb4 sound/skylimit/bomb/bomb4.wav soundparms 1.0 0.5 1.0 0.5 200 1600 auto loaded maps "obj dm"
 		
-		aliascache cl_splash sound/characters/body_fallwater_02.wav soundparms 1.0 0.5 1.0 0.5 200 400 auto loaded maps "obj dm"
+		aliascache cl_splash sound/characters/body_fallwater_02.wav soundparms 0.25 0.0 1.0 0.5 200 400 auto loaded maps "obj dm"
+		aliascache cl_water_explosion1 sound/weapons/explo/Exp_Grenade_Water1.wav soundparms 1.0 0.2 0.7 0.4 200 1000 auto loaded maps "obj dm"
+		aliascache cl_water_explosion2 sound/weapons/explo/Exp_Grenade_Water2.wav soundparms 1.0 0.2 0.7 0.4 200 1000 auto loaded maps "obj dm"
 	}
 }

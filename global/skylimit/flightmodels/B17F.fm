@@ -1,0 +1,82 @@
+// Boeing B17G
+// by jv_map
+
+main:
+	self.CLASS = "Heavy Bomber"
+	
+	// don't let her pull 6 g's :P
+	self.NEGATIVE_G_LIMIT = -1.5
+	self.POSITIVE_G_LIMIT = 3.0
+	
+	self.MASS = 18850.0 // kg, empty + 15%
+	self.LENGTH = 22.7 // m
+	self.INERTIA = 1.0 / 24.0 * self.MASS * self.LENGTH * self.LENGTH // kg m^2
+	
+	// wing characteristics
+	self.MAXAOA = 16.0 * level.PI / 180.0 // stall angle
+	self.ZEROLIFTANGLE = -2.0 / 180 * level.PI // pitch up is positive
+	self.WINGAREA = 132.0 // m^2
+	self.WINGSPAN = 31.6 // m
+	self.CD0 = 0.022 // profile drag coefficient
+	self.CDBRAKE = 0.0 // brake drag
+	self.CDGEAR = 0.003 // additional gear drag
+	self.CDSTALL = 0.080 // additional stall drag coefficient
+	self.STALLSLOPE = 1.0 // rad^-1
+	
+	self.C_ROLL = 5.0 / 180.0 * level.PI // aileron effectiveness, crudely modelled as entire wing deflection (in rad)
+
+	// tail plane characteristics
+	self.TAILARM = 23.0 // m
+	
+	self.SLIPTUBE_BASEANGLE  = 0.0
+	
+	// max = pitch down, min = pitch up
+	self.TAILMAXPITCH = 10.0 / 180.0 * level.PI
+	self.TAILMINPITCH = -15.0 / 180.0 * level.PI
+	
+	self.TAILPITCHFALLOFF = 0.90 // faster fall-off
+
+	self.HTAILLIFTSLOPE = 1.8 * level.PI
+	self.HTAILZEROLIFTANGLE = 1.0 / 180.0 * level.PI
+	self.HTAILWINGAREA = 8.0 // m^2
+	
+	self.VTAILLIFTSLOPE = 1.7 * level.PI
+	self.VTAILZEROLIFTANGLE = 0.0 // symmetrical airfoil
+	self.VTAILWINGAREA = 8.0 // m^2
+	self.VTAILHEIGHT = 6.0
+	
+	// fraction of surface in slipstream
+	self.HTAILSLIPSTREAMFACTOR = 0.75
+	self.VTAILSLIPSTREAMFACTOR = 0.1
+	
+	// skid response
+	self.FUSELAGE_VAREA = 12.0 // m^2
+	self.FUSELAGE_VLIFTSLOPE = 1.0 * level.PI	// rad^-1
+	self.FUSELAGE_VCD0 = 0.30
+	
+	self.ENGINE_RATED_POWER						= 3580000.0 // kW
+	self.ENGINE_LIMIT_RPM						= 2500.0
+	self.ENGINE_SUPERCHARGER_CLUTCHED			= game.true
+	self.ENGINE_SUPERCHARGER_MAX_DENSITY_RATIO	= 1.25 // unrealistically low
+	self.ENGINE_GEAR_RATIO						= 2.0 // this should be 1? (direct drive)
+	self.ENGINE_UNLOADED_RPM					= 5000.0 // rpm
+	
+	self.ENGINE_TAXISPEED	   = 20.0 // m/s
+	self.ENGINE_CLIMBSPEED	   = 60.0 // m/s
+	
+	// rpm settings
+	self.ENGINE_RPM[level.ES_CRUISE]	= 2500.0
+	self.ENGINE_RPM[level.ES_TAXI]		= 1000.0
+	
+	self.ENGINE_MECH_FRICTION_MOMENT = 800.0 // Nm
+	
+	self.ENGINE_SERVO_MAXTORQUE = 40000.0 // Nm
+	self.ENGINE_SERVO_POWER = 100000.0 // W
+	
+	// 4 props in 1
+	self.PROPELLER_DIAMETER = 3.52 // m (realistic)
+	self.PROPELLER_BLADE_AREA = 0.40 // area of the individual blades m^2
+	self.PROPELLER_NUMBLADES = 12 // number of blades
+	self.PROPELLER_MASS = 240.0 // kg
+	self.PROPELLER_INERTIA = 0.2 * self.PROPELLER_DIAMETER * self.PROPELLER_DIAMETER * self.PROPELLER_MASS // principal mass moment of inertia along spin axis kg m^2
+end

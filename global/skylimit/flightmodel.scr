@@ -14,7 +14,7 @@ addwheel local.id:
 		self.wheels[self.wheels.size + 1] = local.ent
 end local.ent
 
-addprop local.custom_prop:
+addprop local.custom_prop local.custom_fast_prop:
 	local.ent = spawn listener
 	
 	if(local.custom_prop)
@@ -26,7 +26,14 @@ addprop local.custom_prop:
 		local.ent.model_slow = models/skylimit/aircraft/includes/defaultprop.tik
 	}
 	
-	local.ent.model_fast = models/skylimit/aircraft/includes/blurprop.tik
+	if(local.custom_fast_prop)
+	{
+		local.ent.model_fast = self.PLANETYPE.tikipath + "blurprop.tik"
+	}
+	else
+	{
+		local.ent.model_fast = models/skylimit/aircraft/includes/blurprop.tik
+	}
 	
 	if(self.props == NIL)
 		self.props[1] = local.ent
@@ -227,7 +234,7 @@ plane_assembly:
 		local.type = level.ITEMS[local.i]
 		self.MASS += self.item_amount[local.type] * level.SL_item[local.type].mass
 	}
-	
+
 	for(local.i = 1; local.i <= self.PLANETYPE.loadout.size; local.i++)
 	{
 		local.payload = self.PLANETYPE.loadout[local.i]
@@ -265,6 +272,11 @@ attach_loadout local.payload:
 	local.wm.tag = local.ptag
 
 	self.MASS += level.SL_item[local.ptype].mass
+	
+	if(level.SL_item[local.ptype].drag && !level.SL_item[local.ptype].internal)
+	{
+		self.CD0 += self.item_amount[local.ptype] * level.SL_item[local.ptype].drag * 0.25 * level.PI * level.SL_item[local.ptype].diameter * level.SL_item[local.ptype].diameter / self.WINGAREA
+	}
 	
 	// add item to inventory
 	waitthread global/skylimit/items.scr::additem local.ptype level.SL_item[local.ptype].ammo

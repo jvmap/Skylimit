@@ -1,0 +1,71 @@
+// Fairey Swordfish
+// by jv_map
+
+main:
+	self.CLASS = "Bomber"
+
+	self.MASS = 2470.0 // kg, empty + 30%
+	self.LENGTH = 10.87 // m
+	self.INERTIA = 1.0 / 24.0 * self.MASS * self.LENGTH * self.LENGTH // kg m^2
+	
+	// wing characteristics
+	self.MAXAOA = 16.0 * level.PI / 180.0 // stall angle
+	self.ZEROLIFTANGLE = -2.0 / 180 * level.PI // pitch up is positive
+	self.WINGAREA = 50.4 // m^2
+	self.WINGSPAN = 13.87 // m
+	self.CD0 = 0.060 // profile drag coefficient
+	self.CDBRAKE = 0.0 // brake drag
+	self.CDGEAR = 0.0 // additional gear drag
+	self.CDSTALL = 0.080 // additional stall drag coefficient
+	self.STALLSLOPE = 1.0 // rad^-1
+	
+	self.C_ROLL = 5.0 / 180.0 * level.PI // aileron effectiveness, crudely modelled as entire wing deflection (in rad)
+
+	// tail plane characteristics
+	self.TAILARM = 9.5 // m
+	
+	self.SLIPTUBE_BASEANGLE  = 0.0
+	
+	// max = pitch down, min = pitch up
+	self.TAILMAXPITCH = 15.0 / 180.0 * level.PI
+	self.TAILMINPITCH = -30.0 / 180.0 * level.PI
+	
+	self.HTAILLIFTSLOPE = 1.8 * level.PI
+	self.HTAILZEROLIFTANGLE = 0.0 //1.0 / 180.0 * level.PI
+	self.HTAILWINGAREA = 6.0 // m^2
+	
+	self.VTAILLIFTSLOPE = 1.7 * level.PI
+	self.VTAILZEROLIFTANGLE = 0.0 // symmetrical airfoil
+	self.VTAILWINGAREA = 3.0 // m^2
+	self.VTAILHEIGHT = 1.0
+	
+	// fraction of surface in slipstream
+	self.HTAILSLIPSTREAMFACTOR = 0.5
+	self.VTAILSLIPSTREAMFACTOR = 0.5
+	
+	self.ENGINE_TAXISPEED	   = 15.0 // m/s
+	self.ENGINE_CLIMBSPEED	   = 60.0 // m/s
+	
+	// skid response
+	self.FUSELAGE_VAREA = 6.0 // m^2
+	self.FUSELAGE_VLIFTSLOPE = 1.0 * level.PI	// rad^-1
+	self.FUSELAGE_VCD0 = 0.30
+	
+	self.ENGINE_RATED_POWER						= 515000.0 // kW
+	self.ENGINE_LIMIT_RPM						= 2500.0
+	self.ENGINE_SUPERCHARGER_CLUTCHED			= game.true
+	self.ENGINE_SUPERCHARGER_MAX_DENSITY_RATIO	= 1.0 // no supercharger
+	self.ENGINE_GEAR_RATIO						= 1.8
+	self.ENGINE_UNLOADED_RPM					= 5000.0 // rpm
+	self.ENGINE_DIRECTION						= -1 // rotate counter-clockwise from behind
+	
+	self.ENGINE_THROTTLE_IDLE = 0.13
+	
+	// fixed pitch
+	self.PROPELLER_FIXED_PITCH = 16.0/180.0 * level.PI // rad
+	
+	self.PROPELLER_DIAMETER	= 3.5 // m (realistic)
+	self.PROPELLER_NUMBLADES = 3 // number of blades
+	self.PROPELLER_BLADE_AREA = 0.50
+	self.PROPELLER_MASS = 100.0 // kg
+end

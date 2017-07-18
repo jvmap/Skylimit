@@ -50,7 +50,7 @@ main:
 	
 	waitthread global/skylimit/main.scr::main
 	
-	level.dmroundlimit = 45
+	level.dmroundlimit = 20
 	level.clockside = kills
 	
 	$world farplane_color (0.42 0.44 0.48)
@@ -65,37 +65,29 @@ main:
 end
 
 PLANETYPES_DM:
-	// v, hangar, skin
-	waitthread global/skylimit/plane_selection.scr::addoption spitfireIX1B_fighter faa
-	waitthread global/skylimit/plane_selection.scr::addoption spitfireIX1C_fighter faa
+	waitthread global/skylimit/plane_selection.scr::addoption spitfireMkIXe4 faa
+	waitthread global/skylimit/plane_selection.scr::addoption spitfireMkIXe3 faa
 	
-	waitthread global/skylimit/plane_selection.scr::addoption bf109G6_fighter europe1
-	waitthread global/skylimit/plane_selection.scr::addoption bf109G6_heavyfighter europe1
-	waitthread global/skylimit/plane_selection.scr::addoption fw190A5_fighter trop
-	waitthread global/skylimit/plane_selection.scr::addoption fw190A5_heavyfighter trop
+	waitthread global/skylimit/plane_selection.scr::addoption bf109G6 europe1
+	waitthread global/skylimit/plane_selection.scr::addoption fw190A6 trop
 end
 
 PLANETYPES_OBJ:
 	// set the service groups (number of planes per sharable type)
 	waitthread global/skylimit/plane_selection.scr::setservicegroup allies spitfire 9
-	waitthread global/skylimit/plane_selection.scr::setservicegroup allies swordfish 9
+	waitthread global/skylimit/plane_selection.scr::setservicegroup allies swordfish 5
 	
-	waitthread global/skylimit/plane_selection.scr::setservicegroup axis bf109 6
-	waitthread global/skylimit/plane_selection.scr::setservicegroup axis fw190 6
-	waitthread global/skylimit/plane_selection.scr::setservicegroup axis ju87 6
+	waitthread global/skylimit/plane_selection.scr::setservicegroup axis bf109 5
+	waitthread global/skylimit/plane_selection.scr::setservicegroup axis fw190 7
+	waitthread global/skylimit/plane_selection.scr::setservicegroup axis ju87 3
 
-	// v, hangar, skin
-	waitthread global/skylimit/plane_selection.scr::addoption spitfireIX1B_fighter faa
-	waitthread global/skylimit/plane_selection.scr::addoption spitfireIX1C_fighter faa
-	waitthread global/skylimit/plane_selection.scr::addoption spitfireIX1B_fighterbomber faa
-	waitthread global/skylimit/plane_selection.scr::addoption swordfish_bombs grey
+	waitthread global/skylimit/plane_selection.scr::addoption spitfireMkIXe4 faa
+	waitthread global/skylimit/plane_selection.scr::addoption spitfireMkIXe3 faa
+	waitthread global/skylimit/plane_selection.scr::addoption swordfishMkII grey
 	
-	waitthread global/skylimit/plane_selection.scr::addoption bf109G6_fighter europe1
-	waitthread global/skylimit/plane_selection.scr::addoption bf109G6_heavyfighter europe1
-	waitthread global/skylimit/plane_selection.scr::addoption fw190A5_fighter trop
-	waitthread global/skylimit/plane_selection.scr::addoption fw190A5_heavyfighter trop
-	waitthread global/skylimit/plane_selection.scr::addoption fw190A5_torpedobomber trop
-	waitthread global/skylimit/plane_selection.scr::addoption ju87_torpedobomber trop
+	waitthread global/skylimit/plane_selection.scr::addoption bf109G6 europe1
+	waitthread global/skylimit/plane_selection.scr::addoption fw190A6_torpedo trop
+	waitthread global/skylimit/plane_selection.scr::addoption ju87d1 trop
 end
 
 ffa:

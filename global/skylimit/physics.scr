@@ -111,52 +111,34 @@ update local.timestep:
 	
 	local.abs_rotation = self.p_avelocity * local.timestep + 0.5 * local.aaccel * local.timestep * local.timestep
 	
-	// dissect to local csys
-	local.local_rotation = (0 0 0)
-	local.local_rotation[0] = local.abs_rotation * self.forwardvector
-	local.local_rotation[1] = local.abs_rotation * self.leftvector
-	local.local_rotation[2] = local.abs_rotation * self.upvector
-	
-	// make quat
-	waitthread global/skylimit/math.scr::axistoquat local.local_rotation self.p_working_quat
-	waitthread global/skylimit/math.scr::quatmult self.p_quat self.p_working_quat self.p_quat
-
-	// normalize quat
-	waitthread global/skylimit/math.scr::quatnormalize self.p_quat
-
-	local.new_angles = waitthread global/skylimit/math.scr::quattoangles self.p_quat local.new_angles
-	
-	local.delta_angles = waitthread global/skylimit/math.scr::getanglesdiff local.new_angles self.angles
-	
-	// disregard tiny rotations
-	// this should trim useless network traffic and prevent any sliding on the ground
-	if(local.delta_angles * local.delta_angles > level.PH_MINROT_SQ * local.timestep)
-	{
-		// update angles
-		self.angles = local.new_angles
-	}
+	waitthread global/skylimit/math.scr::qrotate local.abs_rotation (level.PH_MINROT_SQ*local.timestep)
 	
 	self.p_avelocity += local.aaccel * local.timestep
 	
-	/*
-	if(level.dbg_nextprint == NIL || level.time > level.dbg_nextprint)
-	{
-		// R = V^2 / a
-		local.p_accel = local.accel - local.accel * self.normalvel * self.normalvel
-		
-		// accel in horizontal
-		local.flataccel = local.p_accel - local.p_accel * $world.upvector * $world.upvector
-		
-		// turn radius in horizontal
-		local.flatvel = self.p_velocity - self.p_velocity * $world.upvector * $world.upvector
-		local.R = local.flatvel * local.flatvel / vector_length local.flataccel
-		// forward load factor
-		local.t_load = local.accel * self.normalvel / $world.GRAVITY
-		
-		println "turn radius: " local.R " m, v: " self.p_vload " g, f: " local.t_load " g"
-		level.dbg_nextprint = level.time + 0.5
-	}
-	*/
+//	if((level.dbg_nextprint == NIL || level.time > level.dbg_nextprint) && self.normalvel != NIL)
+//	{
+//		// R = V^2 / a
+//		local.p_accel = local.accel - local.accel * self.normalvel * self.normalvel
+//		
+//		// accel in horizontal
+//		local.flataccel = local.p_accel - local.p_accel * $world.upvector * $world.upvector
+//		
+//		if(local.flataccel == (0 0 0))
+//		{
+//			local.R = "inf"
+//		}
+//		else
+//		{
+//			// turn radius in horizontal
+//			local.flatvel = self.p_velocity - self.p_velocity * $world.upvector * $world.upvector
+//			local.R = local.flatvel * local.flatvel / vector_length local.flataccel
+//		}
+//		// forward load factor
+//		local.t_load = local.accel * self.normalvel / $world.GRAVITY
+//		
+//		println "turn radius: " local.R " m, v: " self.p_vload " g, f: " local.t_load " g, aoa: " ((self.aoa - self.ZEROLIFTANGLE) * 180.0/level.PI) " deg, CL = " self.cl
+//		level.dbg_nextprint = level.time + 0.5
+//	}
 end
 
 // administer an impulse
@@ -179,7 +161,7 @@ impulse local.ivec local.poa:
 			
 			if(local.poa != NIL && local.mvec * local.mvec >= level.PH_MINIMPULSE * level.PH_MINIMPULSE)
 			{
-				local.arm = (local.poa - self.p_com) //* (level.SL_UNITCONV_UNITS_to_METERS_NORMAL_SCALE / self.SCALE)
+				local.arm = (local.poa - self.p_com)
 				local.moment = vector_cross local.arm local.ivec
 				self.aaccel += local.moment * (1.0 / self.INERTIA)
 			}

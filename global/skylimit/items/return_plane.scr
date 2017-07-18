@@ -1,0 +1,39 @@
+// Return your plane to legitimate owner :)
+// by jv_map
+
+specs:
+	self.name = "<Return Aircraft>"
+	self.hud_shader = "sl_inone"
+	
+	self.mass = 0.0
+	self.ammo = 1
+	self.external = game.false
+	self.powerup = game.true
+	self.expendable = game.false
+	self.hideamount = game.true
+	self.bulletcount = 0
+	self.cooldowntime = 2.0
+end
+
+// self is plane
+fire local.item:
+	
+	// this will be very simple :)
+	self.destroyed = game.true
+	self.means_of_death = self.MOD_RESPAWN
+	
+	if(level.SL_FINITE_PLANES && level.roundstart)
+	{
+		level.SL_SERVICEGROUPS[self.dmteam][self.PLANETYPE.servicegroup]++
+		
+		if(self.pilot && self.pilot.isplayer)
+		{
+			self.pilot iprint ("Your aircraft has been placed in reserve. Thanks for returning it safely!") 1
+		}
+	}
+	else if(self.pilot && self.pilot.isplayer)
+	{
+		self.pilot iprint ("Returned your aircraft to base.") 1
+	}
+	
+end

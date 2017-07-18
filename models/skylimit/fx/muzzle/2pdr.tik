@@ -15,8 +15,63 @@ animations
 {
 	idle     muzzle.skc		
 	
+	// HE tracer
+	fire1	 muzzle.skc weight 1.0
+	{
+		client
+		{
+			// tracer
+			enter tagspawn origin
+			(
+				model models/skylimit/fx/tracer.tik
+				velocity 29250.0
+				alignstretch 0.2
+				life 3.0
+				accel 0 0 -3.83
+				dietouch
+				scale 3.5
+				offsetalongaxis range 0.0 400.0 0.0 0.0
+				randvelaxis 0.0 crandom 750.0 crandom 750.0
+				collision
+				bouncedecal 1 0
+				decalshader bhole_metal
+				decalradius 0.25
+				orientation random
+				fade
+			)
+			
+			// front flash
+			enter tagspawn origin
+			(
+				scale 3.0
+				offsetalongaxis 2.0 0.0 0.0
+				model muzsprite.spr
+				angles 0 0 crandom 25
+				life 0.1
+			)	
+			
+			// smoke
+			enter tagspawn origin
+			(
+				model vsssource.spr
+				alpha 0.5
+				color 0.5 0.5 0.5
+				scale 0.04
+				life 0.40
+				scalerate 5.00
+				velocity 400.00
+				randvel crandom 100.0 crandom 100.0 crandom 100.0
+				offset crandom 1.0 crandom 1.0 crandom 1.0
+				accel 0 0 30
+				fade
+				randomroll
+				count 6
+			)		
+		}
+	}
+	
 	// no tracer
-	fire	 muzzle.skc
+	fire2	 muzzle.skc weight 1
 	{
 		client
 		{

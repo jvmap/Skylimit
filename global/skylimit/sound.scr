@@ -10,7 +10,7 @@ init:
 	level.SL_SND_TIKI = fx/dummy.tik	// TIKI model used to play the sounds
 										// init server section should specify a classname
 	
-	level.SL_SND_LOOPSOUNDERROR = 0.005
+	level.SL_SND_LOOPSOUNDERROR = 0.001 //0.005
 	
 	// ents are shared by all clients to keep entity count constant
 	// so we don't have problems with edicts running out
@@ -66,7 +66,9 @@ playermic:
 		waitthread handle_loopsounds
 		local.scene = self.snd_current_scene
 		local.scene_refs = self.snd_scene_refs
-		wait 0.20
+		wait 0.10
+		//wait 0.20
+		//waitframe
 	}
 	
 	// TODO: release any remaining ents in scene
@@ -88,6 +90,7 @@ end
 //#INLINE
 handle_loopsounds:
 	local.current_scene = self.snd_current_scene
+	local.new_scene = self.snd_new_scene
 	local.scene_refs = self.snd_scene_refs
 
 	// check if any looping sounds are nearby
@@ -195,6 +198,7 @@ handle_loopsounds:
 		}
 	}
 	
+	self.snd_new_scene = self.snd_current_scene
 	self.snd_current_scene = local.new_scene
 	self.snd_scene_refs = local.scene_refs
 end

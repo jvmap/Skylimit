@@ -51,14 +51,15 @@ animations
 				model vsssource2.spr
 				count 20
 				alpha 0.90
-				color 0.10 0.10 0.10
+				color 0.0 0.0 0.0
 				life 3.00
-				scale 0.4
+				scale 0.6
 				scalerate 2.00
 				//radius 22.00
-				friction 1.00
+				friction 2.00
 				//offsetalongaxis crandom 64.0 crandom 64.0 crandom 64.0
-				randvel crandom 20.0 crandom 20.0 crandom 80.0
+				randvel crandom 40.0 crandom 40.0 crandom 40.0
+				fadein 0.25
 				fade
 				randomroll
 			)

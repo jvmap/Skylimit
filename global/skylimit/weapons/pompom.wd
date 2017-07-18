@@ -2,38 +2,39 @@
 // 8-barrels
 
 specs:
-	self.damage = 100.0 // also does splash damage
+	self.damage = 20.0 // also does splash damage
 	
 	self.splash = game.true
-	self.splash_damage_center = 80.0
+	self.splash_damage_center = 20.0
 	self.splash_damage_bounds = 0.0
-	self.splash_radius = 40.0 // m
-	self.splash_scale = 6.0
+	self.splash_radius = 38.0 // m
+	self.splash_scale = 8.0
 	self.splash_model = skylimit/fx/cannon_shell.tik
 	
 	// bulletattack info
-	self.bulletvelocity = 600.0 // m/s
+	self.bulletvelocity = 585.0 // m/s
 	self.bulletlife = 3.0
 	
 	self.means_of_damage = level.MODM_BULLET_MG
 	self.firedelay = 1.6
-	self.acquire_timeout = 0.2
-	self.facquiredelay = 2.0
-	self.sacquiredelay = 1.55
-	self.spread = 0.0256 //0.0064
+	self.acquire_timeout = 1.0
+	self.facquiredelay = 0.5
+	self.spread = 0.0256
 	self.time_fuze = game.true
-	self.fuzebias = -0.60 // fuze early
+	self.min_fuze_time = 0.4
+	self.fuze_spread = 0.1
+	self.fuzebias = -0.05 // fuze early
 	self.salvosize = 4 // less lag //8
 	
 	// flak info
-	self.turnspeed = 30.0 // deg/s (yaw)
-	self.trainspeed = 15.0 // deg/s (pitch)
+	self.turnspeed = 45.0 // deg/s (yaw)
+	self.trainspeed = 45.0 // deg/s (pitch)
 	self.pitch_min = 0.0
-	self.pitch_max = 70.0
-	self.shell_type = "HEM"
-	self.flak_spread = 0.15
-	self.flak_radar_spread_mult = 0.6
+	self.pitch_max = 80.0
+	self.shell_type = "HE"
+	self.flak_spread = 0.2
+	self.flak_radar_spread_mult = 0.5
 	
 	// (search) range
-	self.range = 2000.0 // m
+	self.range = 2500.0 // m
 end
