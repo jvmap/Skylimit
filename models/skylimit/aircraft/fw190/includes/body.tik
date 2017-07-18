@@ -1,0 +1,260 @@
+setup
+{
+	path models/skylimit/aircraft/fw190/skel
+	
+	skelmodel body.skd
+}
+
+init
+{
+	client
+	{
+		// MG17
+		tagemitter tag_barrel1 mg1s
+		(
+			model models/skylimit/fx/muzzle/s800.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+		tagemitter tag_barrel2 mg2s
+		(
+			model models/skylimit/fx/muzzle/s800.tik
+			spawnrate 20.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		
+		// MG131
+		tagemitter tag_barrel1 mg1m
+		(
+			model models/skylimit/fx/muzzle/m700.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+		tagemitter tag_barrel2 mg2m
+		(
+			model models/skylimit/fx/muzzle/m700.tik
+			spawnrate 20.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		
+		// MG131 in wing root
+		tagemitter tag_barrel3 mg3m
+		(
+			model models/skylimit/fx/muzzle/m700.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+		tagemitter tag_barrel4 mg4m
+		(
+			model models/skylimit/fx/muzzle/m700.tik
+			spawnrate 20.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		
+		// CANNON MG151/20
+		tagemitter tag_barrel3 cannon1l
+		(
+			model models/skylimit/fx/muzzle/l700.tik
+			spawnrate 10.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		tagemitter tag_barrel4 cannon2l
+		(
+			model models/skylimit/fx/muzzle/l700.tik
+			spawnrate 10.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		tagemitter tag_barrel5 cannon3l
+		(
+			model models/skylimit/fx/muzzle/l700R.tik
+			spawnrate 10.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		tagemitter tag_barrel6 cannon4l
+		(
+			model models/skylimit/fx/muzzle/l700L.tik
+			spawnrate 10.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		
+		// CANNON MGFF 20mm, only outboard
+		tagemitter tag_barrel5 cannon5l
+		(
+			model models/skylimit/fx/muzzle/l600R.tik
+			spawnrate 10.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		tagemitter tag_barrel6 cannon6l
+		(
+			model models/skylimit/fx/muzzle/l600L.tik
+			spawnrate 10.0
+			life 0.02
+			startoff
+			anim fire
+		)
+	}
+}
+
+animations
+{
+	idle	body.skc
+	
+	emitteron_mg17 	body.skc
+	{
+		client
+		{
+			enter emitteron mg1s
+			enter emitteron mg2s
+		}
+	}
+	
+	emitteroff_mg17	body.skc
+	{
+		client
+		{
+			enter emitteroff mg1s
+			enter emitteroff mg2s
+		}
+	}
+	
+	emitteron_mg131 body.skc
+	{
+		client
+		{
+			enter emitteron mg1m
+			enter emitteron mg2m
+		}
+	}
+	
+	emitteroff_mg131 body.skc
+	{
+		client
+		{
+			enter emitteroff mg1m
+			enter emitteroff mg2m
+		}
+	}
+	
+	emitteron_mg131_all body.skc
+	{
+		client
+		{
+			enter emitteron mg1m
+			enter emitteron mg2m
+			enter emitteron mg3m
+			enter emitteron mg4m
+		}
+	}
+	
+	emitteroff_mg131_all body.skc
+	{
+		client
+		{
+			enter emitteroff mg1m
+			enter emitteroff mg2m
+			enter emitteroff mg3m
+			enter emitteroff mg4m
+		}
+	}
+	
+	emitteron_cannon151_all	body.skc
+	{
+		client
+		{
+			enter emitteron cannon1l
+			enter emitteron cannon2l
+			enter emitteron cannon3l
+			enter emitteron cannon4l
+		}
+	}
+	
+	emitteroff_cannon151_all	body.skc
+	{
+		client
+		{
+			enter emitteroff cannon1l
+			enter emitteroff cannon2l
+			enter emitteroff cannon3l
+			enter emitteroff cannon4l
+		}
+	}
+	
+	emitteron_cannon151_inboard	body.skc
+	{
+		client
+		{
+			enter emitteron cannon1l
+			enter emitteron cannon2l
+		}
+	}
+	
+	emitteroff_cannon151_inboard	body.skc
+	{
+		client
+		{
+			enter emitteroff cannon1l
+			enter emitteroff cannon2l
+		}
+	}
+	
+	emitteron_cannon151_outboard	body.skc
+	{
+		client
+		{
+			enter emitteron cannon3l
+			enter emitteron cannon4l
+		}
+	}
+	
+	emitteroff_cannon151_outboard	body.skc
+	{
+		client
+		{
+			enter emitteroff cannon3l
+			enter emitteroff cannon4l
+		}
+	}
+	
+	emitteron_mgff_outboard	body.skc
+	{
+		client
+		{
+			enter emitteron cannon5l
+			enter emitteron cannon6l
+		}
+	}
+	
+	emitteroff_mgff_outboard	body.skc
+	{
+		client
+		{
+			enter emitteroff cannon5l
+			enter emitteroff cannon6l
+		}
+	}
+}
+
+$include models/skylimit/aircraft/fw190/includes/includes.tik
+$include models/skylimit/aircraft/includes/classdef.tik

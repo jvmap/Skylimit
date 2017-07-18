@@ -1,0 +1,18 @@
+TIKI
+setup
+{
+	scale 0.01625			// Set default scale to 16/30.5 since world is in 16 units per foot and model is in cm's
+	path models/static/hedgehog
+	skelmodel hedgehog.skd
+	surface hedgehog shader sl_hedgehog_fade
+}
+
+animations
+{
+	idle     hedgehog.skc
+}
+
+/*QUAKED skylimit_scenery_hedgehog (0.5 0.0 0.5) (-1 -1 0) (1 1 2)
+Fades out over distance
+Not lighted
+*/

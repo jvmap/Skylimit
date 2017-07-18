@@ -1,0 +1,65 @@
+// aaah very violent :D
+
+TIKI
+setup
+{
+	scale 0.031
+	path models/fx/dummy
+	skelmodel dummy3.skd
+}
+
+init
+{
+	server
+	{
+		classname effectentity
+		notsolid
+		rendereffects +dontdraw
+	}
+}
+
+animations
+{
+	idle dummy3.skc
+
+	start dummy3.skc
+	{
+		client
+		{
+			// sand shooters
+			enter originspawn
+			(
+				model vsssource.spr
+				count 30
+				color 0.50 0.38 0.28 //0.55 0.42 0.33
+				alpha 0.50
+				scale 0.05
+				life 1.00
+				scalerate 2.0
+				randvel crandom 10.0 crandom 10.0 crandom 10.0
+				//collision
+				friction 2.00
+				accel 0 0 -40.0
+				fade 
+				randomroll
+			)
+			
+			// smoke shooters
+			enter originspawn
+			(
+				model vsssource2.spr
+				count 8
+				color 0.3 0.3 0.3
+				alpha 0.20
+				scale 0.1
+				life 1.00
+				scalerate 2.0
+				randvel crandom 5.0 crandom 5.0 random 10.0
+				//collision
+				accel 0 0 -40.0
+				fade 
+				randomroll
+			)
+		}
+	}
+}

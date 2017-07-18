@@ -1,0 +1,18 @@
+//  Vickers 0.303
+
+specs:
+	self.name = "Vickers .303Cal"
+	self.hud_shader = "sl_wb3" // TODO
+	self.damage = 5.0
+	
+	self.bulletvelocity = 700.0 // m/s
+	self.bulletlife = 0.5
+	
+	self.soundset = "browning303"
+	
+	self.jamdecay = 7.0 // reduce jam by this amount each second
+	
+	self.ammotype = "s"
+	self.calibre = ".303in"
+	self.ammo_capacity_rounds_per_gun = 600
+end

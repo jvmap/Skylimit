@@ -1,0 +1,144 @@
+// chute fest
+// by jv_map
+
+// self is plane
+healthchute local.amount:
+	local.chute = waitthread releasechute "skylimit/items/chute_health.tik" "skylimit/items/parahealth.tik" (0 (randomfloat 360.0) 0)
+	
+	local.chute.pickup_type = level.CHUTE_HEALTH
+	
+	local.chute thread chutethink game.true self
+end
+
+// self is plane
+releasechute local.model local.attachment_model local.attachment_angles:
+	local.SPAWNOFFSET = (0 0 8) // m
+
+	local.chute = spawn Animate model local.model
+
+	// take yaw from plane
+	local.angles = (0 0 0)
+	local.angles[1] = self.angles[1]
+	
+	local.chute angles local.angles
+	
+	// spawn a few meters up
+	local.chute.origin = self.origin + local.SPAWNOFFSET * (1.0 /  level.SL_UNITSCALE)
+	
+	local.att = spawn Animate model local.attachment_model
+	local.att attach local.chute "cablelink"
+	local.att.angles = local.attachment_angles
+	
+	local.chute anim deploy
+	
+	local.chute.attachment = local.att
+end local.chute
+
+// owner can never pick it up
+chutethink local.pickupable local.cowner:
+	local.CHUTESTEP = 0.05
+	local.CHUTEVELOCITY = (2.0 -2.0 -2.0) * 2.0
+
+	local.NEARSQDIST = 800.0 * 800.0 / (level.SL_UNITSCALE * level.SL_UNITSCALE) // m^2
+	local.PICKUPSQDIST = 10.0 * 10.0 / (level.SL_UNITSCALE * level.SL_UNITSCALE) // m^2
+
+	level.sl_numchutes++
+
+	local.lastupdatetime = level.time
+	local.timestep = local.CHUTESTEP * level.sl_numchutes
+	
+	local.maxlife = 300.0 // 5 minutes
+
+	local.starttime = level.time
+	
+	local.end = self.origin + local.CHUTEVELOCITY * local.maxlife
+	local.hit = trace self.origin local.end 0
+	if(local.hit == local.end)
+	{
+		local.life = local.maxlife
+	}
+	else
+	{
+		local.life = (local.hit - self.origin) * local.CHUTEVELOCITY / (local.CHUTEVELOCITY * local.CHUTEVELOCITY)
+	}
+	
+	while(self && level.time - local.starttime <= local.life && self.origin[2] > $world.SEALEVEL)
+	{
+		if(level.time - local.lastupdatetime >= local.timestep)
+		{
+			// glide down gently :)
+			self.origin += local.CHUTEVELOCITY * (level.time - local.lastupdatetime)
+			local.lastupdatetime = level.time
+		}
+		
+		// check if anyone is near
+		local.someoneisnear = game.false
+		for(local.i = 1; local.i <= $SL_plane.size; local.i++)
+		{
+			local.plane = $SL_plane[local.i]
+			if(local.plane != local.cowner)
+			{
+				local.vec = local.plane.origin - self.origin
+				local.sqdist = local.vec * local.vec
+				
+				if(local.sqdist <= local.NEARSQDIST)
+				{
+					local.someoneisnear = game.true
+					
+					if(local.pickupable && local.plane.pilot)
+					{
+						if(local.sqdist <= local.PICKUPSQDIST)
+						{
+							// pickup thread is responsible for removing the chute
+							waitthread pickup local.plane
+						}
+					}
+					else
+					{
+						break
+					}
+				}
+			}
+		}
+		
+		if(local.someoneisnear)
+		{
+			local.timestep = local.CHUTESTEP
+		}
+		else
+		{
+			local.timestep = local.CHUTESTEP * level.sl_numchutes
+		}
+		
+		wait local.CHUTESTEP
+	}
+	
+	if(self)
+	{
+		self remove
+	}
+	
+	level.sl_numchutes--
+end
+
+pickup local.other:
+	local.CHUTE_HEALTH_AMOUNT = 50.0 // hp
+
+	if(self.pickup_type == level.CHUTE_HEALTH)
+	{
+		if(local.other.SL_health < 100.0)
+		{
+			local.other.SL_health += local.CHUTE_HEALTH_AMOUNT
+			
+			if(local.other.SL_health > 100.0)
+			{
+				local.other.SL_health = 100.0
+			}
+			
+			local.other playsound med_canteen
+			
+			// not reusable
+			self remove
+		}
+	}
+end

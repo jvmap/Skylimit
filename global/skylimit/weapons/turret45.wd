@@ -1,0 +1,37 @@
+// Flak88 AA gun
+
+specs:
+	self.damage = 2000.0 // also does splash damage
+	
+	self.splash = game.true
+	self.splash_damage_center = 1600.0
+	self.splash_damage_bounds = 0.0
+	self.splash_radius = 120.0 // m
+	self.splash_scale = 2.0
+	self.splash_model = skylimit/fx/flak_shell.tik
+	
+	// bulletattack info
+	self.bulletvelocity = 800.0 // m/s
+	self.bulletlife = 3.0
+	
+	self.means_of_damage = level.MODM_BULLET_MG
+	self.firedelay = 5.0
+	self.acquire_timeout = 0.50
+	self.facquiredelay = 2.0
+	self.sacquiredelay = 4.95
+	self.spread = 0.0064
+	self.time_fuze = game.true
+	self.fuzebias = -0.40 // fuze slightly early
+	
+	// flak info
+	self.turnspeed = 15.0 // deg/s (yaw)
+	self.trainspeed = 5.0 // deg/s (pitch)
+	self.pitch_min = -5.0
+	self.pitch_max = 45.0
+	self.shell_type = "HE"
+	self.flak_spread = 0.12
+	self.flak_radar_spread_mult = 0.4
+	
+	// (search) range
+	self.range = 3500.0 // m, long range to hinder torpedo attacks
+end

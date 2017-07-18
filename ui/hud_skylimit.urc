@@ -1,0 +1,172 @@
+// modified for skylimit
+// by jv_map
+
+menu "hud_skylimit" 264 115 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align right bottom
+
+//==================================================
+// Main panel
+resource
+Label
+{
+rect 0 0 264 115
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "skylimit/hud/panel_base"
+}
+
+//==================================================
+// Optional gear panel
+resource
+Label
+{
+rect 203 0 61 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "sl_inone"
+linkstring "-1" "sl_inone"
+linkstring "0" "skylimit/hud/gear_up"
+linkstring "1" "skylimit/hud/gear_down"
+linkcvartoshader
+linkcvar sl_ltgr
+}
+
+//==================================================
+// Flak light
+resource
+Label
+{
+rect 211 67 15 14
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "sl_inone"
+linkstring "-1" "sl_inone"
+linkstring "0" "skylimit/hud/light_red_off"
+linkstring "1" "skylimit/hud/light_red_on"
+linkcvartoshader
+linkcvar sl_ltflk
+}
+
+//==================================================
+// Servo light
+resource
+Label
+{
+rect 236 67 15 14
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "sl_inone"
+linkstring "-1" "sl_inone"
+linkstring "0" "skylimit/hud/light_green_off"
+linkstring "1" "skylimit/hud/light_green_on"
+linkcvartoshader
+linkcvar sl_ltsrv
+}
+
+//==================================================
+// Brake light
+resource
+Label
+{
+rect 211 89 15 14
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "sl_inone"
+linkstring "-1" "sl_inone"
+linkstring "0" "skylimit/hud/light_yellow_off"
+linkstring "1" "skylimit/hud/light_yellow_on"
+linkcvartoshader
+linkcvar sl_ltbrk
+}
+
+//==================================================
+// Reverse light
+resource
+Label
+{
+rect 236 89 15 14
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+shader "sl_inone"
+linkstring "-1" "sl_inone"
+linkstring "0" "skylimit/hud/light_yellow_off"
+linkstring "1" "skylimit/hud/light_yellow_on"
+linkcvartoshader
+linkcvar sl_ltrev
+}
+
+//==================================================
+// Airspeed Indicator Needle
+
+resource
+Label
+{
+name "sl_airspeed_needle"
+rect 6 17 96 96
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+linkcvar "sl_ext_spd"
+statbar spinner 0.0 1.0
+statbar_endangles 0 360.0
+statbar_shader skylimit/hud/airspeedhand
+}
+
+//==================================================
+// Altimeter Micro Needle
+resource
+Label
+{
+name "sl_altimeter_needle_micro"
+rect 103 17 96 96
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+linkcvar "sl_ext_altm"
+statbar spinner -10 10
+statbar_endangles -360 360
+statbar_shader skylimit/hud/altimeterblob
+}
+
+//==================================================
+// Altimeter Minor Needle
+resource
+Label
+{
+name "sl_altimeter_needle_small"
+rect 103 17 96 96
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+linkcvar "sl_ext_alts"
+statbar spinner -10 10
+statbar_endangles -360 360
+statbar_shader skylimit/hud/altimetersmallhand
+}
+
+//==================================================
+// Altimeter Needle
+
+resource
+Label
+{
+name "sl_altimeter_needle_big"
+rect 103 17 96 96
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+linkcvar "sl_ext_altb"
+statbar spinner -10 10
+statbar_endangles -360 360
+statbar_shader skylimit/hud/altimeterhand
+}
+
+end.

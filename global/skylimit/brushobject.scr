@@ -1,0 +1,99 @@
+// damagable/destroyable brush objects.
+// by jv_map
+
+// make self into a damagable brush object
+// target is destroyed_model
+// self should have a $hitbox key
+// make a $hitbox key like this:
+// minx1 miny1 minz1,maxx1 maxy1 maxz1;minx2 miny2 minz2;maxx2 maxy2 maxz2
+// multiple hitboxes may be defined per bobject
+// callback thread will be called upon destruction of the object, if specified
+brushobject local.name local.nationality local.team local.takedamage local.health local.dmgb local.msg_type local.callback_scr local.callback_thread local.showicon local.icon_model:
+	
+	local.DMG_MARGIN = 8.0 / level.SL_UNITSCALE
+	
+	local.dm = $(self.target)
+	
+	self.dmteam = local.team
+	
+	// take dmg if we have a destroyed_model
+	
+	// hide the destroyed model
+	if(local.dm)	
+	{
+		local.dm hide
+	}
+	
+	if(local.showicon && local.icon_model)
+	{
+		local.icon_tik = "skylimit/hud/" + local.icon_model + "_" + local.team + ".tik"
+		
+		// add the icon
+		self.icon = spawn Animate model local.icon_tik scale $world.SL_SCALE
+		self.icon.origin = self.centroid
+	}
+	
+	if(local.takedamage)
+	{
+		local.boxes = waitthread global/skylimit/string.scr::string_to_array self.hitbox ";"
+		for(local.i = 1; local.i <= local.boxes.size; local.i++)
+		{
+			local.minmax = waitthread global/skylimit/string.scr::string_to_array local.boxes[local.i] ","
+			
+			// set the boxes
+			local.mins = waitthread global/skylimit/string.scr::string_to_vector local.minmax[1]
+			local.maxs = waitthread global/skylimit/string.scr::string_to_vector local.minmax[2]
+			
+			// margin
+			local.mins -= local.DMG_MARGIN * (1 1 1)
+			local.maxs += local.DMG_MARGIN * (1 1 1)
+			
+			waitthread global/skylimit/damage.scr::add_damage_box local.mins local.maxs game.true
+		}
+		
+		self.SL_health = local.health
+		self.name = local.name
+		if(local.nationality)
+		{
+			self.nationality = local.nationality
+		}
+		else
+		{
+			self.nationality = $world.TEAM_ADJECTIVE[self.dmteam]
+		}
+		
+		waitthread global/skylimit/damage.scr::takebrushdamage local.dmgb
+		
+		thread brushobject_loop local.dm local.msg_type local.callback_scr local.callback_thread
+	}
+end
+
+brushobject_loop local.dm local.msg_type local.callback_scr local.callback_thread:
+	waitthread global/skylimit/damage.scr::damage_loop local.msg_type
+	
+	// bobject has been destroyed
+	// replace by destroyed model
+	if(local.dm)
+	{
+		self hide
+		local.dm show
+	}
+	
+	if(self.icon)
+	{
+		self.icon remove
+	}
+	
+	// eek a bit of smoke
+	// let's hope this doesn't eat up too many particles
+	if(self.brushmodel[0] == "*")
+	{
+		local.smoke = spawn EffectEntity origin self.centroid model "skylimit/fx/smoke.tik" scale $world.SL_SCALE
+		local.smoke anim start
+	}
+	
+	if(local.callback_scr && local.callback_thread)
+	{
+		thread local.callback_scr::local.callback_thread
+	}
+end

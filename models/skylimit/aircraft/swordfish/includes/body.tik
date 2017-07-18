@@ -1,0 +1,47 @@
+// Grey camouflaged swordfish with regular fixed gear
+
+setup
+{
+	scale 1.14
+	path models/skylimit/aircraft/swordfish/skel
+	skelmodel body_gear.skd
+}
+
+init
+{
+	client
+	{
+		// MG
+		tagemitter tag_barrel mg
+		(
+			model models/skylimit/fx/muzzle/s700.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+	}
+}
+
+animations
+{
+	idle	body_gear.skc
+	
+	emitteron_mg 	body_gear.skc
+	{
+		client
+		{
+			enter emitteron mg
+		}
+	}
+	
+	emitteroff_mg 	body_gear.skc
+	{
+		client
+		{
+			enter emitteroff mg
+		}
+	}
+}
+
+$include models/skylimit/aircraft/includes/classdef.tik

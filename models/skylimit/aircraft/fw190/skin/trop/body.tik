@@ -1,0 +1,14 @@
+TIKI
+
+setup
+{
+	surface body shader sl_fockwulf
+	surface barrel_outboard shader sl_fockwulf
+	surface window shader fockwindowfly
+}
+
+$include models/skylimit/aircraft/fw190/includes/body.tik
+
+/*QUAKED skylimit_fw190_trop (0.0 0.0 0.0) (-65 -40 0) (65 40 120)
+Focke-Wulf Fw190 Airplane, Tropicalized
+*/

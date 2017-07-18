@@ -1,0 +1,64 @@
+TIKI
+setup
+{
+	scale 0.01625
+	
+	path models/skylimit/vehicles/sherman
+	skelmodel sherman_base.skd
+	
+	surface all shader skylimit_shermantank_desert_tinydetail
+	surface threads shader skylimit_shermanthreads_desert
+	surface wheel* shader skylimit_shermantank_desert_detail
+	surface base shader skylimit_shermantank_desert
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+	}
+	client
+	{
+		originemitter dust
+		(
+			spawnrate 1.0
+			model vsssource.spr
+			alpha 0.5
+			color 0.9 0.8 0.6
+			scale 0.1
+			life 15.0
+			scalerate 1.001
+			angles 90 random 360 crandom 15
+			avelocity 0 crandom -40 0
+			fadein 0.2
+			randvel 0.0 0.0 1.0
+			randomroll
+			accel 0.0 0.0 -0.1
+			fade
+			startoff
+		)
+	}
+}
+
+animations
+{
+	idle     		sherman_base.skc
+	
+	start			sherman_base.skc
+	{
+		client
+		{
+			entry emitteron dust	
+		}
+	}
+	
+	stop			sherman_base.skc
+	{
+		client
+		{
+			entry emitteroff dust	
+		}
+	}
+}

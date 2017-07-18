@@ -1,0 +1,22 @@
+TIKI
+
+$include models/skylimit/aircraft/bf109/includes/body.tik
+
+setup
+{
+	path models/skylimit/aircraft/bf109/skel
+
+	surface all shader bf109_desert
+	
+	skelmodel prop_spinner.skd
+	surface spinner shader bf109_desert_prop
+	
+	// air intake dust filter
+	skelmodel filter.skd
+	surface filter shader bf109_desert_filter
+}
+
+/*QUAKED skylimit_bf109_trop (0.0 0.0 0.0) (-65 -40 0) (65 40 120)
+Bf109 Desert camo
+Model and skin by jv_map
+*/

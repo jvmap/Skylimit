@@ -1,0 +1,18 @@
+//  Browning 0.303 (7.7mm)
+
+specs:
+	self.name = "Browning .303Cal"
+	self.hud_shader = "sl_wb3"
+	self.damage = 10.0
+	
+	self.bulletvelocity = 800.0 // m/s
+	self.bulletlife = 0.5
+	
+	self.soundset = "browning303"
+	
+	self.jamdecay = 7.0 // reduce jam by this amount each second
+	
+	self.ammotype = "s"
+	self.calibre = ".303in"
+	self.ammo_capacity_rounds_per_gun = 600
+end

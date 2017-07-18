@@ -1,0 +1,8 @@
+TIKI
+
+$include models/skylimit/aircraft/bf109/includes/wheel_right.tik
+
+setup
+{
+	surface all shader bf109_trop_wheel
+}

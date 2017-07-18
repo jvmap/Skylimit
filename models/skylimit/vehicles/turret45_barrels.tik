@@ -1,0 +1,57 @@
+// Naval 4.5inch twin turret barrels
+// model and skin by jv_map
+
+TIKI
+
+$include models/skylimit/utils/client_sound_cache.tik
+
+setup
+{
+	scale 52.0 // model is in m
+	
+	path models/skylimit/vehicles/turret45
+	skelmodel turret45_barrels.skd
+	
+	surface barrels shader skylimit_turret45
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+	}
+}
+
+animations
+{
+	idle     		turret45_barrels.skc
+	
+	fire     		turret45_barrels_fire.skc
+	{
+		client
+		{
+			first stopaliaschannel cl_naval_fire
+			first sound cl_naval_fire
+			
+			// muzzle flash
+			first tagdlight tag_barrel1 0.25 0.2 0.05 200 0.11
+			first tagdlight tag_barrel2 0.25 0.2 0.05 200 0.11
+
+			first tagspawn tag_barrel1
+			(
+				model models/skylimit/fx/muzzle/naval114mm.tik
+				life 0.06
+				anim fire
+			)
+			
+			first tagspawn tag_barrel2
+			(
+				model models/skylimit/fx/muzzle/naval114mm.tik
+				life 0.06
+				anim fire
+			)
+		}
+	}
+}

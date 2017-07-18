@@ -1,0 +1,53 @@
+TIKI
+
+$include models/skylimit/utils/client_sound_cache.tik
+
+setup
+{
+	scale 1.14
+	path models/skylimit/weapons/lewis
+	skelmodel lewis.skd
+	surface gun shader sl_lewis
+	surface sight shader sl_mg17sight
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+	}
+	client
+	{
+		tagemitter tag_barrel muzzle
+		(
+			model models/skylimit/fx/muzzle/s700.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+	}
+}
+
+animations
+{
+	idle	lewis.skc
+	
+	start	lewis.skc
+	{
+		client
+		{
+			enter emitteron muzzle
+		}
+	}
+	
+	stop	lewis.skc
+	{
+		client
+		{
+			enter emitteroff muzzle
+		}
+	}
+}

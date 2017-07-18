@@ -1,0 +1,13 @@
+TIKI
+
+setup
+{
+	surface all shader p47
+	surface window shader p47window
+}
+
+$include models/skylimit/aircraft/p47/includes/body.tik
+
+/*QUAKED skylimit_p47_silver (0.0 0.0 0.0) (-65 -40 0) (65 40 120)
+P-47 Thunderbolt Airplane
+*/

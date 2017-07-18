@@ -1,0 +1,108 @@
+menu "sl_psr" 200 200 FROM_RIGHT 0.15
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align right centery
+
+resource
+Label
+{
+	name "sl_pslt"
+	rect 0 0 200 24
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	title "Armament"
+	fadein 0.2
+	font "facfont-20"
+	textalign "left"
+}
+
+resource
+Label
+{
+	name "sl_psr1"
+	rect 0 24 200 16
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	linkcvar sl_psr1
+	fadein 0.2
+	font "verdana-14"
+	textalign "left"
+	linkstring "-" ""
+}
+
+resource
+Label
+{
+	name "sl_psr2"
+	rect 0 44 200 16
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	linkcvar sl_psr2
+	fadein 0.2
+	font "verdana-14"
+	textalign "left"
+	linkstring "-" ""
+}
+
+resource
+Label
+{
+	name "sl_psr3"
+	rect 0 64 200 16
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	linkcvar sl_psr3
+	fadein 0.2
+	font "verdana-14"
+	textalign "left"
+	linkstring "-" ""
+}
+
+resource
+Label
+{
+	name "sl_psr4"
+	rect 0 84 200 16
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	linkcvar sl_psr4
+	fadein 0.2
+	font "verdana-14"
+	textalign "left"
+	linkstring "-" ""
+}
+
+resource
+Label
+{
+	name "sl_psr5"
+	rect 0 104 200 16
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	linkcvar sl_psr5
+	fadein 0.2
+	font "verdana-14"
+	textalign "left"
+	linkstring "-" ""
+}
+
+resource
+Label
+{
+	name "sl_psr6"
+	rect 0 124 200 16
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	linkcvar sl_psr6
+	fadein 0.2
+	font "verdana-14"
+	textalign "left"
+	linkstring "-" ""
+}

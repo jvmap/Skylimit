@@ -1,0 +1,10 @@
+// B-17 bomb compartiment
+
+TIKI
+setup
+{
+	surface interior* shader b17_bombbay
+	surface exterior* shader b17_body
+}
+
+$include models/skylimit/aircraft/b17/includes/bombbay.tik

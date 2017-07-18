@@ -1,0 +1,117 @@
+// default machinegun
+// by jv_map
+
+main local.plane local.wd local.name local.tag local.tag_multiplicity local.idle_angles local.model local.skin_model local.shader:
+	self.damage = 10.0
+	self.means_of_damage = level.MODM_BULLET_MG
+	self.bulletlife = 2.0
+	self.bulletvelocity = 755.0 // m/s
+	self.firedelay = 0.10
+	self.readytofire = game.true
+	self.jamlimit = 13.0 // jam after this many shots have been fired in a row
+	self.jamdecay = 5.0 // reduce jam by this amount each second
+	self.flexible = game.true
+	self.angles_update_delay = 0.15
+	self.spread = 0.0064 // random spread in fraction of bullet velocity
+	self.hud_bigpic = game.true
+	
+	self.shell_types = "AP"::"AP"
+	
+	if(local.skin_model)
+	{
+		local.model = local.plane.PLANETYPE.tikipath + local.model + ".tik"
+	}
+	
+	self.ent = spawn Animate model local.model
+	self.ent waitthread global/skylimit/flightmodel.scr::attach local.plane local.tag 1
+	self.ent.tag = local.tag
+	self.ent.angles = local.idle_angles //waitthread global/skylimit/math.scr::getanglesdiff local.plane.angles (local.plane gettagangles local.tag)
+	
+	self.turnspeed = 90.0 // deg/s
+	
+	self.ammo_capacity_rounds_per_gun = 500
+	
+	self.soundset = "browning50"
+	
+	self.firing = 0
+	
+	self.tag_multiplicity = local.tag_multiplicity
+	
+	self.number_of_guns = self.tag_multiplicity
+	
+	// overrides
+	waitthread ("global/skylimit/weapons/" + local.wd + ".wd")::specs
+	
+	// don't allow name / hud override
+	self.name = local.name
+	
+	if(local.shader == NIL)
+	{
+		local.shader = "sl_wmgf"
+	}
+	
+	self.hud_shader = local.shader
+	self.hud_shader_jammed = local.shader + "j"
+end
+
+// self is plane
+// w is weap listener
+updateangles local.w local.vangles:
+	local.frametime = local.w.angles_update_delay
+
+	if(local.w.forwardvector != NIL)
+	{
+		// correct for flight velocity
+		local.yawbonus = -(self.p_velocity * self.forwardvector) * (self.leftvector * local.w.forwardvector) / local.w.bulletvelocity / level.PI * 180.0
+		local.vangles += (0 local.yawbonus 0)
+	}
+	
+	local.new_angles = waitthread global/skylimit/math.scr::turn local.w.ent.angles local.vangles local.w.turnspeed local.frametime
+	local.w.ent.angles = local.new_angles
+	
+	// local space fwdvec
+	local.fwdvec = angles_toforward local.new_angles
+	
+	// transform to absolute space
+	local.w.forwardvector = waitthread global/skylimit/math.scr::vectortransform self.forwardvector self.leftvector self.upvector local.fwdvec
+end
+
+// self is plane
+// w is weap listener
+fire local.w:
+	local.w.readytofire = game.false
+	
+	if ( !local.w.on )
+	{
+		local.w.ent anim start
+		local.w.on = game.true
+	}
+	
+	local.w.firing++
+	
+	local.pos = self gettagposition local.w.ent.tag
+
+	// pick shelltype
+	local.type = local.w.shell_types[randomint local.w.shell_types.size + 1]
+
+	thread global/skylimit/bulletattack.scr::fire local.pos self.pilot self.pilot.dmteam self local.w local.w.tag_multiplicity local.w.forwardvector local.type
+	
+	wait local.w.firedelay
+	
+	if(local.w)
+	{
+		local.w.firing--
+		local.w.readytofire = game.true
+
+		waitframe
+
+		if(local.w && local.w.firing == 0)
+		{
+			if(local.w.ent)
+			{
+				local.w.ent anim stop
+			}
+			local.w.on = game.false
+		}
+	}
+end

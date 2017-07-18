@@ -1,0 +1,164 @@
+TIKI
+setup
+{
+	scale 0.0165625 //scale 0.53
+	path models/skylimit/vehicles/20mm
+	skelmodel 20mm_turret.skd
+	surface	all shader skylimit_20mmflak		
+}
+
+init
+{
+	server
+	{
+		classname		VehicleTurretGun
+		weapontype		cannon
+		name			"20mm"
+
+		setsize " -1 -1 -1" "1 1 1"
+
+		turnspeed		38
+		pitchcaps		"-60 2	0"
+
+		SoundSet	"sl_flak_"
+	}
+	client
+	{
+		cache muzsprite.spr
+		cache models/fx/muzflash.tik
+		cache models/ammo/rifleshell.tik
+	}
+}
+
+
+animations
+{
+	idle			20mm_turret.skc
+	fire			20mm_turret.skc //20mm_turret_fire.skc
+	{
+		server
+		{
+			//first commanddelay 0.05 anim idle
+			//last anim idle
+			first commanddelay 0.01 anim idle
+		}
+		client
+		{
+			//first stopaliaschannel flak_snd_fire
+			//first sound	flak_snd_fire weapon 1.0 -1	0.95 0.1
+
+			// tracer
+			enter tagspawn tag_barrel
+			(
+				model muzsprite.spr
+				//spawnrate 1.00 //10.00
+				count 1
+				velocity 625.0
+				parentangles
+				life 4.0
+				accel (0 0 -9.81)
+				scale 0.0625
+				dietouch
+				
+				//randvelaxis crandom 0.01 crandom 0.01 crandom 0.01
+			)
+
+			// muzzle flash
+			enter tagdlight	tag_barrel 0.25	0.2	0.05 3.4 0.11
+			
+			
+			enter tagspawn tag_barrel
+			(
+				//spawnrate 10.00
+				model muzsprite.spr
+				alpha 0.50
+				color 1.00 1.00	1.00
+				varycolor
+				scale 0.053125
+				life 0.05
+				scalerate 1.00
+				velocity 0.125
+				friction 3.00
+				fade
+				alignstretch 1.00
+			)
+			
+			enter tagspawn tag_barrel
+			(
+				//spawnrate 10.00
+				model muzsprite.spr
+				alpha 0.50
+				color 1.00 1.00	1.00
+				scale 0.05
+				life 0.05
+				scalerate 0.70
+				velocity 0.50
+				offsetalongaxis	0.28125 0	0
+				fade
+				alignstretch 0.40
+			)
+			
+			enter tagspawn tag_barrel
+			(
+				//spawnrate 10.00
+				model muzsprite.spr
+				alpha 0.50
+				color 1.00 1.00	1.00
+				scale 0.05
+				life 0.05
+				velocity 0.60
+				fade
+			)
+/*			
+			first tagspawn tag_barrel
+			(
+				spawnrate 1.00
+				model models/fx/muzflash.tik
+				color 1.00 1.00	1.00
+				scale 0.0340625 //1.09
+				life 0.01
+				velocity 62.78125
+				accel 0.00 20.00 30.00
+				friction 2.00
+				offsetalongaxis	range -0.31 0.12 0 0
+				fade
+				alignstretch 0.02
+			)
+
+
+			first tagspawn tag_barrel
+			(
+				spawnrate 1.00
+				model models/fx/snipesmoke.tik
+				color 1.00 1.00	1.00
+				scale 0.09375
+				life 1.00
+				velocity 6.80
+				friction 10.00
+				angles 0 0 random 270
+				avelocity 0	0 10
+				align
+			)
+*/
+	
+			enter tagspawn tag_barrel
+			(
+				count 1
+				//spawnrate 10.0
+				model vsssource.spr
+				alpha 0.20
+				color 1.00 1.00 1.00
+				spritegridlighting
+				life 0.80
+				scale 0.03125
+				scalerate 1.00
+				velocity 0.625
+				fade
+			)
+		}
+	}
+}
+
+/*QUAKED skylimit_20mm	(0.5 .25 0.25) (-32	-32	0) (32 32 128)
+jv_map's 20 mm flak
+*/

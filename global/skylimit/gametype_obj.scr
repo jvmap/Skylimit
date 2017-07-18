@@ -1,0 +1,26 @@
+// TDM gametype support
+// by jv_map
+
+canrespawn:
+
+	local.ok = game.true
+
+	if(level.SL_SERVICEABLE_PLANES[self.dmteam] <= 0)
+	{
+		local.ok = game.false
+		self.wtf_why_cant_i_respawn = level.SPMSG_NO_MORE_PLANES
+	}
+	else if(level.SL_RUNWAY_REPAIRS[self.dmteam])
+	{
+		local.ok = game.false
+		self.wtf_why_cant_i_respawn = level.SPMSG_AIRFIELD_DAMAGE
+		self.show_respawn_countdown = game.true
+		self.respawn_countdown = level.SL_RUNWAY_REPAIR_TIME[self.dmteam]
+	}
+	else if(level.SL_CARRIER_SUNK[self.dmteam])
+	{
+		local.ok = game.false
+		self.wtf_why_cant_i_respawn = level.SPMSG_CARRIER_SUNK
+	}
+
+end local.ok

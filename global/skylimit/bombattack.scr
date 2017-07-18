@@ -1,0 +1,269 @@
+// by jv_map
+
+dropbomb local.plane local.gunner local.gunner_team local.no_detach local.drop_from_bay local.is_torpedo:
+	local.MAXLIFE				= 120.0
+	local.DT 					= 0.05
+	local.DT_TRACE				= 0.25
+	local.GRAVITY 				= (0 0 -9.81)
+	local.CD0 					= 0.02 // 'profile' drag
+	local.AREA					= 0.2 // CD0 reference area, m^2
+	//local.LAUNCHSPEED 			= 2.0 // m/s
+	local.ANGLES_UPDATE_TIME 	= 0.5 //s
+	local.ANGLES_UPDATE_TIME_VIEWED = 0.05 // angles update time when someone is specing this bomb
+	local.MIN_VLOAD				= -0.5 // min required 'g' when releasing a bomb
+	local.BAY_DRAG_DELAY		= 2.0 // s
+
+	local.inflictor 		= local.gunner
+	local.inflictor_team 	= local.gunner_team
+	local.inflictor_owner 	= local.plane
+
+	// wait till we're not upside down / pushing down
+	while(local.plane && local.plane.p_vload <= 0.0)
+	{
+		waitframe
+	}
+
+	if !(local.plane)
+	{
+		end
+	}
+	
+	//local.clear_owner_time = level.time + 2.0 // can hit owner after this time
+
+	if !(local.no_detach)
+	{
+		// detach from plane
+		//self detach
+		waitthread global/skylimit/flightmodel.scr::detach
+		
+		// phew :)
+		if(self.info.mass != NIL)
+		{
+			local.plane.MASS -= self.info.mass
+		}
+		self scale local.plane.SCALE
+		
+		if(self.rack)
+		{
+			// need to hack the position :(
+			self.origin = (local.plane gettagposition self.rack.tag) - local.plane.SCALE * ( (self.rack gettagposition self.tag) - self.rack.origin )
+			
+			// use pylon angles as rack angles doesn't work :S
+			self angles (local.plane gettagangles self.rack.tag)
+		}
+		else
+		{
+			self angles (local.plane gettagangles self.tag)
+			self.origin = local.plane gettagposition self.tag
+		}
+	}
+	
+	self.dmteam = local.gunner_team
+	self.weapon_owner = local.gunner
+	
+	self.CAM_VIEWDIST = 400.0
+	self.isviewable = game.true
+	self.cam_lastviewtime = 0.0 // last time viewed by a camera
+	
+	// make self a specable weapon
+	self.targetname = "SL_specable"
+	if(local.gunner)
+	{
+		local.gunner.last_specable_weapon = self
+	}
+	
+	local.p_velocity = local.plane.p_velocity //- local.plane.upvector * local.LAUNCHSPEED 
+	local.w_velocity = local.p_velocity * (1.0 / level.SL_UNITSCALE)
+	
+	self.p_velocity = local.p_velocity
+	
+	local.endtime = level.time + local.MAXLIFE
+	
+	local.explode = game.false
+	local.sink = game.false
+	
+	local.next_angles_update_time = level.time + local.ANGLES_UPDATE_TIME
+	
+	local.dmg_impact_constant = 1.0 // hp/J
+	local.dmg_multiplier_submerged = 0.5 // fraction of damage done when bomb explodes underwater
+	
+	// free fall whoo :D
+	local.time = 0.0
+	local.next_trace_time = local.DT_TRACE
+	local.lastpos = self.origin // last traced pos
+	
+	local.fully_released = game.false
+	
+	local.dragtime = 0.0
+	
+	if(local.drop_from_bay)
+	{
+		// drag kicks in only later
+		local.dragtime += local.BAY_DRAG_DELAY
+	}
+
+	while(level.time <= local.endtime)
+	{
+		// ultra cheap drag
+		local.density = (waitthread global/skylimit/atmosphere.scr::getstate ((self.origin[2] - $world.AVG_GROUNDLVL) * level.SL_UNITSCALE))[2]
+		local.speed = vector_length local.p_velocity 
+		local.p_accel = local.GRAVITY 
+		
+		if(local.time > local.dragtime)
+		{
+			local.p_accel -= (local.p_velocity * 0.5 * local.CD0 * local.density * local.speed * local.AREA) * (1.0 / self.info.mass)
+		}
+		local.w_accel = local.p_accel * (1.0 / level.SL_UNITSCALE)
+		
+		self.origin += local.w_velocity * local.DT + 0.5 * local.w_accel * local.DT * local.DT
+
+		local.p_velocity += local.p_accel * local.DT
+		local.w_velocity = local.p_velocity * (1.0 / level.SL_UNITSCALE)
+		
+		self.p_velocity = local.p_velocity
+		
+		// turn in direction of travel
+		// don't update angles as regularly
+		if(level.time >= local.next_angles_update_time)
+		{
+			self.angles = vector_toangles local.p_velocity
+			
+			if(level.time - self.cam_lastviewtime <= 0.10)
+			{
+				local.next_angles_update_time = level.time + local.ANGLES_UPDATE_TIME_VIEWED
+			}
+			else
+			{
+				local.next_angles_update_time = level.time + local.ANGLES_UPDATE_TIME
+			}
+		}
+		
+		// damage done when actually impacting on an ent
+		// proportional to kinetic energy of the projectile
+		// (it is assumed the target is not moving)
+		// also do splash damage later
+		local.dmg_impact = local.dmg_impact_constant * 0.5 * self.info.mass * local.speed * local.speed
+			
+		if(local.time >= local.next_trace_time)
+		{
+			local.next_trace_time = local.time + local.DT_TRACE
+			
+			// forward trace
+			local.avg_vel = local.p_velocity + 0.5 * local.GRAVITY * local.DT_TRACE
+			local.hit = waitthread global/skylimit/damage.scr::linedamage self.origin local.avg_vel local.DT_TRACE local.dmg_impact level.MODM_BOMB local.inflictor local.inflictor_team local.inflictor_owner game.false game.false game.false game.true
+		
+			if(local.hit)
+			{
+				local.explode = game.true
+				local.explode_in_air = game.true
+				local.explode_pos = local.lastpos
+				break
+			}
+			else if(self.origin[2] < $world.SEALEVEL)
+			{
+				local.explode = game.true
+				local.sink = game.true
+				local.explode_pos = local.lastpos
+				local.explode_pos[2] = $world.SEALEVEL
+				break
+			}
+			else if(local.lastpos[2] < $world.OBSTACLEHEIGHT || self.origin[2] < $world.OBSTACLEHEIGHT)
+			{
+				// backward trace
+				local.tracepos = trace local.lastpos self.origin 0
+				if(local.tracepos != self.origin)
+				{
+					local.explode = game.true
+					local.explode_pos = local.tracepos
+					break
+				}
+			}
+			
+			local.lastpos = self.origin
+		}
+		
+		wait local.DT
+		local.time += local.DT
+	}
+	
+	if(local.explode)
+	{
+		if(local.sink)
+		{
+			local.sfxpos = local.explode_pos
+			local.sfxpos[2] += 0.1
+			
+			// grab an effectent from stack
+			local.ent = waitthread global/skylimit/common.scr::getfromstack EffectEntity game.false
+			if(local.ent)
+			{
+				local.ent model skylimit/fx/water_splash.tik
+				local.ent scale (0.4 * self.info.sfx_scale)
+				local.ent angles ( -90 0 0)
+				local.ent origin local.sfxpos
+				local.ent anim start
+				local.ent thread global/skylimit/common.scr::releasetostack 0.5
+			}
+			
+			//local.splash = spawn EffectEntity model skylimit/fx/water_splash.tik origin local.sfxpos scale self.info.sfx_scale angles ( -90 0 0)
+			//local.splash anim start
+			//local.splash commanddelay 4.0 remove
+			
+			// explode under water
+			if( !local.is_torpedo)
+			{				
+				wait (randomfloat 0.50 + 0.10)
+				
+				//local.sfx = spawn EffectEntity model skylimit/fx/explosion_water.tik origin local.sfxpos scale self.info.sfx_scale angles ( -90 0 0)
+				//local.sfx anim start
+				
+				// grab an effectent from stack
+				local.ent = waitthread global/skylimit/common.scr::getfromstack EffectEntity game.true
+				if(local.ent)
+				{
+					local.ent model skylimit/fx/explosion_water.tik
+					local.ent scale (0.2 * self.info.sfx_scale)
+					local.ent angles ( -90 0 0)
+					local.ent origin local.sfxpos
+					local.ent anim start
+					local.ent thread global/skylimit/common.scr::releasetostack 0.5
+				}
+				
+				// submerged shock damage
+				waitthread global/skylimit/damage.scr::radiusdamage local.explode_pos self.info.blast_radius (local.dmg_multiplier_submerged * self.info.damage_center) (local.dmg_multiplier_submerged * self.info.damage_boundary) level.MODM_EXPLOSION local.inflictor local.inflictor_team local.inflictor_owner game.true game.false
+			}
+		}
+		else
+		{
+			// splash damage
+			local.hit_a_bobject = waitthread global/skylimit/damage.scr::radiusdamage local.explode_pos self.info.blast_radius self.info.damage_center self.info.damage_boundary level.MODM_EXPLOSION local.inflictor local.inflictor_team local.inflictor_owner game.true game.false
+			
+			if ( !local.explode_in_air && !local.hit_a_bobject)
+			{
+				local.ent = waitthread global/skylimit/common.scr::getfromstack EffectEntity game.true
+				if(local.ent)
+				{
+					local.ent model skylimit/fx/bomb_hit.tik
+					local.ent scale self.info.sfx_scale
+					local.ent angles ( -90 0 0)
+					local.ent origin local.explode_pos
+					local.ent anim start
+					local.ent thread global/skylimit/common.scr::releasetostack 2.0
+				}
+				
+				local.hit_runway = waitthread global/skylimit/runway.scr::checkdamage local.explode_pos self.info.damage_center self.info.sfx_scale local.inflictor local.inflictor_team
+				
+				if !(local.hit_runway)
+				{
+					// add a crater
+					waitthread global/skylimit/sfx.scr::crater local.explode_pos self.info.sfx_scale game.true game.true
+				}
+			}
+		}
+	}
+	
+	if ( !local.sink || !local.is_torpedo)
+	{
+		self remove
+	}
+end

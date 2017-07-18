@@ -1,0 +1,1043 @@
+// destroyable vehicles
+// by jv_map
+
+// TANK (damagable moveable tick-thinking vehicle) //
+
+maketank local.location local.base_azimuth local.team local.model local.turretmodel local.base_tag_name local.vehicle_name local.damageable local.health local.vehicle_radius local.max_speed local.destroyed_model local.thinking local.think_script local.think_threads local.think_threadflags local.is_cqm_object:
+	local.MINDOT = 0.85
+
+	local.loc_down = local.location
+	local.loc_down[2] = -8192.0
+	
+	local.pos_on_ground = trace local.location local.loc_down 0
+	local.normal = waitthread global/skylimit/common.scr::surfnormal local.pos_on_ground
+	
+	if(local.normal * $world.upvector >= local.MINDOT)
+	{
+		local.azimuth = local.base_azimuth //waitthread global/skylimit/common.scr::randomangle local.base_azimuth 0.3
+		local.tazimuth = waitthread global/skylimit/common.scr::randomangle 0.0 0.3
+		
+		local.tank = spawn local.model origin local.pos_on_ground angles (0 local.azimuth 0)
+		local.tank.base_azimuth = local.base_azimuth
+		local.tank notsolid
+		
+		local.tank waitthread global/skylimit/common.scr::normaladjust local.normal
+		
+		local.turret = spawn local.turretmodel
+		local.turret notsolid
+		local.turret attach local.tank turret0 1
+		
+		local.turret.angles = (0 local.tazimuth 0)
+		//local.turret waitthread normaladjust local.tank.upvector
+		
+		local.icon = spawn ("models/skylimit/hud/objective_" + local.team + ".tik") scale 0.03125
+		local.icon attach local.tank local.base_tag_name 0
+		
+		local.tank.dmteam = local.team
+		
+		local.tank.turret = local.turret
+		local.tank.icon = local.icon
+		
+		if(local.damageable)
+		{
+			local.tank.SL_health = local.health
+			local.tank waitthread global/skylimit/damage.scr::takedamage NULL local.maxspeed local.vehicle_radius
+			local.tank thread tank_damage local.vehicle_name local.destroyed_model local.is_cqm_object
+		}
+		
+		if(local.thinking)
+		{
+			waitthread global/skylimit/tick_thinker.scr::addthinkent local.tank local.think_script local.think_threads local.think_threadflags
+		}
+	}
+	else
+	{
+		println "rejected position because it is too steep @ " local.pos_on_ground ", dot: " (local.normal * $world.upvector)
+	}
+end local.tank
+
+tank_damage local.name local.destroyed_model local.is_cqm_object:
+	waitthread global/skylimit/damage.scr::damage_loop generic_secondary
+	
+	self.icon remove
+	
+	// disable damage checks
+	//waitthread global/skylimit/damage.scr::nodamage
+	
+	self.destroyed = game.true
+	self.model = local.destroyed_model
+	
+	local.sfx = waitthread global/skylimit/common.scr::getfromstack EffectEntity game.true
+	local.sfx model models/skylimit/fx/tank_explosion.tik 
+	local.sfx.origin = self.origin
+	local.sfx.angles = (0 0 0)
+	local.sfx scale 4.0
+	local.sfx anim start
+	
+	self.turret remove
+	
+	//self hide
+	
+	if(local.is_cqm_object)
+	{
+		level.cqm_tanks[self.dmteam]--
+		
+		waitthread global/skylimit/conquest_grid.scr::removepowersource
+		waitthread global/skylimit/conquest_grid.scr::updateborders
+	}
+	
+	wait 2.0
+	
+	local.sfx waitthread global/skylimit/common.scr::releasetostack
+end
+
+// makes a flak on a baseent included
+makeflak local.location local.angle local.team local.base_model local.housing_model local.barrel_model local.base_tag local.vehicle_name local.weapon local.damagable:
+	local.loc_down = local.location
+	local.loc_down[2] = -8192.0
+	local.pos_on_ground = trace local.location local.loc_down 0
+	
+	local.base = spawn Animate model local.base_model origin local.pos_on_ground angles (0 local.angle 0)
+	local.base notsolid
+	local.base scale $world.SL_SCALE
+
+	// align base with ground slope
+	local.normal = waitthread global/skylimit/common.scr::surfnormal local.pos_on_ground
+	local.base waitthread global/skylimit/common.scr::normaladjust local.normal
+
+	// add a flak to the baseent
+	local.base waitthread addflak local.base_tag local.housing_model local.barrel_model local.weapon -180.0 180.0
+	
+	// add icon
+	if(level.radar_active[local.team])
+	{
+		local.base.has_radar_icon = game.true
+		local.icon_model = "models/skylimit/hud/radar_flak_" + local.team + ".tik"
+	}
+	else
+	{
+		local.base.has_radar_icon = game.false
+		local.icon_model = "models/skylimit/hud/flak_" + local.team + ".tik"
+	}
+	
+	// base takes damage
+	local.base.dmteam = local.team
+	
+	local.icon = spawn Animate scale 0.03125 //local.icon_model scale 0.03125
+	local.icon attach local.base "origin" 0
+	local.base.iconset = "flak"
+	local.base.icon = local.icon
+	
+	local.base waitthread flak_update_icon
+	
+	local.base.name = local.vehicle_name
+	
+	local.base.destroyed_model = local.base.model // TODO?
+
+	// in this (special) case take dmg_boxes and health from sole flak mount
+	local.dmg_mins = local.base.flaks[1].weapdata.dmg_mins
+	local.dmg_maxs = local.base.flaks[1].weapdata.dmg_maxs
+	
+	local.base.SL_health = local.base.flaks[1].weapdata.SL_health
+	local.base.nationality = $world.TEAM_ADJECTIVE[local.team]
+	
+	if(local.damagable)
+	{
+		// take damage	
+		local.base waitthread global/skylimit/damage.scr::add_damage_box local.dmg_mins local.dmg_maxs
+		local.base waitthread global/skylimit/damage.scr::takedamage level.DMGB_SOFT level.DMGSPD_STATIC
+		
+		local.base thread flak_damage
+	}
+
+	// take collision
+	local.base waitthread global/skylimit/collision.scr::set_collision_sphere local.base.flaks[1].weapdata.col_offset local.base.flaks[1].weapdata.col_radius
+	local.base waitthread global/skylimit/collision.scr::takecollision
+	
+	// all flaks may think now
+	local.base thread flak_think
+end
+
+// add flak turret to self
+addflak local.tag local.housing_model local.barrel_model local.weapon local.yaw_min local.yaw_max:
+	local.housing = spawn Animate model local.housing_model
+	local.housing notsolid
+	//local.housing attach self local.tag game.true
+	local.housing waitthread global/skylimit/attach.scr::attach self local.tag game.true
+	local.housing.tag = local.tag
+	
+	// attach the barrel if needed
+	if(local.barrel_model)
+	{
+		local.housing.barrel = spawn Animate model local.barrel_model
+		local.housing.barrel notsolid
+		local.housing.barrel attach local.housing "hinge" game.true
+	}
+	else
+	{
+		// barrel is included in the housing
+		local.housing.barrel = local.housing
+	}
+	
+	local.housing.seperate_barrel = local.barrel_model != NIL
+	
+	local.housing.weapdata = spawn listener
+	local.housing.weapdata.file = "global/skylimit/weapons/" + local.weapon + ".wd"
+	local.housing.weapdata exec local.housing.weapdata.file
+	
+	// allow target finding
+	local.housing.ready_to_acquire 	= game.true		// whether I will be able to fire shortly (start looking for targets)
+	local.housing.acquired 			= game.false	// whether I have acquired a target (start laying the barrel)
+	local.housing.laid				= game.false	// whether my barrel is laid on target
+	local.housing.idle 				= game.true		// whether my anim is idle
+	
+	local.housing.last_fire_time	= 0.0
+	local.housing.last_failed_acquire_time = 0.0
+	
+	// sqrange in world (game) units
+	local.housing.w_sqrange = local.housing.weapdata.range * local.housing.weapdata.range / level.SL_UNITSCALE / level.SL_UNITSCALE
+
+	local.housing.yaw_min = local.yaw_min
+	local.housing.yaw_max = local.yaw_max
+	local.housing.reverse_yaw = local.yaw_min > local.yaw_max
+
+	// place in center of yaw arc
+	local.yc = 0.5 * (local.yaw_min + local.yaw_max)
+	
+	if(local.housing.reverse_yaw)
+	{
+		local.yc += 180.0
+	}
+	
+	local.housing.angles = (0 local.yc 0)
+
+	self.flaks = waitthread global/skylimit/common.scr::addtoarray self.flaks local.housing
+end
+
+flak_damage:
+	waitthread global/skylimit/damage.scr::damage_loop generic_secondary
+	
+	self.icon remove
+
+	self.model = self.destroyed_model
+	
+	for(local.i = 1; local.i <= self.flaks.size; local.i++)
+	{
+		if(self.flaks[local.i].barrel)
+		{
+			self.flaks[local.i].barrel remove
+		}
+		
+		self.flaks[local.i] commanddelay 0.05 remove
+	}
+	
+	local.sfx = waitthread global/skylimit/common.scr::getfromstack EffectEntity game.true
+	local.sfx model models/skylimit/fx/tank_explosion.tik 
+	local.sfx.origin = self.origin
+	local.sfx.angles = (0 0 0)
+	local.sfx scale 4.0
+	local.sfx anim start
+	
+	wait 2.0
+	
+	local.sfx waitthread global/skylimit/common.scr::releasetostack
+end
+
+flak_update_icon:
+	// change icon
+	if(level.radar_active[self.dmteam])
+	{
+		self.has_radar_icon = game.true
+		local.icon_model = "models/skylimit/hud/radar_" + self.iconset + "_" + self.dmteam + ".tik"
+	}
+	else
+	{
+		self.has_radar_icon = game.false
+		local.icon_model = "models/skylimit/hud/" + self.iconset + "_" + self.dmteam + ".tik"
+	}
+	
+	self.icon model local.icon_model
+end
+
+// think for all flaks
+flak_think:
+
+	local.FIRE_WHILE_SINKING_TIME = 2.5 // s
+
+	local.DT = 0.05
+
+	while(self && !self.destroyed)
+	{		
+		if(self.has_radar_icon != level.radar_active[self.dmteam])
+		{
+			waitthread flak_update_icon
+		}
+		
+		if(self.sinking)
+		{
+			if(level.time - self.sink_time > local.FIRE_WHILE_SINKING_TIME)
+			{
+				break
+			}
+		}
+		
+		// fire flaks if targets have already been acquired
+		for(local.i = 1; local.i <= self.flaks.size; local.i++)
+		{
+			local.flak = self.flaks[local.i]
+			if(local.flak.laid)
+			{
+				waitthread flak_fire local.flak
+			}
+		}
+		
+		// acquire targets base-wise when any flak ready to acquire
+		local.acquire = game.false
+		local.max_acquire_delay = 0.0
+		for(local.i = 1; local.i <= self.flaks.size; local.i++)
+		{
+			local.flak = self.flaks[local.i]
+			
+			// acquisition time-out
+			local.flak.acquired = local.flak.acquired && level.time - local.flak.acquire_time <= local.flak.weapdata.acquire_timeout
+			local.flak.ready_to_acquire = !local.flak.acquired && (level.time - local.flak.last_failed_acquire_time >= local.flak.weapdata.facquiredelay && level.time - local.flak.last_fire_time >= local.flak.weapdata.firedelay - local.DT)
+			local.acquire = local.acquire || local.flak.ready_to_acquire
+			
+			if(local.flak.ready_to_acquire && local.flak.weapdata.facquiredelay > local.max_acquire_delay)
+			{
+				local.max_acquire_delay = local.flak.weapdata.facquiredelay
+			}
+		}
+		
+		if(local.acquire)
+		{
+			// sqrange array (range to base)
+			local.targets 	= waitthread global/skylimit/common.scr::inverse_team_selection $SL_plane self.dmteam
+			local.sqranges 	= waitthread global/skylimit/common.scr::entity_list_sqrange local.targets self.origin local.max_acquire_delay
+			local.targets 	= waitthread global/skylimit/common.scr::sort_by_sqrange_asc local.targets local.sqranges
+			
+			if(local.targets)
+			{
+				for(local.i = 1; local.i <= self.flaks.size; local.i++)
+				{
+					local.flak = self.flaks[local.i]
+					if(local.flak.ready_to_acquire)
+					{
+						waitthread flak_acquire local.flak local.targets local.sqranges local.DT
+					}
+				}
+			}
+		}
+		
+		// lay barrels
+		for(local.i = 1; local.i <= self.flaks.size; local.i++)
+		{
+			local.flak = self.flaks[local.i]
+			if((local.flak.acquired && !local.flak.laid) || (local.flak.acquired_anticipate && !local.flak.anticipated))
+			{
+				waitthread flak_aim local.flak
+			}
+		}
+		
+		wait local.DT
+	}
+end
+
+flak_acquire local.flak local.targets local.sqranges local.DT:
+
+	// acquire any of the targets
+	// preferably the nearest
+	
+	local.ANTICIPATION_FACTOR = 1.5 // anticipate targets when within ANTICIPATION_FACTOR * range
+	
+	local.acquired = game.false
+	local.acquired_anticipate = game.false
+	
+	for(local.i = 1; local.i <= local.targets.size; local.i++)
+	{
+		local.target = local.targets[local.i]
+		
+		// check if target in range
+		if(local.sqranges[local.target.entnum] <= local.flak.w_sqrange)
+		{
+			// need more detailed target info now
+			local.chamber_pos = waitthread flak_getchamberpos local.flak
+			local.vec = local.target.origin - local.chamber_pos
+			local.dist = vector_length local.vec
+			
+			// add lead and gravity compensation
+			/*
+			0.5 a t^2 + v t - s = 0
+			D = v^2 + 2 a s
+			t = ( -v +- sqrt(D)) / a
+			*/
+			
+			local.bullet_travel_time = local.dist * level.SL_UNITSCALE / local.flak.weapdata.bulletvelocity // approx.
+			local.lead_time = local.DT + local.bullet_travel_time
+			
+			if(local.target.isphysicsobject)
+			{
+				local.vec += local.target.w_velocity * local.lead_time //+ (0.5 / level.SL_UNITSCALE) * local.target.p_accel * local.lead_time * local.lead_time
+			}
+			local.vec += 0.5 * $world.GRAVITY * local.bullet_travel_time * local.bullet_travel_time * $world.upvector
+			
+			// randomizer
+			if(level.radar_active[self.dmteam])
+			{
+				local.spr_mult = local.flak.weapdata.flak_radar_spread_mult
+			}
+			else
+			{
+				local.spr_mult = 1.0
+			}
+			
+			local.vec[0] += local.spr_mult * local.flak.weapdata.flak_spread * local.flak.weapdata.bulletvelocity * local.lead_time * (randomfloat 2.0 - 1.0)
+			local.vec[1] += local.spr_mult * local.flak.weapdata.flak_spread * local.flak.weapdata.bulletvelocity * local.lead_time * (randomfloat 2.0 - 1.0)
+			local.vec[2] += local.spr_mult * local.flak.weapdata.flak_spread * local.flak.weapdata.bulletvelocity * local.lead_time * (randomfloat 2.0 - 1.0)
+			
+			// have to recalc dist :(
+			local.dist = vector_length local.vec
+			
+			// recalc bullet travel time
+			local.bullet_travel_time = local.dist * level.SL_UNITSCALE / local.flak.weapdata.bulletvelocity // approx.
+			
+			local.nvec = (1.0 / local.dist) * local.vec
+			
+			// dissect nvec in base's coordinate system
+			// so we can determine yaw and pitch w.r.t. a sloped base.
+			local.x = local.nvec * self.forwardvector
+			local.y = local.nvec * self.leftvector
+			local.z = local.nvec * self.upvector
+			local.relvec = (local.x local.y local.z)
+			
+			// determine relative angles
+			local.angles = vector_toangles local.relvec
+			
+			local.yaw 	= waitthread global/skylimit/math.scr::rerangeangle local.angles[1]
+			local.pitch = waitthread global/skylimit/math.scr::rerangeangle local.angles[0]
+			
+			//println local.flak.entnum " >> acquiring target #" local.i ": " level.time " , pitch: " local.pitch " yaw: " local.yaw
+			
+			// check if relative angles are within yaw and pitch range
+			
+			if(local.flak.reverse_yaw)
+			{
+				local.yaw_condition = local.yaw >= local.flak.yaw_min || local.yaw <= local.flak.yaw_max
+			}
+			else
+			{
+				local.yaw_condition = local.flak.yaw_min <= local.yaw && local.yaw <= local.flak.yaw_max
+			}
+			
+			if(local.yaw_condition)
+			{
+				if(local.flak.weapdata.pitch_min <= -local.pitch && -local.pitch <= local.flak.weapdata.pitch_max)
+				{
+					// found a valid target
+					
+					local.flak.acquired_yaw = local.yaw
+					local.flak.acquired_pitch = local.pitch
+					
+					local.flak.shootvec = local.nvec
+					if(local.flak.weapdata.time_fuze)
+					{
+						local.flak.fuze_time = local.bullet_travel_time //+ local.flak.weapdata.fuzebias
+					}
+					
+					//println local.flak.entnum " target acquired " level.time
+					
+					local.acquired = game.true
+					local.flak.acquire_time = level.time
+					local.flak.acquired_time_fuze_correction_mult = local.target.p_velocity * local.nvec / local.flak.weapdata.bulletvelocity
+					local.acquired_target = local.target
+					break
+				}
+			}
+		}
+		else if(local.sqranges[local.target.entnum] <= local.ANTICIPATION_FACTOR * local.ANTICIPATION_FACTOR * local.flak.w_sqrange)
+		{
+			// attempt to align mount in general direction of target
+			// so we can quickly open fire if it ventures near
+			local.chamber_pos = waitthread flak_getchamberpos local.flak
+			local.vec = local.target.origin - local.chamber_pos
+			
+			// dissect nvec in base's coordinate system
+			// so we can determine yaw and pitch w.r.t. a sloped base.
+			local.x = local.vec * self.forwardvector
+			local.y = local.vec * self.leftvector
+			local.z = local.vec * self.upvector
+			local.relvec = (local.x local.y local.z)
+			
+			// determine relative angles
+			local.angles = vector_toangles local.relvec
+			
+			local.yaw 	= waitthread global/skylimit/math.scr::rerangeangle local.angles[1]
+			local.pitch = waitthread global/skylimit/math.scr::rerangeangle local.angles[0]
+			
+			if(local.flak.reverse_yaw)
+			{
+				local.yaw_condition = local.yaw >= local.flak.yaw_min || local.yaw <= local.flak.yaw_max
+			}
+			else
+			{
+				local.yaw_condition = local.flak.yaw_min <= local.yaw && local.yaw <= local.flak.yaw_max
+			}
+			
+			if(local.yaw_condition)
+			{
+				local.flak.acquired_yaw = local.yaw
+				local.flak.acquired_pitch = local.pitch
+				local.acquired_anticipate = game.true
+				local.flak.anticipated = game.false
+				local.acquired_target = local.target
+			}
+			break
+		}
+		else
+		{
+			// since the targets array is sorted ascendently on distance
+			// subsequent targets are further away, so also out of range
+			
+			break
+		}
+	}
+
+	local.flak.acquired = local.acquired
+	local.flak.acquired_anticipate = local.acquired_anticipate
+	local.flak.laid = game.false
+	
+	if(local.acquired)
+	{
+		if(local.acquired_target && local.acquired_target.isplane)
+		{
+			// notify target it's been acquired (for the F L A K warning)
+			local.acquired_target.flak_acquired = game.true
+			local.acquired_target.flak_last_time_acquired = level.time
+		}
+	}
+	else
+	{
+		local.flak.last_failed_acquire_time = level.time
+	}
+	
+end
+
+flak_aim local.flak:
+	// turn to target
+	local.yaw 	= waitthread global/skylimit/math.scr::turn1 local.flak.angles[1] local.flak.acquired_yaw local.flak.weapdata.turnspeed
+	local.pitch = waitthread global/skylimit/math.scr::turn1 local.flak.barrel.angles[0] local.flak.acquired_pitch local.flak.weapdata.trainspeed
+	
+	local.yaw 	= waitthread global/skylimit/math.scr::rerangeangle local.yaw
+	local.pitch = waitthread global/skylimit/math.scr::rerangeangle local.pitch
+
+	// set angles
+	if(local.flak.seperate_barrel)
+	{
+		local.flak.angles = (0 local.yaw 0)
+		local.flak.barrel.angles = (local.pitch 0 0)
+	}
+	else
+	{
+		local.flak.barrel.angles = (local.pitch local.yaw 0)
+	}
+	
+	// check if we are aimed at target or still turning
+	if(local.yaw == local.flak.acquired_yaw && local.pitch == local.flak.acquired_pitch)
+	{
+		if(local.flak.acquired)
+		{
+			local.flak.laid = game.true
+			
+			//println local.flak.entnum " flak laid " level.time
+			
+			if( !local.flak.idle)
+			{
+				// make flak idle so we can fire next frame
+				local.flak anim idle
+				local.flak.idle = game.true
+			}
+		}
+		else
+		{
+			// flak anticipated
+			//println local.flak.entnum " flak anticipated " level.time
+			local.flak.anticipated = game.true
+		}
+	}
+end
+
+flak_fire local.flak:
+
+	//println local.flak.entnum " firing! " level.time
+
+	local.MINFUZE = 0.50
+	
+	local.startpos = waitthread flak_getchamberpos local.flak
+	
+	if(local.flak.weapdata.time_fuze)
+	{
+		// correct for path travelled by target in this time
+		
+		local.correction_time = (level.time - local.flak.acquire_time) * local.flak.acquired_time_fuze_correction_mult
+		local.fuze_time = local.flak.fuze_time + local.correction_time
+		
+		if(local.fuze_time < local.MINFUZE)
+		{
+			local.fuze_time = local.MINFUZE
+		}
+	}
+
+	if(local.flak.weapdata.salvosize)
+	{
+		thread flak_salvo local.startpos local.flak local.flak.shootvec local.fuze_time
+	}
+	else
+	{
+		thread global/skylimit/bulletattack.scr::fire local.startpos local.flak self.dmteam self local.flak.weapdata 1 local.flak.shootvec local.flak.weapdata.shell_type local.fuze_time
+	}
+	
+	local.flak.barrel anim fire
+	local.flak.idle	= game.false
+
+	// reacquire target after each shot
+	local.flak.acquired 		= game.false
+	local.flak.laid 			= game.false
+	local.flak.last_fire_time 	= level.time
+end
+
+flak_salvo local.startpos local.flak local.shootvec local.fuze_time:
+	for(local.i = 1; self && local.flak && local.i <= local.flak.weapdata.salvosize; local.i++)
+	{
+		thread global/skylimit/bulletattack.scr::fire local.startpos local.flak self.dmteam self local.flak.weapdata 1 local.shootvec local.flak.weapdata.shell_type local.fuze_time
+		wait (local.flak.weapdata.firedelay / local.flak.weapdata.salvosize)
+	}
+end
+
+flak_getchamberpos local.flak:
+	local.rpos = local.flak.origin - self.origin
+
+	local.pos  = self.origin
+	local.pos += self.forwardvector * local.rpos[0]
+	local.pos += self.leftvector 	* local.rpos[1]
+	local.pos += self.upvector 	 	* local.rpos[2]
+	
+	local.pos += (local.flak gettagposition "hinge" - local.flak.origin) * $world.SL_SCALE
+end local.pos
+
+// sets up the formidable carrier
+formidable local.team local.path local.speed:
+	
+	self.p_velocity = (0 0 0)
+	self.p_avelocity = (0 0 0)
+	
+	// set up the dynobject for the deck
+	waitthread global/skylimit/dynobject.scr::add_surface (0 0 1) (1 0 0) 550.0 -5472.0 5261.0 -800.0 800.0
+	waitthread global/skylimit/dynobject.scr::taketrace
+
+	// add 4.5in turrets
+	waitthread addflak "turret1" "skylimit/vehicles/turret45_base.tik" "skylimit/vehicles/turret45_barrels.tik" turret45 0.0 135.0
+	waitthread addflak "turret2" "skylimit/vehicles/turret45_base.tik" "skylimit/vehicles/turret45_barrels.tik" turret45 45.0 135.0
+	waitthread addflak "turret3" "skylimit/vehicles/turret45_base.tik" "skylimit/vehicles/turret45_barrels.tik" turret45 -135.0 0.0
+	waitthread addflak "turret4" "skylimit/vehicles/turret45_base.tik" "skylimit/vehicles/turret45_barrels.tik" turret45 -135.0 -45.0
+	waitthread addflak "turret5" "skylimit/vehicles/turret45_base.tik" "skylimit/vehicles/turret45_barrels.tik" turret45 45.0 135.0
+	waitthread addflak "turret6" "skylimit/vehicles/turret45_base.tik" "skylimit/vehicles/turret45_barrels.tik" turret45 45.0 180.0
+	waitthread addflak "turret7" "skylimit/vehicles/turret45_base.tik" "skylimit/vehicles/turret45_barrels.tik" turret45 -135.0 -45.0
+	waitthread addflak "turret8" "skylimit/vehicles/turret45_base.tik" "skylimit/vehicles/turret45_barrels.tik" turret45 -180.0 -45.0
+	
+	// add pom-poms 2pdrs
+	waitthread addflak "flak1" "skylimit/vehicles/pompom_base.tik" "skylimit/vehicles/pompom_body.tik" pompom 45.0 135.0
+	waitthread addflak "flak2" "skylimit/vehicles/pompom_base.tik" "skylimit/vehicles/pompom_body.tik" pompom 45.0 135.0
+	waitthread addflak "flak3" "skylimit/vehicles/pompom_base.tik" "skylimit/vehicles/pompom_body.tik" pompom 45.0 135.0
+	waitthread addflak "flak4" "skylimit/vehicles/pompom_base.tik" "skylimit/vehicles/pompom_body.tik" pompom -135.0 135.0
+	waitthread addflak "flak5" "skylimit/vehicles/pompom_base.tik" "skylimit/vehicles/pompom_body.tik" pompom -135.0 90.0
+	waitthread addflak "flak6" "skylimit/vehicles/pompom_base.tik" "skylimit/vehicles/pompom_body.tik" pompom 90.0 -45.0
+	
+	self.dmteam = local.team
+	
+	// add icon
+	local.icon = spawn Animate scale 0.03125
+	local.icon attach self "origin" 0
+	self.iconset = "carrier"
+	self.icon = local.icon
+	
+	// all flaks may think now
+	thread flak_think
+	
+	if(local.path)
+	{
+		self.speed = local.speed
+		self.path = local.path
+		thread sail
+	}
+end
+
+// follows self.path, travels at self.speed m/s
+sail:
+	
+	waitframe // some time for other script bits to get vehicle's position
+	
+	// normal scale units
+	local.SINKDEPTH = 8000.0
+	local.FRICTIONCONST = 0.01
+	local.OFFSET = (0 0 0.5)
+
+	// place her at start of path
+	self.origin = self.path.origin + local.OFFSET
+
+	// initial wave
+	self.initial_wave_vector = (0.05 0.02 0.0) //(0.2 0.03 0.0)
+
+	// init path info
+	waitthread sail_setpath self.path
+
+	self.angles = self.sail_angles
+	self.sail_startheight = self.origin[2]
+
+	// start making a wake
+	self anim travel
+
+	local.DT = 0.05
+
+	self.p_avelocity = self.initial_wave_vector[0] * self.forwardvector + self.initial_wave_vector[1] * self.leftvector
+
+	while(self)
+	{
+		if(self.arc180)
+		{
+			self.sail_done_pct = self.arc180_dist_travelled / self.arc180_arclength
+		}
+		else
+		{
+			self.sail_done_pct = ((self.origin - local.OFFSET - self.sail_departure.origin) * self.sail_direction) / self.sail_distance
+		}
+		
+		if( !self.sinking && self.sail_done_pct >= 1.0)
+		{
+			waitthread sail_setpath self.sail_target
+		}
+		
+		// waves
+		//self.p_avelocity += local.DT * local.AMPLITUDE_ROLL * (waitthread global/skylimit/math.scr::cos (level.time / local.PERIOD_ROLL)) * (1 0 0)
+		//self.p_avelocity += local.DT * local.AMPLITUDE_PITCH * (waitthread global/skylimit/math.scr::quickcos (level.time / local.PERIOD_PITCH)) * self.leftvector
+		
+		if (!self.sinking)
+		{
+			// wave recentering
+			local.CR = 4.0
+			local.roll = waitthread global/skylimit/math.scr::rerangeangle self.angles[2]
+			self.p_avelocity -= local.CR * (local.roll / 180.0 * level.PI) * local.DT * self.forwardvector
+			
+			local.CP = 1.0
+			local.pitch = waitthread global/skylimit/math.scr::rerangeangle self.angles[0]
+			self.p_avelocity -= local.CP * (local.pitch / 180.0 * level.PI) * local.DT * self.leftvector
+		}
+		
+		// accelerations
+		if(self.arc180 && !self.sinking)
+		{
+			// turn
+			local.vec_to_center = (self.arc180_center - self.origin - local.OFFSET) * (1.0 / self.arc180_radius)
+			self.p_accel = self.p_velocity * self.p_velocity / self.arc180_radius / level.SL_UNITSCALE * local.vec_to_center
+			self.p_avelocity[2] = self.arc180_direction[2] * (self.speed / self.arc180_radius / level.SL_UNITSCALE)
+		}
+		else
+		{
+			// straight ahead
+			self.p_accel = (0 0 0)
+			self.p_avelocity[2] = 0.0
+			//self.p_velocity = self.speed * self.sail_direction
+		}
+		
+		if(self.sinking)
+		{
+			//self.p_velocity[2] = -self.sink_speed
+			self.p_avelocity += self.sink_pitchrate * self.leftvector + self.sink_listrate * self.forwardvector
+			local.vec = self.forwardvector
+			local.vec[2] = 0.0
+			local.friction = -1.0 * self.p_velocity * local.vec * local.vec * local.FRICTIONCONST
+			self.p_accel += local.friction - self.sink_accel * $world.upvector
+		}
+		
+		local.neworg = self.origin + self.p_velocity * (local.DT / level.SL_UNITSCALE) + 0.5 * (local.DT / level.SL_UNITSCALE * local.DT) * self.p_accel
+		
+		if (self.sinking)
+		{
+			if(local.neworg[2] < $world.SEALEVEL - local.SINKDEPTH * $world.SL_SCALE)
+			{
+				break
+			}
+		}
+		else
+		{
+			local.neworg[2] = self.sail_startheight
+		}
+		
+		self.origin = local.neworg
+		
+		if(self.arc180)
+		{
+			// hmm modify this if sinking (if speed decreases)
+			self.arc180_dist_travelled += self.speed / level.SL_UNITSCALE * local.DT
+		}
+		
+		if(self.p_avelocity * self.p_avelocity != 0.0)
+		{
+			self.angles = waitthread global/skylimit/math.scr::getnewangles (self.p_avelocity * local.DT)
+		}
+
+		self.p_velocity += self.p_accel * local.DT
+		
+		wait local.DT
+	}
+	
+	if(self)
+	{
+		if(self.gore)
+		{
+			self.gore remove
+		}
+		self remove
+	}
+end
+
+sail_setpath local.current_node:
+	// switch to next path section
+	
+	local.prevvec = self.sail_direction
+	
+	self.sail_departure = local.current_node
+	self.sail_target = $(self.sail_departure.target)
+	//self.sail_vector = self.sail_target.origin - self.sail_departure.origin
+	self.sail_vector = self.sail_target.origin - self.origin
+	self.sail_vector[2] = 0.0
+	self.sail_distance = vector_length self.sail_vector
+	self.sail_direction = (1.0 / self.sail_distance) * self.sail_vector
+	self.sail_angles = vector_toangles self.sail_direction
+	self.arc180 = self.sail_departure.type == "arc180" // only arc180 turns supported so far
+	
+	if(self.arc180)
+	{
+		// precalc the arc
+		self.arc180_center = self.sail_departure.origin + 0.5 * self.sail_vector
+		self.arc180_radius = 0.5 * self.sail_distance
+		self.arc180_direction = vector_cross local.prevvec self.sail_direction
+		self.arc180_finalvec = -1.0 * local.prevvec
+		self.arc180_dist_travelled = 0.0
+		self.arc180_arclength = level.PI * self.arc180_radius
+	}
+	else
+	{
+		self.p_velocity = self.speed * self.sail_direction
+		//self.p_avelocity = self.initial_wave_vector[0] * self.forwardvector + self.initial_wave_vector[1] * self.leftvector
+	}
+	
+	self.sail_done_pct = 0.0
+end
+
+sink:
+
+	local.PITCHRATE = 0.0012 / 180.0 * level.PI // rad/s^2
+	local.LISTRATE = 0.005 / 180.0 * level.PI // rad/s^2
+	local.SINKACCEL_PITCHING = 0.07 // m/s^2
+	local.SINKACCEL_LISTING = 0.05 // m/s^2
+
+	// random sign
+	local.rsign = 2 * (randomint 2) - 1
+
+	if(randomint 2 == 1)
+	{
+		// sink pitching
+		self.sink_pitchrate = local.rsign * local.PITCHRATE
+		self.sink_listrate = 0.0
+		self.sink_accel = local.SINKACCEL_PITCHING
+	}
+	else
+	{
+		// sink listing
+		self.sink_pitchrate = 0.0
+		self.sink_listrate = local.rsign * local.LISTRATE
+		self.sink_accel = local.SINKACCEL_LISTING
+	}
+	
+	self.sinking = game.true
+	self.sink_time = level.time
+	
+	self anim sink
+	
+	// blergh!
+	self.gore = spawn skylimit/fx/ship_gore_emitter.tik origin (self.origin + self.forwardvector * 4000.0 * $world.SL_SCALE) scale $world.SL_SCALE
+	self.gore anim start
+end
+
+// glues local.obj to self, updating origin and angles, w/o any offsets
+glue local.obj:
+	while(self && local.obj)
+	{
+		local.obj.origin = self.origin
+		local.obj.angles = self.angles
+		waitframe
+	}
+end
+
+// binds local.sp to self, updating origin, angles, initvelocity and startyaw
+bindspawnpoint local.sp:
+	local.offset = local.sp.origin - self.origin
+	local.roffset = ( (local.offset * self.forwardvector) (local.offset * self.leftvector) (local.offset * self.upvector) )
+
+	local.angle_offset = local.sp.angles - self.angles
+	local.yaw_offset = local.sp.startangle - self.angles[1]
+
+	while(self && local.sp)
+	{
+		local.coffset = local.roffset[0] * self.forwardvector + local.roffset[1] * self.leftvector + local.roffset[2] * self.upvector
+		local.sp.origin = self.origin + local.coffset
+		local.sp.angles = self.angles + local.angle_offset
+		
+		if(self.p_velocity != NIL)
+		{
+			local.sp.startvelocity = self.p_velocity + vector_cross self.p_avelocity local.coffset
+		}
+		local.sp.startangle = self.angles[1] + local.yaw_offset
+		
+		waitframe
+	}
+end
+
+// binds local.i to self, updating origin x and y
+bindintermission local.i:
+	local.offset = local.i.origin - self.origin
+	local.roffset = ( (local.offset * self.forwardvector) (local.offset * self.leftvector) 0 )
+
+	while(self && local.i && !self.sinking)
+	{
+		local.coffset = local.roffset[0] * self.forwardvector + local.roffset[1] * self.leftvector
+		local.origin = self.origin + local.coffset
+		local.origin[2] = local.i.origin[2]
+		local.i.origin = local.origin
+		
+		waitframe
+	}
+end
+
+/*
+// roll roll the boat :/
+// makin me seasick
+sail:
+	self.p_velocity = (0 0 0)
+	self.p_avelocity = (0 0 0)
+
+	wait 2.0
+
+	local.t = 0.0
+	local.DT = 0.05 // s
+	
+	local.PERIOD_ROLL = 5.0 // s
+	local.PERIOD_PITCH = 7.0 // s
+	local.PERIOD_YAW = 300.0 // s
+	
+	local.AMPLITUDE_ROLL = 0.0 //1.0 // deg
+	local.AMPLITUDE_PITCH = 0.0 //1.0 // deg
+	local.AMPLITUDE_YAW = 180.0 // deg
+	
+	local.speed = 10.3 // m/s, 20 knots
+	
+	self.p_velocity = local.speed * self.forwardvector
+	
+	local.roll = 0.0
+	local.pitch = 0.0
+	local.yaw = 0.0
+	
+	while(self && !self.sinking)
+	{
+		local.lastroll = local.roll
+		local.lastpitch = local.pitch
+		local.lastyaw = local.yaw
+		
+		local.roll = local.AMPLITUDE_ROLL * (waitthread global/skylimit/math.scr::quicksin (level.PI * local.t / local.PERIOD_ROLL))
+		local.pitch = local.AMPLITUDE_PITCH * (waitthread global/skylimit/math.scr::quicksin (level.PI * local.t / local.PERIOD_PITCH))
+		local.yaw = local.AMPLITUDE_YAW * (waitthread global/skylimit/math.scr::quicksin (level.PI * local.t / local.PERIOD_YAW))
+		
+		local.dr = local.roll - local.lastroll
+		local.dp = local.pitch - local.lastpitch
+		local.dy = local.yaw - local.lastyaw
+		
+		// approx.
+		local.angvel = local.dy / local.DT * self.upvector //+ local.dr / local.DT * self.forwardvector + local.dp / local.DT * self.leftvector
+		
+		self.p_avelocity = local.angvel * (level.PI / 180.0)
+		
+		//local.ang = self.angles
+		//local.ang[0] = local.pitch
+		//local.ang[2] = local.roll
+		
+		self.angles = (local.pitch local.yaw local.roll)
+		
+		//self.angles = local.ang
+		self.p_velocity = local.speed * self.forwardvector
+		self.origin += self.p_velocity * (local.DT / level.SL_UNITSCALE)
+		
+		wait local.DT
+		local.t += local.DT
+		
+		if(local.t >= local.PERIOD_ROLL * local.PERIOD_PITCH * local.PERIOD_YAW)
+		{
+			local.t = 0.0
+		}
+	}
+end
+
+// blub blub blub
+sink:
+
+	local.SINKRATE 	= 5.0 // m/s
+	
+	local.SINK_DEPTH = 200.0 // m
+	
+	local.list = randomint 2
+	
+	local.LISTRATE = 1.0 * (2 * randomint 2 - 1) * local.list // deg/s
+	local.PITCHRATE = 0.25 * (2 * randomint 2 - 1) * !local.list // deg/s
+	
+	local.DT = 0.05
+	
+	//local.UPDATE_CLIP_TIME = 0.25
+	
+	local.SINKRATE = local.SINKRATE * (1 - 0.75 * local.list)
+	
+	local.org_min = self.origin[2] - local.SINK_DEPTH / level.SL_UNITSCALE
+	
+	self anim sink
+	
+	self.p_velocity = (0 0 0)
+	
+	self.sinking = game.true
+	self.sink_time = level.time
+	
+	// blergh!
+	local.gore = spawn skylimit/fx/ship_gore_emitter.tik origin self.origin scale $world.SL_SCALE
+	local.gore anim start
+	
+	local.time = 0.0
+	//local.next_update_clip_time = local.UPDATE_CLIP_TIME
+	while(self && self.origin[2] >= local.org_min)
+	{
+		local.sinkmult = 1.0 - abs ( 0.9 * self.upvector * $world.upvector)
+		self.origin -= local.SINKRATE / level.SL_UNITSCALE * local.DT * $world.upvector * local.sinkmult
+		self.angles += (local.PITCHRATE 0.0 local.LISTRATE) * local.DT
+		/*
+		if($(self.clip) && local.time >= local.next_update_clip_time)
+		{
+			$(self.clip).origin = self.origin
+			$(self.clip).angles = self.angles
+			local.next_update_clip_time = local.time + local.UPDATE_CLIP_TIME
+		}
+		*-/
+		wait local.DT
+		local.time += local.DT
+	}
+	
+	local.gore remove
+	
+	self hide
+end
+*/

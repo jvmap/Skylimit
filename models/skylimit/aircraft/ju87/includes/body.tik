@@ -1,0 +1,56 @@
+setup
+{
+	scale 0.74
+	
+	path models/skylimit/aircraft/ju87/skel
+	skelmodel body.skd
+}
+
+init
+{
+	client
+	{
+		// MG17
+		tagemitter tag_barrel_left mg1
+		(
+			model models/skylimit/fx/muzzle/s800R.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+		tagemitter tag_barrel_right mg2
+		(
+			model models/skylimit/fx/muzzle/s800L.tik
+			spawnrate 20.0
+			life 0.02
+			startoff
+			anim fire
+		)
+	}
+}
+
+animations
+{
+	idle	body.skc
+	
+	emitteron_mg 	body.skc
+	{
+		client
+		{
+			enter emitteron mg1
+			enter emitteron mg2
+		}
+	}
+	
+	emitteroff_mg	body.skc
+	{
+		client
+		{
+			enter emitteroff mg1
+			enter emitteroff mg2
+		}
+	}
+}
+
+$include models/skylimit/aircraft/includes/classdef.tik

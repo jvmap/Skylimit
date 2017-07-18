@@ -1,0 +1,13 @@
+TIKI
+setup
+{
+	scale 0.52
+   	path models/vehicles/higgins
+	skelmodel higginsdoor.skd
+   	surface all shader skyhiggins
+}
+
+animations
+{
+   	idle higginsdoor.skc
+}

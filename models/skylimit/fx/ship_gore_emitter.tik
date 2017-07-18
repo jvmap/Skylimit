@@ -1,0 +1,94 @@
+// Oil
+
+TIKI
+
+setup
+{
+	scale 1.0
+	path models/fx/dummy
+	skelmodel dummy3.skd
+}
+
+init
+{
+	server
+	{
+		classname EffectEntity
+		notsolid
+		rendereffects +dontdraw
+	}
+	client
+	{
+		/*
+		originemitter foam
+		(
+			spawnrate 0.2
+			model sl_wake.spr
+			alpha 0.80
+			color 1.00 1.00 1.00
+			scale 50.0
+			life 20.0
+			scalerate 0.0015
+			angles 90 random 360 crandom 15
+			avelocity 0 crandom -1 0
+			offset crandom 400.0 crandom 400.0 0.0
+			randvel crandom 140.0 crandom 140.0 0.0
+			fadein 10.0
+			fade
+			startoff
+		)
+		*/
+		originemitter oil
+		(
+			spawnrate 0.25
+			model sl_wake.spr
+			alpha 1.00
+			color 0.00 0.00 0.00
+			scale 50.0
+			life 15.00
+			scalerate 0.01
+			angles 90 random 360 crandom 15
+			avelocity 0 crandom -10 0
+			offset crandom 400.0 crandom 400.0 0.0
+			fadein 2.0
+			fade
+			randvel crandom 140.0 crandom 140.0 0.0
+			startoff
+		)
+		/*
+		// crew jumping into the water.. brrr..
+		originemitter splash
+		(
+			spawnrate 2.0
+			
+			model models/skylimit/fx/water_splash.tik
+			anim start
+			life 2.0
+			
+			offset crandom 3200.0 crandom 3200.0 0.0
+			
+			scalemin 0.5
+			scalemax 0.02
+			
+			angles -90 0 0
+			
+			startoff
+		)
+		*/
+	}
+}
+
+animations
+{
+    idle dummy3.skc
+    
+    start dummy3.skc
+    {
+		client
+		{
+			//entry emitteron foam
+			entry emitteron oil
+			//entry emitteron splash
+		}
+	}
+}

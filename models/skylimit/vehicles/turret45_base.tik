@@ -1,0 +1,27 @@
+// Naval 4.5inch twin turret base
+// model and skin by jv_map
+
+TIKI
+setup
+{
+	scale 52.0 // model is in m
+	
+	path models/skylimit/vehicles/turret45
+	skelmodel turret45_base.skd
+	
+	surface base shader skylimit_turret45
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+	}
+}
+
+animations
+{
+	idle     		turret45_base.skc
+}

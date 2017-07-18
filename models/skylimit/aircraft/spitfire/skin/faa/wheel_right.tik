@@ -1,0 +1,8 @@
+TIKI
+
+setup
+{
+	surface all shader spitfire_faa
+}
+
+$include models/skylimit/aircraft/spitfire/includes/wheel_right.tik

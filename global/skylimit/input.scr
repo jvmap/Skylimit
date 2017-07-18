@@ -1,0 +1,187 @@
+// used to support key input from players
+// by jv_map
+
+shell local.t local.arg1 local.arg2 local.arg3 local.arg4:
+
+	// before processing any shell, check if we're still playing a skylimit map
+	if(level.SKYLIMIT)
+	{
+		thread local.t local.arg1 local.arg2 local.arg3 local.arg4
+	}
+	else
+	{
+		thread global/skylimit/main.scr::cleanup_skylimit
+	}
+end
+
+init:
+	level.SL_INPUT_CONDITIONS = FORWARD::BACKWARD::STRAFE_LEFT::STRAFE_RIGHT::RUN::CROUCH::JUMP::ATTACK_PRIMARY::ATTACK_SECONDARY::RELOAD::PUTAWAYMAIN::NEW_WEAPON
+	
+	for(local.i = 1; local.i <= level.SL_INPUT_CONDITIONS.size; local.i++)
+	{
+		level.SL_INPUT_KEYINT[local.i] = waitthread global/skylimit/math.scr::ipowint 2 (local.i - 1)
+	}
+end
+
+init_player:
+	self.SL_input_wswitchdelta = 0
+	self.SL_lastwid = 1
+	self.SL_input_last_lean_controller = 0.0
+end
+
+processrawinput local.rawinput:
+	//print level.time " " local.rawinput " "
+	for(local.i = 1; local.i <= level.SL_INPUT_CONDITIONS.size; local.i++)
+	{
+		local.input[level.SL_INPUT_CONDITIONS[local.i]] = (local.rawinput & level.SL_INPUT_KEYINT[local.i]) > 0
+		//if(local.input[level.SL_INPUT_CONDITIONS[local.i]])
+		//	print level.SL_INPUT_CONDITIONS[local.i] " "
+	}
+	//println ""
+end local.input
+
+// called from state file when input cycle has completed
+set_next_input local.rawinput:
+	local.rawinput = int local.rawinput
+	local.input = waitthread processrawinput local.rawinput
+
+	local.wswitch_count = 0
+	
+	// hack
+	if (local.input[PUTAWAYMAIN])
+	{
+		// need to holster and unholster weapon so we can check again
+		self deactivateweapon righthand
+		local.wswitch_count++
+	}
+	
+	// hack
+	if(local.input[NEW_WEAPON])
+	{
+		if(self.can_have_weapon_out)
+		{
+			self activatenewweapon lefthand
+			self weaponcommand dual exec global/skylimit/input.scr register_weapon self.targetname self.entnum
+		}
+		local.wswitch_count++
+	}
+	
+	if(local.wswitch_count == 1)
+	{
+		// holstered weapon (without taking a new one out)
+		// so unholster again
+		if(self.can_have_weapon_out)
+		{
+			self weapnext
+			self activatenewweapon lefthand
+			
+			// always return to wid 1
+			self.SL_lastwid = 1
+		}
+	}
+
+	// mouse wheel detection
+	local.input[MWHEEL_UP] = self.SL_input_wswitchdelta == 1
+	local.input[MWHEEL_DN] = self.SL_input_wswitchdelta == -1
+	self.SL_input_wswitchdelta = 0
+
+	// holster that doesn't fire when mouse-wheeling
+	local.input[HOLSTER] = local.wswitch_count == 1
+
+	local.current_lean_controller = (self getcontrollerangles 0)[2]
+	local.lean_controller_delta = local.current_lean_controller - self.SL_input_last_lean_controller
+	
+	local.input[LEAN_LEFT] = (local.lean_controller_delta > 0.01 && local.current_lean_controller > 0.01) || local.current_lean_controller > 15.99
+	local.input[LEAN_RIGHT] = (local.lean_controller_delta < -0.01  && local.current_lean_controller < -0.01) || local.current_lean_controller < -15.99
+
+	self.SL_input_last_lean_controller = local.current_lean_controller
+
+	// trivial
+	local.input[USE] = self.useheld
+
+	// convenient :)
+	// fires when user stops running
+	// -> fires on shift press when always run is enabled (default)
+	// -> fires on shift release when always run is disabled
+	//local.input[TOGGLE_RUN] = !local.input[RUN] && self.SL_last_run
+	//self.SL_last_run = local.input[RUN]
+
+	// determine pushtypes
+	/*
+	local.ADDITIONAL_INPUT = MWHEEL_UP::MWHEEL_DN::HOLSTER::LEAN_LEFT::LEAN_RIGHT::USE
+	local.INPUTLIST = waitthread global/skylimit/common.scr::arrayadd level.SL_INPUT_CONDITIONS local.ADDITIONAL_INPUT
+
+	for(local.i = 1; local.i <= local.INPUTLIST.size; local.i++)
+	{
+		local.kn = local.INPUTLIST[local.i]
+		if(self.SL_prev_input)
+		{
+			local.delta = self.SL_input[local.kn] - self.SL_prev_input[local.kn]
+		}
+		else
+		{
+			local.delta = self.SL_input[local.kn]	
+		}
+		local.pushtype[local.kn] = local.delta
+	}
+	*/
+	self.SL_input = local.input
+	/*
+	self.SL_input_pushtype = local.pushtype
+	
+	self.SL_prev_input = waitthread global/skylimit/common.scr::stringarraycopy local.input local.INPUTLIST
+	*/
+	// determine ucmd from the input cycle
+	self.SL_ucmd = waitthread ("global/skylimit/keymap_" + self.keymap + ".scr")::map local.input local.pushtype
+end
+
+// called from weapon
+// sets weapon ID
+setwid local.value:
+	self.SL_wid = int local.value
+end
+
+register_weapon local.targetname local.entnum:
+	local.entnum = int local.entnum
+	
+	if(self.SL_wid)
+	{
+		local.entlist = $(local.targetname)
+		for(local.i = 1; local.i <= local.entlist.size; local.i++)
+		{
+			local.e = local.entlist[local.i]
+			if(local.e.entnum == local.entnum)
+			{
+				local.refent = local.e
+				break
+			}
+		}
+	
+		if(local.refent)
+		{
+			if(self.SL_wid == 1 && local.refent.SL_lastwid == 3)
+				local.delta = 1
+			else if(self.SL_wid == 3 && local.refent.SL_lastwid == 1)
+				local.delta = -1
+			else
+				local.delta = self.SL_wid - local.refent.SL_lastwid
+				
+			local.refent.SL_input_wswitchdelta = local.delta
+			local.refent.SL_lastwid = self.SL_wid
+		}
+		else
+		{
+			println "ERROR[input::registerweapon]: Failed registration of " self.brushmodel " for $" local.targetname " entnum: " local.entnum
+		}
+	}
+	else
+	{
+		println "Not registering " 	self.brushmodel ", wid not set"
+	}
+end
+
+// doesn't do anything
+// this is just to let input system know we're running
+// (and thus can remove hud etc if not playing a skylimit map)
+torso_tick:
+end

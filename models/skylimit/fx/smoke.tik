@@ -1,0 +1,62 @@
+// smoke
+// just smoke
+// trust me it's nothing more than a smoke
+// and not bad for health either
+
+TIKI
+setup
+{
+	scale 1.0
+	path models/fx/dummy
+	skelmodel dummy3.skd
+}
+
+init
+{
+	server
+	{
+		classname effectentity
+		notsolid
+		rendereffects +dontdraw
+	}
+	client
+	{
+		originemitter smoke
+		(
+			model vsssource.spr
+			alpha 1.0
+			color 0.0 0.0 0.0
+			scale 15.0
+			life 5.0
+			spawnrate 4.5
+			scalerate 0.1 //0.20
+			accel -8.00 16.00 -4.0
+			randvel crandom 200.0 crandom 200.0 range 1200.0 1250.0
+			offset crandom 10.0 crandom 10.0 0.0
+			fade
+			fadedelay 2.5
+			//fadein 0.5
+			randomroll
+			startoff
+		)
+	}
+}
+
+animations
+{
+    idle dummy3.skc
+	start dummy3.skc
+	{
+		client
+		{
+			enter emitteron smoke
+		}
+	}
+	stop dummy3.skc
+	{
+		client
+		{
+	    	enter emitteroff smoke
+		}
+	}
+}

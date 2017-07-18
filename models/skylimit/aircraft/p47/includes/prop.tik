@@ -1,0 +1,13 @@
+setup
+{
+	path models/skylimit/aircraft/p47/skel
+	skelmodel prop.skd
+}
+
+$include models/skylimit/aircraft/includes/classdef.tik
+$include models/skylimit/aircraft/p47/includes/includes.tik
+
+animations
+{
+	idle			prop_idle.skc
+}

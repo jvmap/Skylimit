@@ -1,0 +1,39 @@
+TIKI
+setup
+{
+	path models/human/allied_airborne	// Set path to set skelmodel from
+	skelmodel airborne.skd		// Set body model
+}
+
+
+//
+// define what folder to get specific sound from for the player model
+//
+$define pulloutdir sound/weapons/pullout
+
+
+init
+{
+	client
+	{
+		// Cache sounds here
+	}
+	server
+	{
+		//voicetype airborne // set the voicetype to use for multiplayer instant messaging
+		surface all +nodraw
+	}
+}
+
+
+// hmm whiny game wants at least some stupid anims
+$include models/player/base/anims_shared.txt
+	
+//
+// include the base player model definition
+//
+// don't need stupid anims
+//$include models/player/base/include.txt
+
+// need to indicate the end of the tiki file because we have a tiki command at the end
+//end

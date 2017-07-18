@@ -1,0 +1,77 @@
+// Flak88 (no shield)
+
+TIKI
+
+$include models/skylimit/utils/client_sound_cache.tik
+
+setup
+{
+	scale 0.52
+	
+	path models/skylimit/vehicles/flak88
+	skelmodel barrel.skd
+	
+	surface all shader skylimit_flak88
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+	}
+}
+
+animations
+{
+	idle     		barrel.skc
+	
+	fire			barrel_fire.skc
+	{
+		client
+		{
+			first stopaliaschannel cl_antitank_fire
+			first sound cl_antitank_fire
+			
+			// muzzle flash
+			first tagdlight tag_barrel 0.25 0.2 0.05 200 0.11
+			
+			first tagspawn tag_barrel
+			(
+				scale 2.5
+				offsetalongaxis 3 0 0
+				count 1
+				model muzsprite.spr
+				angles 0 0 crandom 25
+				life 0.06
+			)
+
+			first tagspawn tag_barrel
+			(
+				count 1
+				scalemin 4.0
+				scalemax 6.0
+				model models/fx/muzflash.tik
+				randomroll
+				life 0.04
+			)
+
+			first tagspawn tag_barrel
+			(
+				scale 0.025
+				count 12
+				model vsssource.spr
+				color 0.7 0.7 0.7
+				alpha 1.0
+				randomroll
+				scalerate 4.0
+				randvelaxis range 50.0 500.0 crandom 20.0 crandom 20.0
+				accel 0 0 10.0
+				life 1.00
+				friction 2.00
+				fade
+			)
+		}
+	}
+}

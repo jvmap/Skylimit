@@ -1,0 +1,64 @@
+// twin cal50
+
+TIKI
+
+$include models/skylimit/utils/client_sound_cache.tik
+
+setup
+{
+	scale 3.0
+	path models/skylimit/weapons/twin_mg
+	skelmodel twin_mg.skd
+	surface all shader sl_cal50
+}
+
+init
+{
+	server
+	{
+      	classname Animate
+      	notsolid
+	}
+	client
+	{
+		tagemitter tag_barrel_left muzzle1
+		(
+			model models/skylimit/fx/muzzle/m900.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+		tagemitter tag_barrel_right muzzle2
+		(
+			model models/skylimit/fx/muzzle/m900.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+	}
+}
+
+animations
+{
+	idle	twin_mg.skc
+	
+	start	twin_mg.skc
+	{
+		client
+		{
+			enter emitteron muzzle1
+			enter emitteron muzzle2
+		}
+	}
+	
+	stop	twin_mg.skc
+	{
+		client
+		{
+			enter emitteroff muzzle1
+			enter emitteroff muzzle2
+		}
+	}
+}

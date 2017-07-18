@@ -1,0 +1,85 @@
+// advanced attacher
+// (allows attachment of more than 8 ents)
+// by jv_map
+
+// attaches self to object
+// never exceeding 8 objects in total
+// or multiple objects per tag
+attach local.object local.tag local.use_angles local.offset:
+	local.MAXATTACHMENTS = 8 // max attachments per entity
+	local.TREE = "skylimit/utils/8tags.tik"
+	
+	if(local.tag == "origin")
+	{
+		println "ERROR[flightmodel::attach]: Origin bone is reserved for forking, not attaching " local.object.brushmodel
+		end
+	}
+
+	if(local.offset == NIL)
+	{
+		local.offset = (0 0 0)
+	}
+
+	if(local.object.ATT_total_attachments == NIL)
+	{
+		local.object.ATT_total_attachments = 0
+	}
+
+	if(local.use_angles == NIL)
+	{
+		local.use_angles = game.true
+	}
+
+	local.mynum = local.object.ATT_total_attachments + 1
+
+	local.treenum = (local.mynum - 1) / (local.MAXATTACHMENTS - 1) + 1
+	local.branchnum = local.mynum - (local.treenum - 1) *  (local.MAXATTACHMENTS - 1)
+
+	// make sure the tree exists
+	if !(local.object.ATT_tree[local.treenum])
+	{
+		local.object.ATT_tree[local.treenum] = spawn local.TREE
+		
+		if(local.treenum == 1)
+		{
+			local.object.ATT_tree[local.treenum] attach local.object origin
+		}
+		else
+		{
+			local.object.ATT_tree[local.treenum] attach local.object.ATT_tree[local.treenum - 1] origin
+		}
+	}
+	
+	// attach this object to the branch
+	local.tree = local.object.ATT_tree[local.treenum]
+	local.target_tag = "tag" + local.branchnum
+	
+	// calc offset
+	local.offset_abs = (local.object gettagposition local.tag) - local.object.origin
+	local.offset_rel = ((local.offset_abs * local.object.forwardvector) (local.offset_abs * local.object.leftvector) (local.offset_abs * local.object.upvector))
+	
+	local.offset_angles = waitthread global/skylimit/math.scr::getanglesdiff local.object.angles (local.object gettagangles local.tag)
+	
+	if(local.object.SCALE)
+	{
+		local.scale = local.object.SCALE
+	}
+	else
+	{
+		local.scale = $world.SL_SCALE
+	}
+	
+	// long live the inaccuracy! :rolleyes:
+	local.mult = 1.0 - 0.04 / (32.0 * local.scale)
+	local.offset_rel = local.offset_rel * local.mult
+	
+	self attach local.tree local.target_tag local.use_angles (local.offset_rel + local.offset)
+	
+	self.angles = local.offset_angles
+	
+	local.object.ATT_total_attachments++
+end
+
+detach:
+	self detach
+end

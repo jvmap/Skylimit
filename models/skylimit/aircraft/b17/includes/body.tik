@@ -1,0 +1,13 @@
+setup
+{
+	path models/skylimit/aircraft/b17/skel
+	skelmodel body.skd
+}
+
+$include models/skylimit/aircraft/b17/includes/includes.tik
+$include models/skylimit/aircraft/includes/classdef.tik
+
+animations
+{
+	idle	body.skc
+}

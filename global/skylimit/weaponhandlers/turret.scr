@@ -1,0 +1,148 @@
+// moveable gun turret
+// by jv_map
+
+main local.plane local.wd local.name local.tag local.tag_multiplicity local.model local.skin_model local.gun_model local.shader:
+	self.damage = 10.0
+	self.means_of_damage = level.MODM_BULLET_MG
+	self.bulletlife = 2.0
+	self.bulletvelocity = 755.0 // m/s
+	self.firedelay = 0.10
+	self.readytofire = game.true
+	self.jamlimit = 13.0 // jam after this many shots have been fired in a row
+	self.jamdecay = 5.0 // reduce jam by this amount each second
+	self.flexible = game.true // whether or not to update angles each frame (if necessary)
+	self.angles_update_delay = 0.10
+	self.spread = 0.0064 // random spread in fraction of bullet velocity
+	
+	self.hud_bigpic = game.true
+	
+	self.shell_types = "AP"::"AP"
+	
+	if(local.skin_model)
+	{
+		local.model = local.plane.PLANETYPE.tikipath + local.model + ".tik"
+	}
+	
+	// turret base ent
+	self.ent = spawn Animate model local.model
+	self.ent waitthread global/skylimit/flightmodel.scr::attach local.plane local.tag game.true
+	
+	//self.ent attach local.plane local.tag game.true
+	
+	self.ammo_capacity_rounds_per_gun = 500
+	
+	self.ent.tag = local.tag
+	
+	// turret barrel ent
+	self.barrel = spawn Animate model local.gun_model
+	self.barrel.tag = "hinge"
+	self.barrel attach self.ent self.barrel.tag game.true
+	
+	self.turnspeed_yaw = 90.0 // deg/s
+	self.turnspeed_pitch = 90.0 // deg/s
+	
+	// firing alias for looping
+	self.soundset = "browning50"
+	
+	self.firing = 0
+	
+	self.tag_multiplicity = local.tag_multiplicity
+	
+	self.number_of_guns = self.tag_multiplicity
+	
+	// overrides
+	waitthread ("global/skylimit/weapons/" + local.wd + ".wd")::specs
+	
+	// don't allow name and shader override
+	self.name = local.name
+	if(local.shader == NIL)
+	{
+		local.shader = "sl_wmgf"
+	}
+	
+	self.hud_shader = local.shader
+	self.hud_shader_jammed = local.shader + "j"
+end
+
+// self is plane
+// w is weap listener
+// vangles are relative angles
+updateangles local.w local.vangles:
+	local.frametime = local.w.angles_update_delay
+	local.base_roll = local.w.ent.angles[2]
+	
+	if(local.w.forwardvector != NIL)
+	{
+		// correct for flight velocity
+		local.yawbonus = -(self.p_velocity * self.forwardvector) * (self.leftvector * local.w.forwardvector) / local.w.bulletvelocity / level.PI * 180.0
+		local.vangles += (0 local.yawbonus 0)
+	}
+	
+	if(local.base_roll > 90.0 || local.base_roll < -90.0)
+	{
+		// invert pitch
+		local.vangles[0] = -local.vangles[0]
+	}
+	
+	// only set yaw
+	local.ent_targetangles = (0.0 local.vangles[1] local.base_roll)
+	local.ent_newangles = waitthread global/skylimit/math.scr::turn local.w.ent.angles local.ent_targetangles local.w.turnspeed_yaw local.frametime
+	
+	// only set pitch
+	local.barrel_targetangles = (local.vangles[0] 0.0 0.0)
+	local.barrel_newangles = waitthread global/skylimit/math.scr::turn local.w.barrel.angles local.barrel_targetangles local.w.turnspeed_pitch local.frametime
+	
+	local.w.ent.angles = local.ent_newangles
+	local.w.barrel.angles = local.barrel_newangles
+	
+	// local space fwdvec
+	local.fwdvec = local.w.barrel.forwardvector //angles_toforward (local.barrel_newangles[0] local.ent_newangles[1] local.base_roll)
+	
+	// transform to turret space
+	local.fwdvec = waitthread global/skylimit/math.scr::vectortransform local.w.ent.forwardvector local.w.ent.leftvector local.w.ent.upvector local.fwdvec
+	
+	// transform to absolute space
+	local.w.forwardvector = waitthread global/skylimit/math.scr::vectortransform self.forwardvector self.leftvector self.upvector local.fwdvec
+	//local.w.forwardvector = local.w.barrel.forwardvector
+end
+
+// self is plane
+// w is weap listener
+fire local.w:
+	local.w.readytofire = game.false
+	
+	if ( !local.w.on )
+	{
+		local.w.barrel anim start
+		local.w.on = game.true
+	}
+	
+	local.w.firing++
+	
+	local.vec = (local.w.ent gettagposition local.w.barrel.tag) - local.w.ent.origin
+	local.pos = (self gettagposition local.w.ent.tag) + (local.vec[0] * self.forwardvector + local.vec[1] * self.leftvector + local.vec[2] * self.upvector) * self.SCALE
+	
+	// pick shelltype
+	local.type = local.w.shell_types[randomint local.w.shell_types.size + 1]
+	
+	thread global/skylimit/bulletattack.scr::fire local.pos self.pilot self.pilot.dmteam self local.w local.w.tag_multiplicity local.w.forwardvector local.type
+	
+	wait local.w.firedelay
+	
+	if(local.w)
+	{
+		local.w.firing--
+		local.w.readytofire = game.true
+
+		waitframe
+
+		if(local.w && local.w.firing == 0)
+		{
+			if(local.w.barrel)
+			{
+				local.w.barrel anim stop
+			}
+			local.w.on = game.false
+		}
+	}
+end

@@ -1,0 +1,73 @@
+TIKI
+setup
+{
+	scale 0.01625
+	
+	path models/skylimit/vehicles/sherman
+	skelmodel sherman_turret.skd
+	
+	surface all shader skylimit_shermantank_desert_tinydetail
+	surface turret shader skylimit_shermantank_desert
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+	}
+}
+
+animations
+{
+	idle     sherman_turret.skc
+	
+	fire     sherman_turret_fire.skc
+	{
+		server
+		{
+			first playsound tank_snd_fire
+		}
+		client
+		{
+			// muzzle flash
+			first tagdlight tag_barrel 0.25 0.2 0.05 110 0.11
+			first tagspawn tag_barrel
+			(
+				scale 0.6
+				offsetalongaxis 3 0 0
+				count 1
+				model muzsprite.spr
+				angles 0 0 crandom 25
+				life 0.06
+			)
+
+			first tagspawn tag_barrel
+			(
+				count 1
+				scalemin 1.0
+				scalemax 1.5
+				model models/fx/muzflash.tik
+				randomroll
+				life 0.04
+			)
+
+			first tagspawn tag_barrel
+			(
+				scale 0.05
+				count 12
+				model vsssource.spr
+				color 1.0 1.0 1.0
+				alpha 0.5
+				randomroll
+				scalerate 4.0
+				randvelaxis range 10.0 50.0 crandom 2.0 crandom 2.0
+				accel 0 0 10.0
+				life 4.00
+				friction 2.00
+				fade
+			)
+		}
+	}
+}

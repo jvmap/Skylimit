@@ -1,0 +1,13 @@
+TIKI
+
+setup
+{
+	surface all shader ju87_europe
+	surface window shader ju87_window_europe
+}
+
+$include models/skylimit/aircraft/ju87/includes/body.tik
+
+/*QUAKED skylimit_ju87_europe (0.0 0.0 0.0) (-65 -40 0) (65 40 120)
+Junkers Ju-87 'Stuka' Dive Bomber
+*/

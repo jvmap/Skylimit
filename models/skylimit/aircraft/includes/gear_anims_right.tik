@@ -1,0 +1,13 @@
+// Universal gear anims
+// by jv_map
+
+animations
+{
+	idle			$skelpath$/wheel_right_down.skc
+	
+	retract		  	$skelpath$/wheel_right_retract.skc
+	retracted     	$skelpath$/wheel_right_retracted.skc
+	
+	lower			$skelpath$/wheel_right_lower.skc
+	down			$skelpath$/wheel_right_down.skc
+}

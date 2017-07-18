@@ -1,0 +1,56 @@
+// mg17
+
+TIKI
+
+$include models/skylimit/utils/client_sound_cache.tik
+
+setup
+{
+	scale 0.73
+	path models/skylimit/weapons/mg17
+	skelmodel mg17.skd
+	surface gun shader sl_mg17
+	surface sight shader sl_mg17sight
+}
+
+init
+{
+	server
+	{
+      	classname Animate
+      	setsize "-32 -32 -32" "32 32 32"
+      	notsolid
+	}
+	client
+	{
+		tagemitter tag_barrel muzzle
+		(
+			model models/skylimit/fx/muzzle/s800.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+	}
+}
+
+animations
+{
+	idle	mg17.skc
+	
+	start	mg17.skc
+	{
+		client
+		{
+			enter emitteron muzzle
+		}
+	}
+	
+	stop	mg17.skc
+	{
+		client
+		{
+			enter emitteroff muzzle
+		}
+	}
+}

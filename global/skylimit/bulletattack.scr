@@ -1,0 +1,235 @@
+// bullet simulation
+// by jv_map
+
+// fire a round and do cannon splash damage when needed
+fire local.startpos local.inflictor local.inflictor_team local.inflictor_owner local.weapdata local.dmg_mult local.direction local.shell_type local.time_fuze:
+
+	if(local.shell_type == "AP")
+	{
+		local.hit_factor 	= 1.0
+		local.splash_factor = 0.0
+	}
+	else if(local.shell_type == "HE")
+	{
+		local.hit_factor 	= 0.5
+		local.splash_factor = 0.5
+	}
+	else if(local.shell_type == "HEM")
+	{
+		local.hit_factor 	= 0.0
+		local.splash_factor = 1.0
+	}
+	
+	local.trace = local.hit_factor > 0.0
+	local.splash = local.weapdata.splash && local.splash_factor > 0.0
+
+	local.result = waitthread global/skylimit/bulletattack.scr::firebullet local.startpos local.inflictor local.inflictor_team local.inflictor_owner local.weapdata (local.dmg_mult * local.hit_factor) local.direction local.trace local.time_fuze
+	
+	local.bullet_alive = local.result[1]
+	local.bullet_endpos = local.result[2]
+	
+	if(local.splash && local.bullet_alive)
+	{
+		// shell didn't hit anything
+		// explode and do splash damage
+
+		// TODO: perhaps make more sfx-es as well (dmg_mult)
+
+		// get an EffectEntity from dynamic stack
+		local.e = waitthread global/skylimit/common.scr::getfromstack EffectEntity game.false
+		
+		if(local.e)
+		{
+			local.e.model = local.weapdata.splash_model
+			local.e.origin = (local.bullet_endpos ) //- local.direction * 0.1)
+			
+			local.e.scale = local.weapdata.splash_scale * local.splash_factor
+			local.e anim start
+			local.e thread global/skylimit/common.scr::releasetostack 0.5
+		}
+		
+		// shrapnel damage
+		waitthread global/skylimit/damage.scr::radiusdamage local.bullet_endpos (local.weapdata.splash_radius * local.splash_factor / level.SL_UNITSCALE) (local.weapdata.splash_damage_center * local.dmg_mult * local.splash_factor) (local.weapdata.splash_damage_bounds * local.dmg_mult * local.splash_factor) level.MODM_SHRAPNEL local.inflictor local.inflictor_team local.inflictor_owner game.false game.false
+	}
+end
+
+firebullet local.startpos local.inflictor local.inflictor_team local.inflictor_owner local.weapdata local.dmg_mult local.direction local.trace local.time_fuze:
+	// more realistic bullet simulation
+	// should follow pretty much the same path as the sfx tracers
+	
+	// can spawn debug beams to verify bullet path
+	local.DEBUG_BEAM = game.false
+	
+	// ballistic parameters
+	local.GRAVITY = 9.81
+	
+	// general consts
+	// this sets the bullet simulation time (smaller is better, but more cpu needed)
+	local.DT = 0.05
+	local.DT_TRACE = 0.20
+	
+	// friction:
+	// this is to match tracer friction (client effect)
+	// V' = V + dV ~ V (1 - 0.5 rho V0 A CD dt / m)
+	
+	local.time = 0.0
+
+	local.spread = local.weapdata.spread
+	local.spreadvec = waitthread global/skylimit/common.scr::randomvectoroffset local.spread local.spread local.spread
+	
+	// don't spread forward velocity
+	local.spreadvec -= local.spreadvec * local.direction * local.direction
+	
+	local.vel = (local.direction + local.spreadvec) * local.weapdata.bulletvelocity
+
+	// up vector
+	local.vec_z = (0 0 1)
+	// forward vector
+	local.vec_x = local.direction
+	local.vec_x[2] = 0.0
+	if(local.vec_x == (0 0 0))
+	{
+		// bullet fired straight up, will travel in a straight line only
+		// assign arbitrary x,y vecs
+		local.vec_x = (1 0 0)
+		local.vec_y = (0 1 0)
+	}
+	else
+	{
+		local.vec_x = vector_normalize local.vec_x
+		local.vec_y = vector_cross local.vec_z local.vec_x
+	}
+	
+	local.dmg = local.weapdata.damage * local.dmg_mult
+	local.means_of_damage = local.weapdata.means_of_damage
+	
+	// apply lifespread
+	local.life = local.weapdata.bulletlife
+	
+	if(local.time_fuze && local.time_fuze < local.life)
+	{
+		local.life = local.time_fuze
+	}
+	
+	if(local.weapdata.lifespread != NIL)
+	{
+		local.life += 2.0 * (randomfloat local.weapdata.lifespread) - local.weapdata.lifespread
+	}
+	
+	if(local.trace)
+	{
+		local.query = waitthread global/skylimit/damage.scr::create_query local.means_of_damage local.inflictor_team local.inflictor_owner game.false game.false
+	}
+	
+	local.bullet_alive = game.true
+	
+	local.pos = local.startpos
+	local.endpos = local.startpos
+	local.lastpos = local.pos
+	
+	local.acceleration_z = -local.GRAVITY
+	
+	local.last_trace_time = -local.DT_TRACE
+	
+	while(game.true)
+	{		
+		if(local.time >= local.life)
+		{
+			local.endpos = local.pos
+			break
+		}
+		
+		local.dotrace = local.time - local.last_trace_time >= local.DT_TRACE
+		
+		if(local.dotrace)
+		{
+			local.last_trace_time = local.time
+			
+			if(local.query.size >= 1)
+			{
+				// do damage, destroy bullet if it hit anything
+				// forward trace
+				local.result = waitthread global/skylimit/damage.scr::querylinedamage local.query local.vec_x local.vec_y local.vec_z local.pos local.vel local.acceleration_z (local.life - local.time) local.DT_TRACE local.dmg local.means_of_damage local.inflictor local.inflictor_team local.inflictor_owner game.true
+				
+				local.hit = local.result[1]
+				local.query = local.result[2]
+				
+				if(local.hit)
+				{
+					local.endpos = local.pos + 0.5 * (1.0 / level.SL_UNITSCALE) * local.vel * local.DT_TRACE
+					break
+				}
+			}
+		}
+		
+		local.pos += (1.0 / level.SL_UNITSCALE) * local.vel * local.DT + 0.5 * (1.0 / level.SL_UNITSCALE) * local.acceleration_z * local.vec_z * local.DT * local.DT
+		local.vel += local.acceleration_z * local.vec_z * local.DT
+		
+		if(local.dotrace)
+		{
+			if(local.DEBUG_BEAM)
+			{
+				local.b = spawn func_beam origin local.lastpos endpoint local.pos maxoffset 0 color ((randomfloat 1.0) (randomfloat 1.0) (randomfloat 1.0)) scale 0.1
+				local.b doActivate
+				local.b commanddelay 0.05 remove
+			}
+			
+			// backward trace
+			if(local.trace && local.lastpos[2] < $world.OBSTACLEHEIGHT || local.pos[2] < $world.OBSTACLEHEIGHT)
+			{
+				local.endpos = trace local.lastpos local.pos 0
+			}
+			else
+			{
+				local.endpos = local.pos
+			}
+			
+			if (local.endpos != local.pos)
+			{
+				// fired bullet into terrain
+				// spawn fx here
+				
+				// grab an effectent from stack
+				local.ent = waitthread global/skylimit/common.scr::getfromstack EffectEntity game.false
+				if(local.ent)
+				{
+					local.ent model skylimit/fx/bullet_hit_terrain.tik
+					local.ent origin local.endpos
+					local.ent anim start
+					local.ent thread global/skylimit/common.scr::releasetostack 0.2
+				}
+				break
+			}
+			
+			local.lastpos = local.pos
+		}
+		
+		if(local.pos[2] < $world.SEALEVEL)
+		{
+			//local.endpos = local.pos
+			local.endpos[2] = $world.SEALEVEL
+			
+			//local.sfxpos = local.lastpos + (local.pos - local.lastpos) * ((local.lastpos[2] - $world.SEALEVEL) / (local.lastpos[2] - local.pos[2])) + (0 0 0.1)
+			
+			local.sfxpos = local.endpos + (0 0 0.1)
+			
+			// grab a splash from stack
+			local.splash = waitthread global/skylimit/common.scr::getfromstack EffectEntity game.false
+			if(local.splash)
+			{
+				local.splash model skylimit/fx/water_splash.tik
+				local.splash origin local.sfxpos
+				local.splash angles ( -90 0 0)
+				local.splash scale (local.dmg / 300.0)
+				local.splash anim start
+				local.splash thread global/skylimit/common.scr::releasetostack 0.2
+			}
+			
+			local.bullet_alive = game.false
+			break
+		}
+		
+		wait local.DT
+		local.time += local.DT
+	}
+end (local.bullet_alive::local.endpos)

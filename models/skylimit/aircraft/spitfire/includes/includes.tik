@@ -1,0 +1,8 @@
+setup
+{
+	scale 1.38
+}
+
+$include models/skylimit/aircraft/includes/classdef.tik
+
+$define skelpath models/skylimit/aircraft/spitfire/skel

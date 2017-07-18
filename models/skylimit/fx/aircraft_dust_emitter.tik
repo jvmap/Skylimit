@@ -1,0 +1,88 @@
+TIKI
+setup
+{
+	scale 1.0
+	path models/fx/dummy
+	skelmodel dummy3.skd
+}
+
+init
+{
+	server
+	{
+		classname effectentity
+		notsolid
+		rendereffects +dontdraw
+	}
+	
+	client
+	{
+		originemitter lospeed
+		(
+			spawnrate 10.00
+			model vsssource.spr
+			alpha 0.50 //0.90
+			color 0.80 0.69 0.46
+			scale 0.09
+			life 1.50
+			scalerate 1.1
+			fade
+			randomroll
+		)
+		
+		originemitter hispeed
+		(
+			spawnrate 10.00
+			model vsssource.spr
+			alpha 0.90
+			color 0.80 0.69 0.46
+			scale 0.20
+			life 1.00
+			scalerate 2.0
+			
+			randvel crandom 10.0 crandom 10.0 range 0.0 100.0
+			
+			accel 0.0 0.0 -1.0 //-10
+			fade
+			randomroll
+		)
+	}
+}
+
+animations
+{
+	idle dummy3.skc
+	{
+		server
+		{
+			entry anim off
+		}
+	}
+	
+	off dummy3.skc
+	{
+		client
+		{
+			enter emitteroff lospeed
+			enter emitteroff hispeed
+		}	
+	}
+	
+	lospeed dummy3.skc
+	{
+		client
+		{
+			enter emitteron lospeed
+			enter emitteroff hispeed
+		}
+	}
+	
+	hispeed dummy3.skc
+	{
+		client
+		{
+			enter emitteron lospeed
+			enter emitteron hispeed		
+		}
+	}
+}

@@ -1,0 +1,116 @@
+// based on	water grenade explosion
+
+TIKI
+setup
+{
+	scale 1.0
+	path models/fx/dummy
+	skelmodel dummy2.skd
+}
+
+init
+{
+	client
+	{
+		cache waterplume.spr
+		cache water_g.spr
+		cache ripple.spr
+	}
+}
+
+// This	section	is just	needed to be a valid tiki file
+animations
+{
+	idle dummy2.skc	
+	
+	start dummy2.skc
+	{
+		client
+		{
+			enter sound grenade_exp_water
+		
+			enter originspawn
+			(
+				model oceanspray.spr
+				count 5
+				color 1.00 1.00	1.00
+				spritegridlighting
+				scale 0.40
+				life 1.10
+				scalerate 12.00
+				cone 30.00 10.00
+				//velocity 10.00
+				randvel crandom	40 crandom 40 random 600
+				accel 0.00 0.00	-40.00
+				fade
+				circle
+			)
+	
+			enter originspawn
+			(
+				count 30
+				model waterplume.spr
+				spritegridlighting
+				offset crandom 60 crandom 60 0
+				angles 0 0 crandom 360
+				//velocity 150
+				randvel	crandom	40 crandom 40 random 1200
+				//clampvel -40 40	-40	40 -250	99999
+				avelocity 0	0 crandom 90
+				accel 0	0 -160.0
+				life 2.5
+				scale 0.1
+				alpha .3
+				collision
+				sphere
+				scalerate 3
+				fade
+			)
+	
+			enter originspawn
+			(
+				model water_g.spr
+				count 5
+				alpha 0.51
+				color 1.00 1.00	1.00
+				spritegridlighting
+				scale 0.50
+				life 0.90
+				scalerate 15.00
+				cone 10.00 2.00
+				velocity 120.00
+				radialvelocity 20.00 0.00 0.00
+				randvel	0 0	90
+				accel 0.00 0.00	-40.0 //-240.00
+				fade
+				sphere
+			)
+	
+			enter originspawn
+			(
+				model explosed.spr
+				color 0.20 0.30	1.00
+				spritegridlighting
+				scale 0.20
+				life 0.80
+				scalerate 8.00
+				fade
+			)
+			
+			// add water ripple
+			enter originspawn
+			(
+				model bh_water_ring.spr
+				spritegridlighting
+				//angles 90 0 0
+				alpha 0.5
+				count 1
+				life 1.0 // 0.8 0.1
+				scale 3.0 //0.3
+				scalerate 2.0
+				//fadedelay 0.1
+				fade
+			)
+		}	
+	}
+}

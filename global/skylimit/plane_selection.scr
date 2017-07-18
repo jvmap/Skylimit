@@ -1,0 +1,532 @@
+// Plane selection menu support
+// by jv_map
+
+// set number of planes available
+setservicegroup local.team local.group local.amount:
+	level.SL_SERVICEGROUPS[local.team][local.group] = local.amount
+	level.SL_TEAMSERVICEGROUPS[local.team] = waitthread global/skylimit/common.scr::addtoarray level.SL_TEAMSERVICEGROUPS[local.team] local.group
+end
+
+addoption local.v local.skin local.hangar:
+	local.l = spawn listener
+	
+	local.l waitthread global/skylimit/items.scr::init_plane_option
+	
+	// seeing as the mappers are going to be responsible for typing the correction variant names,
+	// it might as well do a spellcheck here :P (j/k I love you m8s)
+	local.l.variantfile = "global/skylimit/variants/" + local.v + ".v"
+	local.spellcheck = local.l waitexec local.l.variantfile
+	
+	if (local.spellcheck)
+	{
+		local.l.flightmodelfile = "global/skylimit/flightmodels/" + local.l.flightmodel + ".fm"
+		local.l.assemblyfile = "global/skylimit/assembly/" + local.l.modelid + ".ass"
+		local.l.tikipath = "models/skylimit/aircraft/" + local.l.modelid + "/skin/" + local.skin + "/"
+		
+		local.l.hangar_tgn = "hangar_" + local.l.team
+		
+		if(local.hangar)
+		{
+			local.l.hangar_tgn += "_" + local.hangar
+		}
+		 
+		local.l.skin = local.skin
+		local.l.model = local.l.tikipath + "body.tik"
+		
+		local.l.amount_inservice = 0
+		
+		level.SL_PLANEOPTIONS[local.l.team] = waitthread global/skylimit/common.scr::addtoarray level.SL_PLANEOPTIONS[local.l.team] local.l
+		
+		// make flight performance report
+		waitthread global/skylimit/performance.scr::report local.l
+		
+		// success counter
+		local.l.kills = 0
+		local.l.deaths = 0
+	}
+	else
+	{
+		println "ERROR[plane_selection::addoption]: Couldn't find aircraft variant file global/skylimit/variants/" local.v ".v (or file didn't return true), variant will not be available."
+		local.l remove
+	}
+end
+
+// rack = NULL for direct plane attachment (without the usage of a bomb rack)
+addloadout local.type local.model local.tag local.rack:
+	local.modelstr = "skylimit/weapons/" + local.model + ".tik"
+	self.loadout = waitthread global/skylimit/common.scr::addtoarray self.loadout (local.type::local.modelstr::local.tag::local.rack)
+end
+
+addinventory local.type local.amount:
+	self.inventory[local.type] += local.amount
+end
+
+addrack local.model local.tag local.name:
+	local.modelstr = "skylimit/weapons/racks/" + local.model + ".tik"
+	self.racks = waitthread global/skylimit/common.scr::addtoarray self.racks (local.modelstr::local.tag::local.name)
+end
+
+inithangar local.team:
+	for(local.i = 1; local.i <= level.SL_PLANEOPTIONS[local.team].size; local.i++)
+	{
+		local.opt = level.SL_PLANEOPTIONS[local.team][local.i]
+	
+		// do some ordering
+		local.class = local.opt.modelid
+		
+		if( !level.SL_CLASSED_PLANEOPTIONS[local.team][local.class])
+		{
+			level.SL_CLASSED_PLANEOPTIONS[local.team][local.class][1] = local.opt
+			
+			if(local.i == 1)
+			{
+				level.SL_PLANE_CLASSES[local.team][1] = local.class
+			}
+			else
+			{
+				level.SL_PLANE_CLASSES[local.team][level.SL_PLANE_CLASSES[local.team].size + 1] = local.class
+			}
+		}
+		else
+		{
+			level.SL_CLASSED_PLANEOPTIONS[local.team][local.class] = waitthread global/skylimit/common.scr::addtoarray level.SL_CLASSED_PLANEOPTIONS[local.team][local.class] local.opt
+		}
+		
+		// fill up the hangars
+		local.hangars = $(local.opt.hangar_tgn)
+		
+		local.aww_homeless = game.true
+		
+		for(local.j = 1; local.j <= local.hangars.size; local.j++)
+		{
+			local.h = local.hangars[local.j]
+			if !(local.h.inuse)
+			{
+				waitthread setup_hangar local.h local.opt local.j
+				local.h.inuse = game.true
+				local.aww_homeless = game.false
+				
+				local.opt.hangar = local.h
+				
+				break
+			}
+		}
+		
+		if(local.aww_homeless)
+		{
+			println "ERROR[plane_selection::inithangar]: No spare hangar for '" local.opt.name "' :( !"
+		}
+	}
+end
+
+setup_hangar local.h local.opt local.unique_id:
+
+	// place the aircraft
+
+	local.p = spawn Animate model local.opt.model origin local.h.origin
+
+	// assemble plane
+	// don't make ents we don't need
+	local.p.is_hangar_model = game.true 
+	
+	local.p.SCALE = 1.0
+	local.p.PLANETYPE = local.opt
+	
+	// assemble wheels and props
+	local.p waitthread global/skylimit/flightmodel.scr::plane_assembly
+
+	// add primary weapons
+	local.p waitthread global/skylimit/weapons.scr::assembly
+
+	local.pos = local.h.origin
+
+	// choose pitch so that left wheel and center wheel are on ground
+	local.groundlevel = local.pos[2] - 8.0 // half size of script_origin
+	
+	local.p.p_origin		= local.p.origin
+	local.p.p_forwardvector = local.p.forwardvector
+	local.p.p_leftvector 	= local.p.leftvector
+	local.p.p_upvector 		= local.p.upvector
+	
+	local.leftwheelpos = local.p waitthread global/skylimit/flight.scr::getgearpos local.p.wheel_left
+	local.centerwheelpos = local.p waitthread global/skylimit/flight.scr::getgearpos local.p.wheel_center
+	
+	// assume zero-roll, so only calc pitch
+	local.vec_left_to_center = local.centerwheelpos - local.leftwheelpos
+	local.vec_main_to_center = local.vec_left_to_center - local.vec_left_to_center * local.p.leftvector * local.p.leftvector
+	local.required_offset = local.vec_main_to_center[2]
+	
+	// approximation
+	local.pitch_rad = local.required_offset / (local.vec_main_to_center * local.p.forwardvector)
+	local.pitch_deg = local.pitch_rad / level.PI * 180.0
+	
+	local.p.angles = (local.pitch_deg 0.0 0.0)
+
+	local.leftwheelpos = local.p waitthread global/skylimit/flight.scr::getgearpos local.p.wheel_left
+
+	// nudge
+	local.p.origin -= (local.leftwheelpos[2] - local.pos[2] + 10.0) * $world.upvector
+	
+	if(local.p.HASBOMBBAY)
+	{
+		local.p.bombbay anim open
+	}
+
+	local.h.plane = local.p
+	local.h.option = local.opt
+	local.opt.showroom_plane = local.p
+end
+
+chooseplane:
+	local.MINTIME = 1.0
+	
+	local.PERIOD_HOR = 10.0
+	local.PERIOD_VER = 21.0
+	
+	local.starttime = level.time
+
+	// let player select a plane
+	local.chosen_team = self.dmteam
+	
+	self.cam_mode = "none" // let us fiddle with the camera
+	
+	// show plane info
+	self stufftext "ui_addhud sl_psc; ui_addhud sl_psl; ui_addhud sl_psr"
+	
+	local.cur_class_id 	= self.last_chosen_class_id[self.dmteam]
+	local.cur_variant 	= self.last_chosen_variant[self.dmteam]
+	
+	local.was_resting = game.false
+	
+	local.last_hangar = NULL
+	
+	local.num_classes = level.SL_PLANE_CLASSES[local.chosen_team].size
+	
+	local.chosen_plane = NULL
+	
+	local.picked_last_frame = game.true
+	
+	local.t = 0.0
+	
+	local.last_delta = 1
+	
+	if !(level.SL_FINITE_PLANES)
+	{
+		// clear amount string
+		self stufftext ("set sl_psc4 -")
+	}
+	
+	while(self && self.dmteam == local.chosen_team && ( !level.SL_FINITE_PLANES || level.SL_SERVICEABLE_PLANES[self.dmteam] >= 1))
+	{
+		local.cur_class 				= level.SL_PLANE_CLASSES[local.chosen_team][local.cur_class_id]
+		local.cur_class_num_variants  	= level.SL_CLASSED_PLANEOPTIONS[local.chosen_team][local.cur_class].size
+		local.cur_option 				= level.SL_CLASSED_PLANEOPTIONS[local.chosen_team][local.cur_class][local.cur_variant]
+		
+		local.preforceswitch = local.forceswitch
+		local.forceswitch = game.false
+		
+		if(level.SL_FINITE_PLANES && level.SL_SERVICEGROUPS[local.chosen_team][local.cur_option.servicegroup] <= 0)
+		{
+			if !(local.preforceswitch)
+			{
+				local.forceswitch_startclassid = local.cur_class_id
+				local.forceswitch_startvariantid = local.cur_variant
+			}
+			else if(local.cur_class_id == local.forceswitch_startclassid && local.cur_variant == local.forceswitch_startvariantid)
+			{
+				// went all the way through
+				// apparently no more planes available
+				// abort abort abort
+				break
+			}
+			
+			local.forceswitch = game.true
+			local.cur_option = local.last_option
+		}
+		
+		if(local.forceswitch)
+		{
+			local.delta_updown = 0
+			if(local.last_delta == 0)
+			{
+				local.delta_leftright = 1
+			}
+			else
+			{
+				local.delta_leftright = local.last_delta
+			}
+		}
+		else
+		{
+			if(local.cur_option != local.last_option)
+			{
+				waitthread hangar_switchto local.cur_option.hangar
+				local.last_option = local.cur_option
+			}
+			else if( !local.picked_last_frame && self.SL_ucmd[HANGAR_PICK] && level.time - local.starttime >= local.MINTIME)
+			{
+				// oi a choice has been made :)
+				// congrats w/ your purchase
+				// (there is no warranty)
+				local.chosen_plane = local.cur_option
+				
+				self.last_chosen_class_id[self.dmteam] = local.cur_class_id
+				self.last_chosen_variant[self.dmteam] = local.cur_variant
+				break
+			}
+
+			waitthread update_amount local.cur_option
+			
+			local.picked_last_frame = self.SL_ucmd[HANGAR_PICK]
+			
+			local.delta_updown 		= self.SL_ucmd[HANGAR_CLASS_NEXT] - self.SL_ucmd[HANGAR_CLASS_PREV]
+			if(local.delta_updown == 0)
+			{
+				local.delta_leftright 	= self.SL_ucmd[HANGAR_VARIANT_NEXT] - self.SL_ucmd[HANGAR_VARIANT_PREV]
+			}
+			else
+			{
+				local.delta_lefright = 0
+			}
+			local.am_resting 		= local.delta_updown == 0 && local.delta_leftright == 0
+			
+			local.cam_pos = local.cur_option.hangar.origin
+			local.cam_pos += 1.0 * local.cur_option.hangar.radius * (waitthread global/skylimit/math.scr::quicksin (level.PI * local.t / local.PERIOD_HOR)) * $world.forwardvector
+			local.cam_pos += 1.0 * local.cur_option.hangar.radius * (waitthread global/skylimit/math.scr::quickcos (level.PI * local.t / local.PERIOD_HOR)) * $world.leftvector
+			local.cam_pos += 0.5 * local.cur_option.hangar.height * (1.0 + (waitthread global/skylimit/math.scr::quicksin (level.PI * local.t / local.PERIOD_VER))) * $world.upvector
+			
+			local.cam_angles = vector_toangles (local.cur_option.hangar.origin - local.cam_pos)
+		
+			self.SL_camera movetopos local.cam_pos
+			self.SL_camera turnto local.cam_angles
+		}
+		
+		// only toggle states if we were at rest
+		if (local.forceswitch || local.was_resting)
+		{	
+			if(local.delta_updown == 0)
+			{
+				// delta_leftright != 0
+				local.next_variant = local.cur_variant + local.delta_leftright
+				
+				if(local.next_variant < 1)
+				{
+					// hop back to previous class
+					local.next_class = local.cur_class_id - 1
+					
+					if(local.next_class < 1)
+					{
+						local.next_class = local.num_classes
+					}
+					
+					local.cur_class_id				= local.next_class
+					local.cur_class					= level.SL_PLANE_CLASSES[local.chosen_team][local.cur_class_id]
+					local.cur_class_num_variants  	= level.SL_CLASSED_PLANEOPTIONS[local.chosen_team][local.cur_class].size
+					
+					local.cur_variant = local.cur_class_num_variants
+				}
+				else if(local.next_variant > local.cur_class_num_variants)
+				{
+					// hop forward to next class
+					local.next_class = local.cur_class_id + 1
+					
+					if(local.next_class > local.num_classes)
+					{
+						local.next_class = 1
+					}
+					
+					local.cur_class_id = local.next_class
+					local.cur_variant = 1
+				}
+				else
+				{
+					// variant hopper
+					local.cur_variant = local.next_variant
+				}
+			}
+			else
+			{
+				// class hopper
+				local.next_class = local.cur_class_id + local.delta_updown
+				
+				if(local.next_class < 1)
+				{
+					local.next_class = local.num_classes
+				}
+				else if(local.next_class > local.num_classes)
+				{
+					local.next_class = 1
+				}
+				
+				local.cur_class_id = local.next_class
+				local.cur_variant = 1
+			}
+		}
+		
+		local.was_resting = local.am_resting
+		local.last_delta = local.delta_leftright + local.delta_updown
+		
+		if( !local.forceswitch)
+		{
+			waitframe
+			
+			local.t += 0.05
+			
+			if(local.t >= 10000000.0)
+			{
+				local.t = 0.0
+			}
+		}
+	}
+	
+	if(self)
+	{
+		self.SL_chosen_plane = local.chosen_plane
+		
+		// hide plane info
+		self stufftext "ui_removehud sl_psc; ui_removehud sl_psl; ui_removehud sl_psr"
+	}
+end
+
+hangar_switchto local.h:
+	if !(self)
+	{
+		end
+	}
+	
+	self.SL_camera cut
+	
+	// show some info
+	self stufftext ("set sl_psc1 " + local.h.option.name)
+	self stufftext ("set sl_psc2 " + local.h.option.role)
+	
+	if(level.roundstart)
+	{
+		// kill / death ratio
+		if(local.h.option.kills == 1)
+		{
+			local.kstr = "1 Kill"
+		}
+		else
+		{
+			local.kstr = local.h.option.kills + " Kills"
+		}
+		if(local.h.option.deaths == 1)
+		{
+			local.dstr = "1 Death"
+		}
+		else
+		{
+			local.dstr = local.h.option.deaths + " Deaths"
+		}
+		self stufftext ("set sl_psc3 " + local.kstr + " / " + local.dstr)
+	}
+	else
+	{
+		self stufftext ("set sl_psc3 -")
+	}
+		
+	// set performance info
+	local.mass = int local.h.option.showroom_plane.MASS
+	local.speed = int (local.h.option.PERFORMANCE_speed * level.SL_UNITCONV_MPS_to_KNOTS)
+	local.turn = int local.h.option.PERFORMANCE_turnradius
+	local.climb = int (local.h.option.PERFORMANCE_climb * level.SL_UNITCONV_M_to_FEET * 60.0)
+	
+	if(local.h.option.showroom_plane.props.size > 1)
+	{
+		local.powerstr = local.h.option.showroom_plane.props.size + "x" + int (local.h.option.showroom_plane.ENGINE_RATED_POWER / 1000.0 / local.h.option.showroom_plane.props.size) + " kW"
+	}
+	else if(local.h.option.showroom_plane.props.size == 1)
+	{
+		local.powerstr = int (local.h.option.showroom_plane.ENGINE_RATED_POWER / 1000.0) + " kW"
+	}
+	else
+	{
+		local.powerstr = "(unpowered)"
+	}
+	
+	self stufftext ("set sl_psl1 Weigth			: " + local.mass + " kg")
+	self stufftext ("set sl_psl2 Power			: " + local.powerstr)
+	self stufftext ("set sl_psl3 Speed			: " + local.speed + " kts")
+	self stufftext ("set sl_psl4 Turn Radius	: " + local.turn + " m")
+	self stufftext ("set sl_psl5 Rate Of Climb	: " + local.climb + " ft/min")
+	
+	// armament info
+	
+	// internal weapons
+	local.j = 0
+	local.flexweaps = 0
+	for(local.i = 1; local.i <= local.h.option.showroom_plane.weapon_primary_list.size; local.i++)
+	{
+		local.w = local.h.option.showroom_plane.weapon_primary_list[local.i]
+		if(local.w)
+		{
+			if(local.w.flexible)
+			{
+				local.flexweaps += local.w.number_of_guns
+			}
+			else
+			{
+				local.j++
+				self stufftext ("set sl_psr" + local.j + " " + local.w.number_of_guns + "x " + local.w.name)
+			}
+		}
+	}
+	
+	// external weapons
+	for(local.i = 1; local.i <= level.ITEMS.size; local.i++)
+	{
+		local.type = level.ITEMS[local.i]
+		
+		if(local.h.option.showroom_plane.item_amount[local.type] >= 1)
+		{
+			local.j++
+			self stufftext ("set sl_psr" + local.j + " " + local.h.option.showroom_plane.item_amount[local.type] + "x " + level.SL_item[local.type].name)
+		}
+	}
+	
+	if(local.flexweaps >= 2)
+	{
+		local.j++
+		self stufftext ("set sl_psr" + local.j + " " + local.flexweaps + " guns in flexible mountings")
+	}
+	else if(local.flexweaps >= 1)
+	{
+		local.j++
+		self stufftext ("set sl_psr" + local.j + " 1 gun in flexible mounting")
+	}
+	
+	// armor
+	local.j++
+	local.armor = int (local.h.option.showroom_plane.ARMOR / local.h.option.showroom_plane.WINGAREA * 200.0)
+	self stufftext ("set sl_psr" + local.j + " Armor: " + local.armor + "mm")
+	
+	local.hud_max_weaps = 6
+	
+	// clear
+	for(local.i = local.j + 1; local.i <= local.hud_max_weaps; local.i++)
+	{
+		self stufftext ("set sl_psr" + local.i + " -")
+	}
+end
+
+update_amount local.option:
+
+	if(level.SL_FINITE_PLANES)
+	{
+		local.service = local.option.amount_inservice
+		local.reserve = level.SL_SERVICEGROUPS[local.option.team][local.option.servicegroup]
+		
+		local.amountstr = local.service + " In Service / " + local.reserve + " In Reserve"
+	}
+	else
+	{
+		local.amountstr = "-" // empty
+	}
+	
+	if (local.amountstr != self.PLANESELECTION_lastamountsr)
+	{
+		self stufftext ("set sl_psc4 " + local.amountstr)
+		self.PLANESELECTION_lastamountsr = local.amountstr
+	}
+end

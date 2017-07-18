@@ -1,0 +1,21 @@
+// "Press Use to follow a different player"
+
+menu "sl_spec2" 640 60 NONE 0.0
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align centerx bottom
+
+resource
+Label
+{
+	name "sl_specctrl"
+	rect 0 0 640 60
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	linkcvar sl_spctrl
+	font "facfont-20"
+	textalign "center"
+	linkstring "0" ""
+	linkstring "1" "Press Use to follow a different plane."
+}

@@ -1,0 +1,106 @@
+// aaah very violent as well :D
+
+TIKI
+
+$include models/skylimit/utils/client_sound_cache.tik
+
+setup
+{
+	scale 0.031
+	path models/fx/dummy
+	skelmodel dummy3.skd
+}
+
+init
+{
+	server
+	{
+		classname effectentity
+		notsolid
+		rendereffects +dontdraw
+	}
+}
+
+animations
+{
+	idle dummy3.skc
+
+	start dummy3.skc
+	{
+		client
+		{
+			enter stopaliaschannel cl_bomb
+			enter sound cl_bomb
+			
+			// chunks
+			enter originspawn
+			(
+				count 4
+				model models/fx/concrete2.tik
+				color 1.00 1.00 1.00
+				scale 0.04
+				life 1.00
+				randvelaxis crandom 50 crandom 50 random 50
+				accel 0 0 -200.0
+				angles range 180 -350 range -160 300 crandom -100
+				avelocity crandom 10.0 crandom 10.0 crandom 10.0
+				offset crandom 4.0 crandom 4.0 crandom 4.0
+				scalemin 0.04
+				scalemax 0.10
+				fade
+				randomroll
+			)
+			
+			// white shooters
+			enter originspawn
+			(
+				model vsssource.spr
+				count 40
+				color 0.7 0.7 0.7
+				alpha 0.50
+				scalemin 0.2
+				scalemax 0.4
+				life 2.5
+				scalerate 6.0
+				angles -90 0 0
+				circle
+				radialvelocity 0.0 80.0 80.0
+				radius 2
+				friction 3.00
+				fadein 0.1
+				fade
+				randomroll
+			)
+			
+			// white sand / smoke pilin up
+			enter commanddelay 0.3 originspawn
+			(
+				model vsssource.spr
+				count 30
+				color 0.7 0.7 0.7
+				alpha 0.80
+				scalemin 0.2
+				scalemax 0.4
+				life 2.00
+				scalerate 3.0
+				radialvelocity 0.0 -10.0 -10.0
+				friction 0.50
+				accel 0 0 20.0
+				angles -90 0 0
+				circle
+				radius 30.0
+				fade 
+				fadein 0.5
+				randomroll
+			)
+
+			enter originspawn
+			(
+				model textures/effects/bang.spr
+				offset 0 0 8
+				scale 0.2
+				life 0.95
+			)
+		}
+	}
+}

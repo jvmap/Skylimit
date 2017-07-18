@@ -1,0 +1,8 @@
+setup
+{
+	path models/skylimit/aircraft/spitfire/skel
+	skelmodel wheel_right.skd
+}
+
+$include models/skylimit/aircraft/spitfire/includes/includes.tik
+$include models/skylimit/aircraft/includes/gear_anims_right.tik

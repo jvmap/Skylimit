@@ -1,0 +1,81 @@
+// Panzer tank that fades out over distance
+
+TIKI
+setup
+{
+	scale 0.01625 //0.52				// Set default scale to 16/30.5 since world is in 16 units per foot and model is in cm's
+	path models/vehicles/panzer_iv
+	skelmodel panzer_tank.skd
+	
+	surface tread shader skylimit_panzer_iv_tread_desert
+	surface frontwheel shader skylimit_panzer_iv_frontwheel_desert
+	surface frontwheelband shader skylimit_panzer_iv_frontwheelband_desert
+	surface backwheel shader skylimit_panzer_iv_backwheel_desert
+	surface backwheelband shader skylimit_panzer_iv_backwheelband_desert
+	surface smallwheel shader skylimit_panzer_iv_smallwheel_desert
+	surface smallwheelband shader skylimit_panzer_iv_smallwheelband_desert
+	surface verysmallwheel shader skylimit_panzer_iv_verysmallwheel_desert
+	surface backwheelaxel shader skylimit_panzer_iv_backwheelaxel_desert
+	surface turret shader skylimit_panzer_iv_turret_desert
+	surface boxes shader skylimit_panzer_iv_boxes_desert
+	surface undercarriage shader skylimit_panzer_iv_undercarriage_desert
+	
+	path models/vehicles/panzer_iv
+	skelmodel panzer_smgun.skd
+	surface undercarriage shader skylimit_panzer_iv_undercarriage_desert
+}
+init
+{
+	server
+	{
+		classname Animate
+	}
+	client
+	{
+		originemitter dust
+		(
+			spawnrate 1.0
+			model vsssource.spr
+			alpha 0.5
+			color 0.9 0.8 0.6
+			scale 0.1
+			life 15.0 //30.0
+			scalerate 1.001
+			angles 90 random 360 crandom 15
+			avelocity 0 crandom -40 0
+			fadein 0.2
+			randvel 0.0 0.0 1.0
+			//randvelaxis 0.0 -40.0 1.0
+			//velocity -4.0
+			//friction 0.01
+			randomroll
+			accel 0.0 0.0 -0.1
+			fade
+			startoff
+		)
+	}
+}
+
+animations
+{
+	idle     		panzer_tank.skc
+	
+	start			panzer_tank.skc
+	{
+		client
+		{
+			entry emitteron dust	
+		}
+	}
+	
+	stop			panzer_tank.skc
+	{
+		client
+		{
+			entry emitteroff dust	
+		}
+	}
+}
+
+/*QUAKED skylimit_scenery_panzer-tank-desert (0.0 .0 0.0) (-60 -40 0) (60 40 128)
+*/

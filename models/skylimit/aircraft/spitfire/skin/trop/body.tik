@@ -1,0 +1,14 @@
+TIKI
+
+setup
+{
+	surface all shader spitfire_desert
+	surface window shader spitfire_desert_specular
+}
+
+$include models/skylimit/aircraft/spitfire/includes/body.tik
+
+/*QUAKED skylimit_spitfire_trop (0.0 0.0 0.0) (-65 -40 0) (65 40 120)
+Spitfire Airplane
+model by Mainframe
+*/

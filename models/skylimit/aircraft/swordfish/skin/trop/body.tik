@@ -1,0 +1,22 @@
+// Desert camouflaged swordfish with regular fixed gear
+
+TIKI
+
+setup
+{
+	surface body shader swordfish_desert_body
+	surface wings shader swordfish_desert_body
+	surface htail shader swordfish_desert_body
+	surface engine shader swordfish_desert_body
+	surface gear shader swordfish_grey_gear
+	surface cables shader swordfish_cables
+	surface window shader swordfish_window
+}
+
+$include models/skylimit/aircraft/swordfish/includes/body.tik
+
+/*QUAKED skylimit_swordfish_trop (0.0 0.0 0.0) (-600 -600 0) (600 600 300)
+Fairey Swordfish
+Desert version, with gear.
+Model and skin by jv_map
+*/

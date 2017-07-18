@@ -1,0 +1,63 @@
+// Turret flak from U-boot
+// also usuable as allied flak :)
+
+TIKI
+
+$include models/skylimit/utils/client_sound_cache.tik
+
+setup
+{
+	scale 0.52
+	
+	path models/skylimit/vehicles/turretflak
+	skelmodel barrel.skd
+	
+	surface all shader skylimit_turretflak
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+	}
+}
+
+animations
+{
+	idle     		barrel.skc
+	
+	fire			barrel_fire.skc
+	{
+		client
+		{
+			first stopaliaschannel cl_flak_fire
+			first sound cl_flak_fire
+			
+			first tagspawn tag_barrel
+			(
+				model models/skylimit/fx/muzzle/xxl900.tik
+				life 0.02
+				anim fire
+			)
+			
+			// some chamber smoke
+			first originspawn
+			(
+				scale 0.02
+				count 1
+				model vsssource.spr
+				color 0.5 0.5 0.5
+				alpha 1.0
+				randomroll
+				scalerate 4.0
+				randvelaxis crandom 80.0 crandom 80.0 crandom 80.0
+				accel 0 0 10.0
+				life 0.50
+				friction 2.00
+				fade
+			)
+		}
+	}
+}

@@ -1,0 +1,127 @@
+TIKI
+setup
+{
+	scale 1.0
+	path models/fx/dummy
+	skelmodel dummy2.skd
+}
+ 
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+		rendereffects +dontdraw
+	}
+
+	client
+	{
+		cache models/fx/bp_debris1.tik
+		cache models/fx/bp_debris2.tik
+		cache models/fx/bp_debris3.tik
+		cache models/fx/hatchcover.tik
+		cache models/fx/metal_section.tik
+		cache models/fx/shard_piece.tik
+	}
+}
+
+animations
+{
+	idle dummy2.skc
+	start dummy2.skc
+	{
+		//server    
+		//{ 
+			//last commanddelay 1 anim idle
+			// moved to client
+		//}
+
+		client
+		{	
+			entry originspawn
+			(
+				model models/fx/bp_debris1.tik models/fx/bp_debris2.tik models/fx/bp_debris3.tik models/fx/hatchcover.tik models/fx/metal_section.tik models/fx/shard_piece.tik
+				count 1 
+				color 1.00 1.00 1.00
+				scale 0.30
+				life 5.0
+				velocity 15.00
+				randvel crandom -3.8 crandom -3.1 0
+				accel 0.00 0.00 -15.3
+				angles crandom 20 crandom 30 crandom -30
+				avelocity range 22 -50 range 22 -50 range 22 -50
+				scalemin 0.003
+				scalemax 0.050
+				fade
+				sphere
+			)
+			
+			entry sound snd_bh_metal
+			entry originspawn
+			(
+				model gren_explosion.spr
+				count 1
+				color 1.00 1.00 1.00
+				scale 0.015
+				life 0.10
+				scalerate 0.80
+				accel 0.00 0.00 6.00
+				offset crandom 1 crandom 1 crandom 1
+				//offset 0 0 1
+				//offsetalongaxis 0 0 crandom -1
+				angles crandom -4 range 4 -32 range 12 -8
+				avelocity range 6 10 range 6 10 range 6 10
+				//scalemin 0.034
+				//scalemax 0.068
+				fade
+				fadein 0.05
+				sphere
+			)
+			
+			//entry commanddelay 0.02 sound snd_bh_metal
+			entry commanddelay 0.02 originspawn
+			(
+				model gren_explosion.spr
+				count 1
+				color 1.00 1.00 1.00
+				scale 0.015
+				life 0.10
+				scalerate 0.80
+				accel 0.00 0.00 6.00
+				offset crandom 1 crandom 1 crandom 1
+				//offset 0 0 1
+				//offsetalongaxis 0 0 crandom -1
+				angles crandom -4 range 4 -32 range 12 -8
+				avelocity range 6 10 range 6 10 range 6 10
+				//scalemin 0.034
+				//scalemax 0.068
+				fade
+				fadein 0.05
+				sphere
+			)
+			
+			entry commanddelay 0.04 sound snd_bh_metal
+			entry commanddelay 0.04 originspawn
+			(
+				model gren_explosion.spr
+				count 1
+				color 1.00 1.00 1.00
+				scale 0.015
+				life 0.10
+				scalerate 0.80
+				accel 0.00 0.00 6.00
+				offset crandom 1 crandom 1 crandom 1
+				//offset 0 0 1
+				//offsetalongaxis 0 0 crandom -1
+				angles crandom -4 range 4 -32 range 12 -8
+				avelocity range 6 10 range 6 10 range 6 10
+				//scalemin 0.034
+				//scalemax 0.068
+				fade
+				fadein 0.05
+				sphere
+			)
+		}
+	}
+}

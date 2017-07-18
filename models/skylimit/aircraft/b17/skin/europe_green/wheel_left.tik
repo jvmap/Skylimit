@@ -1,0 +1,8 @@
+TIKI
+
+setup
+{
+	surface all shader b17_gear
+}
+
+$include models/skylimit/aircraft/b17/includes/wheel_left.tik

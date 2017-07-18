@@ -1,0 +1,8 @@
+TIKI
+
+$include models/skylimit/items/chute.tik
+
+setup
+{
+	surface chute shader sl_chute_grey
+}

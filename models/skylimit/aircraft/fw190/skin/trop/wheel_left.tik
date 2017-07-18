@@ -1,0 +1,8 @@
+TIKI
+
+setup
+{
+	surface all shader fockwulf_nocull
+}
+
+$include models/skylimit/aircraft/fw190/includes/wheel_left.tik

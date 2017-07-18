@@ -1,0 +1,162 @@
+TIKI
+setup
+{
+	scale 1.0
+	path models/fx/dummy
+	skelmodel dummy3.skd
+}
+
+init
+{
+	server
+	{
+		classname effectentity
+		notsolid
+		rendereffects +dontdraw
+	}
+	
+	client
+	{
+		originemitter randomsplashes1
+		(
+			spawnrate 5.0
+			
+			model models/skylimit/fx/water_splash.tik
+			anim start
+			life 2.0
+			
+			offset crandom 10.0 crandom 10.0 0.0
+			
+			scalemin 0.5
+			scalemax 0.02
+			
+			angles -90 0 0
+			
+			startoff
+		)
+		
+		originemitter randomsplashes2
+		(
+			spawnrate 4.0
+			
+			model models/skylimit/fx/water_splash.tik
+			anim start
+			life 2.0
+			
+			offset crandom 25.0 crandom 25.0 0.0
+			
+			scalemin 0.5
+			scalemax 0.02
+			
+			angles -90 0 0
+			
+			startoff
+		)
+		
+		originemitter randomsplashes3
+		(
+			spawnrate 3.0
+			
+			model models/skylimit/fx/water_splash.tik
+			anim start
+			life 2.0
+			
+			offset crandom 50.0 crandom 50.0 0.0
+			
+			scalemin 0.5
+			scalemax 0.02
+			
+			angles -90 0 0
+			
+			startoff
+		)
+		
+		originemitter randomsplashes4
+		(
+			spawnrate 2.0
+			
+			model models/skylimit/fx/water_splash.tik
+			anim start
+			life 2.0
+			
+			offset crandom 100.0 crandom 100.0 0.0
+			
+			scalemin 0.5
+			scalemax 0.02
+			
+			angles -90 0 0
+			
+			startoff
+		)
+		
+		cache models/skylimit/fx/water_splash.tik
+		aliascache cl_splash sound/characters/body_fallwater_01.wav soundparms 2.0 0.2 0.9 0.2 200 400 auto loaded maps "obj dm"
+	}
+}
+
+animations
+{
+	idle dummy3.skc
+
+	start dummy3.skc
+	{
+		client
+		{
+			enter stopaliaschannel cl_splash
+			enter sound cl_splash
+			
+			// main splash
+			enter originspawn
+			(
+				model models/skylimit/fx/water_splash.tik
+				anim start
+				scale 1.0
+				life 2.0
+				angles -90 0 0
+			)
+			
+			// sprayer
+			enter originspawn
+			(
+				model oceanspray.spr
+				spritegridlighting
+				count 40
+				//color 0.8 0.7 0.5
+				alpha 1.00
+				scale 0.20
+				life 2.00
+				scalerate 3.0
+				randvel crandom 60.0 crandom 60.0 random 20.0
+				//collision
+				friction 0.30
+				fade 
+				randomroll
+			)
+			
+			// fiery pieces
+			enter originspawn
+			(
+				model models/skylimit/fx/smoky_particle.tik
+				count 3
+				color 0.0 0.0 0.0
+				alpha 0.75
+				scale 1.0
+				life 3.00
+				randvel crandom 120.0 crandom 120.0 random 60.0
+				fade
+				randomroll
+				accel 0 0 -15.3
+			)
+			
+			// additional splashes
+			entry commanddelay 0.5 emitteron randomsplashes1
+			entry commanddelay 1.0 emitteron randomsplashes2
+			entry commanddelay 1.0 emitteron randomsplashes3
+			entry commanddelay 1.5 emitteron randomsplashes4
+			
+			entry commanddelay 2.0 emitteroff randomsplashes1
+			entry commanddelay 2.5 emitteroff randomsplashes2
+			entry commanddelay 3.0 emitteroff randomsplashes3
+		}
+	}
+}

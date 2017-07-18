@@ -1,0 +1,139 @@
+// 114mm muzzle
+// with tracer
+
+TIKI
+
+setup
+{
+	scale 4.0
+	path models/skylimit/fx/muzzle/skel
+	skelmodel muzzle.skd
+	surface muzzle shader muzmodel
+}
+
+animations
+{
+	idle     muzzle.skc		
+	
+	// no tracer
+	fire1	 muzzle.skc weight 1.0
+	{
+		client
+		{
+			// tracer
+			enter tagspawn origin
+			(
+				model models/skylimit/fx/tracer.tik
+				velocity 40000.0
+				alignstretch 0.2
+				life 4.0
+				accel 0 0 -15.3
+				dietouch
+				scale 6.0
+				offsetalongaxis range 0.0 400.0 0.0 0.0
+				collision
+				bouncedecal 1 0
+				decalshader bhole_metal
+				decalradius 1.0
+				orientation random
+			)
+			
+			// front flash
+			enter tagspawn origin
+			(
+				scale 4.0
+				offsetalongaxis 3 0 0
+				count 1
+				model muzsprite.spr
+				angles 0 0 crandom 25
+				life 0.06
+			)
+			
+			// frontal plume
+			enter tagspawn origin
+			(
+				scale 0.5
+				count 12
+				model vsssource.spr
+				color 0.6 0.6 0.6
+				alpha 1.0
+				randomroll
+				scalerate 0.1
+				randvelaxis range 200.0 400.0 crandom 10.0 crandom 10.0
+				accel 0 0 1.0
+				life 2.00
+				friction 1.50
+				fade
+			)
+			
+			// frontal cloud
+			enter tagspawn origin
+			(
+				scale 0.7
+				count 12
+				model vsssource.spr
+				color 0.5 0.5 0.5
+				alpha 1.0
+				randomroll
+				scalerate 0.2
+				randvelaxis range 50.0 150.0 crandom 100.0 crandom 100.0
+				accel 0 0 1.0
+				life 1.00
+				friction 2.00
+				fade
+			)
+		}
+	}
+	
+	// no tracer
+	fire2	 muzzle.skc weight 1.0
+	{
+		client
+		{
+			// front flash
+			enter tagspawn origin
+			(
+				scale 4.0
+				offsetalongaxis 3 0 0
+				count 1
+				model muzsprite.spr
+				angles 0 0 crandom 25
+				life 0.06
+			)
+			
+			// frontal plume
+			enter tagspawn origin
+			(
+				scale 0.5
+				count 12
+				model vsssource.spr
+				color 0.6 0.6 0.6
+				alpha 1.0
+				randomroll
+				scalerate 0.1
+				randvelaxis range 200.0 400.0 crandom 10.0 crandom 10.0
+				accel 0 0 1.0
+				life 2.00
+				friction 1.50
+				fade
+			)
+			
+			// frontal cloud
+			first tagspawn tag_barrel1
+			(
+				scale 0.7
+				count 12
+				model vsssource.spr
+				color 0.5 0.5 0.5
+				alpha 1.0
+				randomroll
+				scalerate 0.2
+				randvelaxis range 50.0 150.0 crandom 100.0 crandom 100.0
+				accel 0 0 1.0
+				life 1.00
+				friction 2.00
+				fade
+			)
+		}
+	}
+}

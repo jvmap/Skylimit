@@ -1,0 +1,18 @@
+//  MG131 (13mm)
+
+specs:
+	self.name = "MG131 13mm"
+	self.hud_shader = "sl_wmg131"
+	self.damage = 10.0
+	
+	self.bulletvelocity = 700.0 // m/s
+	self.bulletlife = 0.75
+	
+	self.soundset = "mg131"
+	
+	self.jamdecay = 7.0 // reduce jam by this amount each second
+	
+	self.ammotype = "m"
+	self.calibre = "13mm"
+	self.ammo_capacity_rounds_per_gun = 450
+end

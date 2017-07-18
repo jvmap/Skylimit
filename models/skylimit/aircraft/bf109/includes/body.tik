@@ -1,0 +1,197 @@
+setup
+{
+	path models/skylimit/aircraft/bf109/skel
+	skelmodel body.skd
+}
+
+$include models/skylimit/aircraft/includes/classdef.tik
+$include models/skylimit/aircraft/bf109/includes/includes.tik
+
+init
+{
+	client
+	{
+		// MG17
+		tagemitter tag_barrel1 mg1s
+		(
+			model models/skylimit/fx/muzzle/s800.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+		tagemitter tag_barrel2 mg2s
+		(
+			model models/skylimit/fx/muzzle/s800.tik
+			spawnrate 20.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		
+		// MG131
+		tagemitter tag_barrel1 mg1m
+		(
+			model models/skylimit/fx/muzzle/m700.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+		tagemitter tag_barrel2 mg2m
+		(
+			model models/skylimit/fx/muzzle/m700.tik
+			spawnrate 20.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		
+		// CANNON MG151/20
+		tagemitter tag_barrel0 cannon1l
+		(
+			model models/skylimit/fx/muzzle/l700.tik
+			spawnrate 10.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		tagemitter tag_barrel3 cannon2l
+		(
+			model models/skylimit/fx/muzzle/l700L.tik
+			spawnrate 10.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		tagemitter tag_barrel4 cannon3l
+		(
+			model models/skylimit/fx/muzzle/l700R.tik
+			spawnrate 10.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		
+		// CANNON Bk108
+		tagemitter tag_barrel0 cannon1xl
+		(
+			model models/skylimit/fx/muzzle/xl500.tik
+			spawnrate 10.0
+			life 0.02
+			startoff
+			anim fire
+		)
+	}
+}
+
+animations
+{
+	idle	body.skc
+	
+	emitteron_mg17 	body.skc
+	{
+		client
+		{
+			enter emitteron mg1s
+			enter emitteron mg2s
+		}
+	}
+	
+	emitteroff_mg17	body.skc
+	{
+		client
+		{
+			enter emitteroff mg1s
+			enter emitteroff mg2s
+		}
+	}
+	
+	emitteron_mg131 	body.skc
+	{
+		client
+		{
+			enter emitteron mg1m
+			enter emitteron mg2m
+		}
+	}
+	
+	emitteroff_mg131	body.skc
+	{
+		client
+		{
+			enter emitteroff mg1m
+			enter emitteroff mg2m
+		}
+	}
+	
+	emitteron_motorcannon151 	body.skc
+	{
+		client
+		{
+			enter emitteron cannon1l
+		}
+	}
+	
+	emitteroff_motorcannon151	body.skc
+	{
+		client
+		{
+			enter emitteroff cannon1l
+		}
+	}
+	
+	emitteron_motorcannon108 	body.skc
+	{
+		client
+		{
+			enter emitteron cannon1xl
+		}
+	}
+	
+	emitteroff_motorcannon108	body.skc
+	{
+		client
+		{
+			enter emitteroff cannon1xl
+		}
+	}
+	
+	emitteron_wingcannon151 	body.skc
+	{
+		client
+		{
+			enter emitteron cannon2l
+			enter emitteron cannon3l
+		}
+	}
+	
+	emitteroff_wingcannon151	body.skc
+	{
+		client
+		{
+			enter emitteroff cannon2l
+			enter emitteroff cannon3l
+		}
+	}
+	
+	emitteron_allcannon151 	body.skc
+	{
+		client
+		{
+			enter emitteron cannon1l
+			enter emitteron cannon2l
+			enter emitteron cannon3l
+		}
+	}
+	
+	emitteroff_allcannon151	body.skc
+	{
+		client
+		{
+			enter emitteroff cannon1l
+			enter emitteroff cannon2l
+			enter emitteroff cannon3l
+		}
+	}
+}

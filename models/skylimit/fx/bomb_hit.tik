@@ -1,0 +1,139 @@
+// aaah very violent as well :D
+
+TIKI
+
+$include models/skylimit/utils/client_sound_cache.tik
+
+setup
+{
+	scale 0.031
+	path models/fx/dummy
+	skelmodel dummy3.skd
+}
+
+init
+{
+	server
+	{
+		classname effectentity
+		notsolid
+		rendereffects +dontdraw
+	}
+	client
+	{
+		cache textures/effects/bang.spr
+		cache textures/sprites/metalshard_heavy.spr
+		cache textures/sprites/metalshard_med.spr
+		cache models/emitters/higgins_mushroom.tik
+ 	}
+}
+
+animations
+{
+	idle dummy3.skc
+
+	start dummy3.skc
+	{
+		client
+		{
+			enter stopaliaschannel cl_bomb
+			enter sound cl_bomb
+			/*
+			enter originspawn
+			(
+				model models/fx/bp_debris1.tik
+				count 2
+				color 1.00 1.00 1.00
+				scale 0.2
+				life 1.00
+				velocity 10.00
+				angles crandom -40 0 360
+				avelocity 20 70 500
+				fade
+				sphere
+			)
+			*/
+			
+			// sand shooters
+			enter originspawn
+			(
+				model vsssource.spr
+				count 40
+				color 0.5 0.4 0.3
+				alpha 0.50
+				//scale 0.2
+				scalemin 0.2
+				scalemax 0.4
+				life 2.5
+				scalerate 6.0
+				circle
+				radialvelocity 0.0 80.0 80.0
+				radius 2
+				//offset crandom 1.0 crandom 1.0 random 5.0
+				//accel 0 0 4
+				//collision
+				friction 3.00
+				fadein 0.1
+				fade
+				randomroll
+			)
+			
+			// white sand / smoke pilin up
+			enter commanddelay 0.3 originspawn
+			(
+				model vsssource.spr
+				count 30
+				color 0.7 0.7 0.7
+				alpha 0.80
+				//scale 0.2
+				scalemin 0.2
+				scalemax 0.4
+				life 2.00
+				scalerate 3.0
+				radialvelocity 0.0 -10.0 -10.0
+				//collision
+				friction 0.50
+				accel 0 0 20.0
+				circle
+				radius 30.0
+				fade 
+				fadein 0.5
+				randomroll
+			)
+			/*
+			// smoke shooters
+			enter commanddelay 0.5 originspawn
+			(
+				model vsssource2.spr
+				count 5
+				color 0.0 0.0 0.0
+				alpha 0.80
+				scale 0.1
+				life 4.00
+				scalerate 3.0
+				randvel crandom 3.0 range 5.0 8.0 range 20.0 30.0
+				offset crandom 5.0 crandom 5.0 crandom 5.0
+				//collision
+				friction 0.10
+				accel 0 0 16
+				fade
+				fadein 0.2
+				randomroll
+			)
+			*/
+			enter originspawn
+			(
+				model gren_explosion.spr
+				count 1
+				color 1.00 1.00 1.00
+				scale 0.3
+				life 0.8
+				scalerate 0.80
+				angles crandom -4 range 4 -32 range 12 -8
+				avelocity range 6 10 range 6 10 range 6 10
+				//fadein 0.1
+				//fade
+			)
+		}
+	}
+}

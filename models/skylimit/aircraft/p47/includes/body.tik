@@ -1,0 +1,115 @@
+setup
+{
+	path models/skylimit/aircraft/p47/skel
+	skelmodel body.skd
+}
+
+$include models/skylimit/aircraft/includes/classdef.tik
+$include models/skylimit/aircraft/p47/includes/includes.tik
+
+init
+{
+	client
+	{
+		// MG
+		tagemitter tag_barrel1 mg1
+		(
+			model models/skylimit/fx/muzzle/m900R.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+		tagemitter tag_barrel2 mg2
+		(
+			model models/skylimit/fx/muzzle/m900L.tik
+			spawnrate 20.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		tagemitter tag_barrel3 mg3
+		(
+			model models/skylimit/fx/muzzle/m900R.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+		tagemitter tag_barrel4 mg4
+		(
+			model models/skylimit/fx/muzzle/m900L.tik
+			spawnrate 20.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		tagemitter tag_barrel5 mg5
+		(
+			model models/skylimit/fx/muzzle/m900R.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+		tagemitter tag_barrel6 mg6
+		(
+			model models/skylimit/fx/muzzle/m900L.tik
+			spawnrate 20.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		tagemitter tag_barrel7 mg7
+		(
+			model models/skylimit/fx/muzzle/m900R.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+		tagemitter tag_barrel8 mg8
+		(
+			model models/skylimit/fx/muzzle/m900L.tik
+			spawnrate 20.0
+			life 0.02
+			startoff
+			anim fire
+		)
+	}
+}
+
+animations
+{
+	idle	body.skc
+	
+	emitteron_mg 	body.skc
+	{
+		client
+		{
+			enter emitteron mg1
+			enter emitteron mg2
+			enter emitteron mg3
+			enter emitteron mg4
+			enter emitteron mg5
+			enter emitteron mg6
+			enter emitteron mg7
+			enter emitteron mg8
+		}
+	}
+	
+	emitteroff_mg	body.skc
+	{
+		client
+		{
+			enter emitteroff mg1
+			enter emitteroff mg2
+			enter emitteroff mg3
+			enter emitteroff mg4
+			enter emitteroff mg5
+			enter emitteroff mg6
+			enter emitteroff mg7
+			enter emitteroff mg8
+		}
+	}
+}

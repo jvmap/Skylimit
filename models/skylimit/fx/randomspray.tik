@@ -1,0 +1,82 @@
+// random ocean spray
+// by jv_map
+
+TIKI
+
+setup
+{
+	scale 1.0
+	path models/fx/dummy
+	skelmodel dummy3.skd
+}
+
+init
+{
+	server  
+	{
+		classname effectentity
+		notsolid
+		rendereffects +dontdraw
+		
+		// put the scale here so it'll affect tempmodels
+		scale 0.0625
+		
+		targetname spray
+	}
+	client
+	{
+		cache water_splash2.spr
+		cache oceanspray.spr
+		
+		originemitter splash
+		(
+			// sound wave_crash
+			spawnrate 0.2
+			model water_splash2.spr
+			count 15
+			alpha 0.40
+			color 1.00 1.00 1.00
+			spritegridlighting
+			scale 0.2 //0.70
+			life 1.20
+			scalerate 3.00
+			velocity 10 //150.00
+			friction 1.00
+			angles range 14 -24 range 14 -24 range 14 -24
+			avelocity range 64 124 range 64 -124 range 64 -124
+			fade
+			inwardsphere
+			alignstretch 1.00
+		)
+
+		originemitter spray
+		(
+			spawnrate 0.2
+			model oceanspray.spr
+			count 7
+			alpha 0.80
+			color 1.00 1.00 1.00
+			spritegridlighting
+			scale 0.1 //0.40
+			life 2.00
+			scalerate 6.00
+			velocity 10 //150.00
+			randvelaxis crandom 0.6 crandom 0.6 crandom 0.6 //crandom -20 crandom -20 crandom -20
+			accel 0.00 0.00 -9.81 //0.00 0.00 -40.00
+			angles random -10 crandom -8 range 8 -10
+			avelocity crandom -40 crandom -40 crandom -40
+			fade
+			sphere
+			align
+		)
+	}
+}
+
+animations
+{
+	idle dummy3.skc
+}
+
+/*QUAKED skylimit_oceanspray	(0.5 .25 0.25) (-32	-32	0) (32 32 128)
+Timed ocean spray, only for BIG waves :)
+*/

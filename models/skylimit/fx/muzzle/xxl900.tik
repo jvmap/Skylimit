@@ -1,0 +1,8 @@
+TIKI
+
+$define velocity 45000.0
+$define life 2.0
+$define scale 3.5
+$define convergence 0.0
+
+$include models/skylimit/fx/muzzle/includes.tik

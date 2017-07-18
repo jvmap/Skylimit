@@ -1,0 +1,54 @@
+// by jv_map
+
+menu "hud_sl_item" 204 336 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align right bottom
+
+//==================================================
+// Rearm Indicator
+
+resource
+Label
+{
+name "sl_rearm"
+rect 132 0 64 64
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_rearm
+linkcvartoshader
+linkstring "0" "sl_inone"
+linkstring "1" "skylimit/hud/rearm"
+linkstring "2" "skylimit/hud/rearm_and_heal"
+//shader skylimit/hud/rearm
+}
+
+//==================================================
+// Item Indicator
+
+resource
+Label
+{
+name "sl_itempic"
+rect 68 68 128 128
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_ishdr
+linkcvartoshader
+}
+
+resource
+Label
+{
+name "sl_itemname"
+rect 0 200 196 20
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_inm
+font "facfont-20"
+textalign "right"
+linkstring "-" "" // empty
+}

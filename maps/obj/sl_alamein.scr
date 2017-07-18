@@ -1,0 +1,115 @@
+// Sky Limit: El Alamein 1942
+// by jv_map
+
+main:
+	setcvar "g_obj_alliedtext1" "El Alamein, Egypt" 
+	setcvar "g_obj_alliedtext2" "October 7th, 1942"
+	setcvar "g_obj_alliedtext3" ""
+
+	setcvar "g_obj_axistext1" "The Sky Is The Limit"
+	setcvar "g_obj_axistext2" "jv_map"
+	setcvar "g_obj_axistext3" ""
+
+	setcvar "g_scoreboardpic" "skylimit_score_alamein"
+
+	$world.GRAVITY = 9.81 // gravity acceleration per frame (m/s^2)
+	$world.DENSITY = 1.225 // kg/m^3
+	$world.TEMPERATURE = 298.0 // K (25 degC)
+	
+	$world.SEALEVEL = -8064.0
+	$world.AVG_GROUNDLVL = -7950.0
+
+	$world.NORTHYAW = 225.0
+	$world.SL_SCALE = 0.03125
+	$world.OBSTACLEHEIGHT = -7424.0	// height (z-level) of tallest obstacle
+
+	// map boundaries
+	$world.MINX = -8120.0
+	$world.MAXX = 8120.0
+	$world.MINY = -8120.0
+	$world.MAXY = 8120.0
+	$world.MAXZ = 7616.0
+	
+	$world.TEAM_NAME[allies] = "Allies"
+	$world.TEAM_NAME[axis] = "Germans"
+	
+	$world.TEAM_ADJECTIVE[allies] = "Allied"
+	$world.TEAM_ADJECTIVE[axis] = "German"
+
+	waitthread global/skylimit/main.scr::main
+
+	level.dmroundlimit = 45
+	level.clockside = kills
+
+	waitthread global/skylimit/reload_point.scr::setreloadbox allies -1840 3952 256 128
+	waitthread global/skylimit/reload_point.scr::setreloadbox axis 3592 -3520 312 184
+	
+	// clouds
+	waitthread global/skylimit/clouds.scr::day_clear
+	
+	// pyramids :P
+	local.phealth = 350.0
+	$pyramid1 waitthread global/skylimit/brushobject.scr::brushobject "pyramid" "Egyptian" "neutral" game.true local.phealth level.DMGB_STRUCTURE generic_primary NIL NIL game.false
+	$pyramid2 waitthread global/skylimit/brushobject.scr::brushobject "pyramid" "Egyptian" "neutral" game.true local.phealth level.DMGB_STRUCTURE generic_primary NIL NIL game.false
+end
+
+PLANETYPES_DM:
+	waitthread global/skylimit/plane_selection.scr::addoption spitfireVB_fighter trop
+	waitthread global/skylimit/plane_selection.scr::addoption spitfireVC_fighter trop
+	
+	waitthread global/skylimit/plane_selection.scr::addoption bf109G1_fighter trop
+	waitthread global/skylimit/plane_selection.scr::addoption bf109G1_heavyfighter trop
+	waitthread global/skylimit/plane_selection.scr::addoption fw190A5_fighter trop
+	waitthread global/skylimit/plane_selection.scr::addoption fw190A5_heavyfighter trop
+end
+
+PLANETYPES_OBJ:
+	// set the service groups (number of planes per sharable type)
+	waitthread global/skylimit/plane_selection.scr::setservicegroup allies spitfire 16
+	waitthread global/skylimit/plane_selection.scr::setservicegroup allies swordfish 8
+	
+	waitthread global/skylimit/plane_selection.scr::setservicegroup axis bf109 8
+	waitthread global/skylimit/plane_selection.scr::setservicegroup axis fw190 8
+	waitthread global/skylimit/plane_selection.scr::setservicegroup axis ju87 8
+
+	waitthread global/skylimit/plane_selection.scr::addoption spitfireVB_fighter trop
+	waitthread global/skylimit/plane_selection.scr::addoption spitfireVC_fighter trop
+	waitthread global/skylimit/plane_selection.scr::addoption spitfireVB_fighterbomber trop
+	waitthread global/skylimit/plane_selection.scr::addoption swordfish_bombs trop
+	
+	waitthread global/skylimit/plane_selection.scr::addoption bf109G1_fighter trop
+	waitthread global/skylimit/plane_selection.scr::addoption bf109G1_heavyfighter trop
+	waitthread global/skylimit/plane_selection.scr::addoption bf109G1_fighterbomber trop
+	waitthread global/skylimit/plane_selection.scr::addoption fw190A5_fighter trop
+	waitthread global/skylimit/plane_selection.scr::addoption fw190A5_heavyfighter trop
+	waitthread global/skylimit/plane_selection.scr::addoption ju87_bomber trop
+end
+
+ffa:
+end
+
+tdm:
+	// allied flaks
+	waitthread global/skylimit/vehicle.scr::makeflak ( -1472.0 3776.0 -7888.0) 315 allies "skylimit/vehicles/turretflak_desert_base.tik" "skylimit/vehicles/turretflak_desert_housing.tik" "skylimit/vehicles/turretflak_desert_barrel.tik" "hinge" "Bofors gun" "bofors" game.false
+	waitthread global/skylimit/vehicle.scr::makeflak ( -336.0 3784.0 -7888.0) 315 allies "skylimit/vehicles/turretflak_desert_base.tik" "skylimit/vehicles/turretflak_desert_housing.tik" "skylimit/vehicles/turretflak_desert_barrel.tik" "hinge" "Bofors gun" "bofors" game.false
+	waitthread global/skylimit/vehicle.scr::makeflak ( -1064.0 3472.0 -7888.0) 315 allies "skylimit/vehicles/turretflak_desert_base.tik" "skylimit/vehicles/turretflak_desert_housing.tik" "skylimit/vehicles/turretflak_desert_barrel.tik" "hinge" "Bofors gun" "bofors" game.false
+	waitthread global/skylimit/vehicle.scr::makeflak ( -1840.0 3792.0 -7888.0) 315 allies "skylimit/vehicles/turretflak_desert_base.tik" "skylimit/vehicles/turretflak_desert_housing.tik" "skylimit/vehicles/turretflak_desert_barrel.tik" "hinge" "Bofors gun" "bofors" game.false
+	
+	// axis flaks
+	waitthread global/skylimit/vehicle.scr::makeflak ( 3904.0 -3736.0 -7888.0) 135 axis "skylimit/vehicles/flak88_desert_base.tik" "skylimit/vehicles/flak88_desert_housing.tik" "skylimit/vehicles/flak88_desert_barrel.tik" "hinge" "Flak 88" "flak88" game.false
+	waitthread global/skylimit/vehicle.scr::makeflak ( 3584.0 -3736.0 -7888.0) 135 axis "skylimit/vehicles/flak88_desert_base.tik" "skylimit/vehicles/flak88_desert_housing.tik" "skylimit/vehicles/flak88_desert_barrel.tik" "hinge" "Flak 88" "flak88" game.false
+	waitthread global/skylimit/vehicle.scr::makeflak ( 2360.0 -3736.0 -7888.0) 135 axis "skylimit/vehicles/flak88_desert_base.tik" "skylimit/vehicles/flak88_desert_housing.tik" "skylimit/vehicles/flak88_desert_barrel.tik" "hinge" "Flak 88" "flak88" game.false
+	waitthread global/skylimit/vehicle.scr::makeflak ( 3616.0 -4136.0 -7888.0) 135 axis "skylimit/vehicles/flak88_desert_base.tik" "skylimit/vehicles/flak88_desert_housing.tik" "skylimit/vehicles/flak88_desert_barrel.tik" "hinge" "Flak 88" "flak88" game.false
+end
+
+obj:
+	// allied flaks
+	waitthread global/skylimit/vehicle.scr::makeflak ( -1472.0 3776.0 -7888.0) 315 allies "skylimit/vehicles/turretflak_desert_base.tik" "skylimit/vehicles/turretflak_desert_housing.tik" "skylimit/vehicles/turretflak_desert_barrel.tik" "hinge" "Bofors gun" "bofors" game.true
+	waitthread global/skylimit/vehicle.scr::makeflak ( -336.0 3784.0 -7888.0) 315 allies "skylimit/vehicles/turretflak_desert_base.tik" "skylimit/vehicles/turretflak_desert_housing.tik" "skylimit/vehicles/turretflak_desert_barrel.tik" "hinge" "Bofors gun" "bofors" game.true
+	waitthread global/skylimit/vehicle.scr::makeflak ( -1064.0 3472.0 -7888.0) 315 allies "skylimit/vehicles/turretflak_desert_base.tik" "skylimit/vehicles/turretflak_desert_housing.tik" "skylimit/vehicles/turretflak_desert_barrel.tik" "hinge" "Bofors gun" "bofors" game.true
+	
+	// axis flaks
+	waitthread global/skylimit/vehicle.scr::makeflak ( 3904.0 -3736.0 -7888.0) 135 axis "skylimit/vehicles/flak88_desert_base.tik" "skylimit/vehicles/flak88_desert_housing.tik" "skylimit/vehicles/flak88_desert_barrel.tik" "hinge" "Flak 88" "flak88" game.true
+	waitthread global/skylimit/vehicle.scr::makeflak ( 3584.0 -3736.0 -7888.0) 135 axis "skylimit/vehicles/flak88_desert_base.tik" "skylimit/vehicles/flak88_desert_housing.tik" "skylimit/vehicles/flak88_desert_barrel.tik" "hinge" "Flak 88" "flak88" game.true
+	waitthread global/skylimit/vehicle.scr::makeflak ( 2360.0 -3736.0 -7888.0) 135 axis "skylimit/vehicles/flak88_desert_base.tik" "skylimit/vehicles/flak88_desert_housing.tik" "skylimit/vehicles/flak88_desert_barrel.tik" "hinge" "Flak 88" "flak88" game.true
+end

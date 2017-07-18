@@ -1,0 +1,27 @@
+// destroyable radar stations
+// when destroyed, flak is less accurate
+
+init:
+	waitthread station allies
+	waitthread station axis
+end
+
+station local.team:
+	local.st = $("radar_" + local.team)
+	
+	if (!local.st)
+	{
+		level.radar_active[local.team] = game.false
+		end
+	}
+	
+	level.radar_active[local.team] = game.true
+
+	local.isobj = level.SL_GAMETYPE == "obj"
+	
+	local.st waitthread global/skylimit/brushobject.scr::brushobject "radar station" local.st.nationality local.team local.isobj level.SL_HEALTH_RADARSTATION level.DMGB_STRUCTURE unique_primary "global/skylimit/radarstation.scr" destroyed local.isobj "radar_station"
+end
+
+destroyed:
+	level.radar_active[self.dmteam] = game.false
+end

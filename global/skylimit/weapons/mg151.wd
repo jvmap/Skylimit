@@ -1,0 +1,29 @@
+// MG151/20mm HE cannon
+// by jv_map
+
+specs:
+	self.name = "MG151 20mm"
+	self.hud_shader = "sl_wmg151"
+	
+	self.damage = 20.0 // also does splash damage
+	
+	self.splash = game.true
+	self.splash_damage_center = 15.0
+	self.splash_damage_bounds = 0.0
+	self.splash_radius = 40.0 // m
+	self.splash_scale = 0.8
+	
+	// bulletattack info
+	self.bulletvelocity = 700.0 // m/s
+	self.bulletlife = 1.0
+	
+	self.jamlimit = 9.0
+	
+	self.soundset = "mg151"
+	
+	self.ammotype = "l"
+	self.calibre = "20mm"
+	self.ammo_capacity_rounds_per_gun = 225
+	
+	self.shell_types = AP::HE::HEM
+end

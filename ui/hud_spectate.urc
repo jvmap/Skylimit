@@ -1,0 +1,76 @@
+menu "sl_spec" 640 400 NONE 0.0
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align centerx centery
+
+// shadow :P
+resource
+Label
+{
+	name "sl_spawnmsgs"
+	rect 2 282 638 18
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	linkcvar sl_spmsg
+	font "handle-23"
+	textalign "center"
+	linkstring "-" ""
+	linkstring "0" "You can respawn."
+	linkstring "1" "You cannot respawn."
+	linkstring "2" "You cannot respawn. Airfield undergoing repairs."
+	linkstring "3" "You cannot respawn. Out of servicable aircraft."
+	linkstring "4" "You have been court-martialled for friendly fire."
+	linkstring "5" "You cannot respawn. Carrier lost."
+	linkstring "6" "You cannot fly. License suspended."
+}
+
+resource
+Label
+{
+	name "sl_spawnmsg"
+	rect 0 280 640 20
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	linkcvar sl_spmsg
+	font "handle-23"
+	textalign "center"
+	linkstring "-" ""
+	linkstring "0" "You can respawn."
+	linkstring "1" "You cannot respawn."
+	linkstring "2" "You cannot respawn. Airfield undergoing repairs."
+	linkstring "3" "You cannot respawn. Out of servicable aircraft."
+	linkstring "4" "You have been court-martialled for friendly fire."
+	linkstring "5" "You cannot respawn. Carrier lost."
+	linkstring "6" "You cannot fly. License suspended."
+}
+
+// optional extended message
+resource
+Label
+{
+	name "sl_spawnmsgext"
+	rect 2 312 638 18
+	fgcolor 0.00 0.00 0.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	linkcvar sl_spmsgext
+	font "handle-23"
+	textalign "center"
+	linkstring "-" ""
+}
+
+resource
+Label
+{
+	name "sl_spawnmsgext"
+	rect 0 310 640 20
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	linkcvar sl_spmsgext
+	font "handle-23"
+	textalign "center"
+	linkstring "-" ""
+}

@@ -1,0 +1,48 @@
+{
+"classname" "worldspawn"
+// brush 0
+{
+( -116 -112 1120 ) ( -116 120 1120 ) ( 116 120 1120 ) common/foliageclip 0 0 -90.00 1 1 537919488 33556640 0 +surfaceparm detail 
+( 116 0 -8 ) ( 108 0 -8 ) ( 112 0 1024 ) common/foliageclip 0 -1 0.00 1 1 537919488 33556640 0 +surfaceparm detail 
+( 0 116 -8 ) ( 0 112 -8 ) ( 0 114 1024 ) common/foliageclip 0 0 -180.00 1 -1 537919488 33556640 0 +surfaceparm detail 
+( -116 0 -8 ) ( -88 88 -8 ) ( -102 44 1024 ) common/foliageclip 63 0 -180.00 1 -1 537919488 33556640 0 +surfaceparm detail 
+( -88 88 -8 ) ( 0 116 -8 ) ( -44 102 1024 ) common/foliageclip 0 -1 0.00 1 1 537919488 33556640 0 +surfaceparm detail 
+( -64 0 320 ) ( -70 116 320 ) ( -76 0 320 ) common/foliageclip 0 -1 0.00 1 1 537919488 33556640 0 +surfaceparm detail 
+}
+// brush 1
+{
+( 112 -116 1120 ) ( -120 -116 1120 ) ( -120 116 1120 ) common/foliageclip 0 -1 0.00 1 1 537919488 33556640 0 +surfaceparm detail 
+( 0 116 -8 ) ( 0 108 -8 ) ( 0 112 1024 ) common/foliageclip 0 -1 0.00 1 1 537919488 33556640 0 +surfaceparm detail 
+( -116 0 -8 ) ( -112 0 -8 ) ( -114 0 1024 ) common/foliageclip 0 -1 0.00 1 1 537919488 33556640 0 +surfaceparm detail 
+( 0 -116 -8 ) ( -88 -88 -8 ) ( -44 -102 1024 ) common/foliageclip 0 -1 0.00 1 1 537919488 33556640 0 +surfaceparm detail 
+( -88 -88 -8 ) ( -116 0 -8 ) ( -102 -44 1024 ) common/foliageclip 0 -1 0.00 1 1 537919488 33556640 0 +surfaceparm detail 
+( -64 -116 320 ) ( -70 0 320 ) ( -76 -116 320 ) common/foliageclip 0 -1 0.00 1 1 537919488 33556640 0 +surfaceparm detail 
+}
+// brush 2
+{
+( 120 116 1120 ) ( 120 -116 1120 ) ( -112 -116 1120 ) common/foliageclip -56 -1 0.00 1 1 537919488 33556640 0 +surfaceparm detail 
+( 0 112 1024 ) ( 0 108 -8 ) ( 0 116 -8 ) common/foliageclip 0 -1 0.00 1 1 537919488 33556640 0 +surfaceparm detail 
+( 114 0 1024 ) ( 112 0 -8 ) ( 116 0 -8 ) common/foliageclip -56 -1 0.00 1 1 537919488 33556640 0 +surfaceparm detail 
+( 44 -102 1024 ) ( 88 -88 -8 ) ( 0 -116 -8 ) common/foliageclip -56 -1 0.00 1 1 537919488 33556640 0 +surfaceparm detail 
+( 102 -44 1024 ) ( 116 0 -8 ) ( 88 -88 -8 ) common/foliageclip 0 -1 0.00 1 1 537919488 33556640 0 +surfaceparm detail 
+( -64 -116 320 ) ( -70 0 320 ) ( -76 -116 320 ) common/foliageclip 0 -1 0.00 1 1 537919488 33556640 0 +surfaceparm detail 
+}
+// brush 3
+{
+( -116 120 1120 ) ( 116 120 1120 ) ( 116 -112 1120 ) common/foliageclip 0 56 -90.00 1 1 537919488 33556640 0 +surfaceparm detail 
+( -112 0 1024 ) ( -108 0 -8 ) ( -116 0 -8 ) common/foliageclip -56 -1 0.00 1 1 537919488 33556640 0 +surfaceparm detail 
+( 0 114 1024 ) ( 0 112 -8 ) ( 0 116 -8 ) common/foliageclip 0 -1 -180.00 1 -1 537919488 33556640 0 +surfaceparm detail 
+( 102 44 1024 ) ( 88 88 -8 ) ( 116 0 -8 ) common/foliageclip 63 -1 -180.00 1 -1 537919488 33556640 0 +surfaceparm detail 
+( 44 102 1024 ) ( 0 116 -8 ) ( 88 88 -8 ) common/foliageclip -56 -1 0.00 1 1 537919488 33556640 0 +surfaceparm detail 
+( -64 0 320 ) ( -70 116 320 ) ( -76 0 320 ) common/foliageclip -56 -1 0.00 1 1 537919488 33556640 0 +surfaceparm detail 
+}
+// brush 4
+{
+( 7 9 -8 ) ( -11 9 -8 ) ( -11 -9 -8 ) common/woodclip 0 0 0.00 1 1 537853952 18592 0 +surfaceparm detail 
+( -11 -9 1024 ) ( -11 9 1024 ) ( 7 9 1024 ) common/woodclip 0 0 0.00 1 1 537853952 18592 0 +surfaceparm detail 
+( -11 -8 1024 ) ( 7 -8 1024 ) ( 7 -8 -8 ) common/woodclip 0 0 0.00 1 1 537853952 18592 0 +surfaceparm detail 
+( 7 -9 1024 ) ( 7 9 1024 ) ( 7 9 -8 ) common/woodclip 0 0 0.00 1 1 537853952 18592 0 +surfaceparm detail 
+( 7 8 1024 ) ( -11 8 1024 ) ( -11 8 -8 ) common/woodclip 0 0 0.00 1 1 537853952 18592 0 +surfaceparm detail 
+( -8 9 1024 ) ( -8 -9 1024 ) ( -8 -9 -8 ) common/woodclip 0 0 0.00 1 1 537853952 18592 0 +surfaceparm detail 
+}
+}

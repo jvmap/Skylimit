@@ -1,0 +1,43 @@
+// B-17 bomb compartiment
+
+setup
+{
+	path models/skylimit/aircraft/b17/skel/bombbay
+	skelmodel bombbay.skd
+}
+
+$include models/skylimit/aircraft/b17/includes/includes.tik
+$include models/skylimit/aircraft/includes/classdef.tik
+
+init
+{
+	server
+	{
+		anim closed
+	}
+}
+
+animations
+{
+	idle 	closed.skc // placeholder to stop console from whining
+	
+	closed 	closed.skc
+	{
+		server
+		{
+			// hmm hiding interior causes some cracks :(
+			//entry surface interior* "+nodraw"
+		}
+	}
+	close	close.skc
+	
+	opened	opened.skc
+	open	open.skc
+	{
+		server
+		{
+			// hmm hiding interior causes some cracks :(
+			//entry surface interior* "-nodraw"
+		}
+	}
+}

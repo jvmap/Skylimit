@@ -1,0 +1,21 @@
+TIKI
+setup
+{
+	scale 0.25
+	path models/skylimit/items/parahealth
+	skelmodel parahealth.skd
+	surface material1 shader healthcanteen
+}
+
+init
+{
+	server
+	{
+		classname Entity
+	}
+}
+
+animations
+{
+	idle parahealth.skc
+}

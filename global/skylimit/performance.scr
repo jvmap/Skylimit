@@ -1,0 +1,155 @@
+// aircraft theoretical performance evaluation
+// by jv_map
+
+report local.option:
+	local.me = spawn listener
+	local.me waitexec global/skylimit/flightmodels/includes.fm
+	local.me waitexec local.option.flightmodelfile
+
+	local.me.MASS += local.option.EQUIPMENT_MASS
+
+	local.PROP_EFF = 0.85
+	local.PULL_FACT = 0.95 // safety margin -> flightmodel is adjusted so we wont pull the aircraft into a dynamic stall easily
+	/*
+	println ""
+	println "AIRCRAFT PERFORMANCE REPORT"
+	println "==========================="
+	println "Type: " local.option.name
+	println "Variant: " local.option.variantfile
+	println "Flightmodel: " local.option.flightmodelfile
+	println "---------------------------"
+	println "A propeller efficiency of " (int (local.PROP_EFF * 100.0)) "% is assumed."
+	
+	println "Weight: " (int local.me.MASS) " kg"
+	println "Armor: " (int (local.option.ARMOR * 100.0)) "%"
+	*/
+	// cbrt
+	local.PROP_EFF_INFL = waitthread global/skylimit/math.scr::pow local.PROP_EFF (1.0/3.0)
+	
+	// wing loading
+	local.wingloading = local.me.MASS / local.me.WINGAREA
+	local.powerloading = local.me.MASS / local.me.ENGINE_RATED_POWER
+	
+	//println "Wing loading: " local.wingloading " kg/m^2"
+	//println "Power loading (0m): " (1000.0 * local.powerloading) " kg/kW"
+	
+	for(local.h = 0; local.h <= 10000; local.h += 5000)
+	{
+		local.atmo = waitthread global/skylimit/atmosphere.scr::getstate local.h
+		local.dens = local.atmo[2]
+		local.ss = local.atmo[4]
+		local.max_speed = local.me waitthread calcmaxspeed local.dens local.ss
+		
+		local.max_speed = local.max_speed * local.PROP_EFF_INFL
+		
+		if(local.h == 0)
+		{
+			local.option.PERFORMANCE_speed = local.max_speed
+		}
+		
+		//waitthread speedprint ("Max. true airspeed (" + local.h + " m)") local.max_speed local.ss
+	}
+	
+	local.ASPECTRATIO = local.me.WINGSPAN * local.me.WINGSPAN / local.me.WINGAREA
+	
+	// C = Pa/W - Pr/W = Pa/W - 1/2* rho * V^3 * S/W * 4/3 CD0
+	// V = (2/rho W/S 1/CL)^0.5 = (2/rho W/S (3/(Cd0piAe))^0.5)^0.5
+	// C = Pa / W - 2/3 * rho * S/W * CD0
+	
+	// climb performance (sealevel) (approx.)
+	local.span_efficiency = level.PI * local.ASPECTRATIO * local.me.OSWALD_FACTOR
+	local.climb_merit_number = local.span_efficiency * local.span_efficiency * local.span_efficiency / 3.0 / local.me.CD0
+	local.rate_of_climb = local.PROP_EFF / (local.powerloading * $world.GRAVITY) - 4.0 / 3.0 * (waitthread global/skylimit/math.scr::sqrt (6.0 / level.SL_ISA_RHO0 * local.wingloading * $world.GRAVITY / (waitthread global/skylimit/math.scr::sqrt local.climb_merit_number)))
+	// optimal climb speed (indicated airspeed)
+	local.climb_speed = waitthread global/skylimit/math.scr::sqrt (2.0 / level.SL_ISA_RHO0 * local.wingloading * $world.GRAVITY * (waitthread global/skylimit/math.scr::sqrt (3.0 / local.me.CD0 / level.PI / local.ASPECTRATIO / local.me.OSWALD_FACTOR)))
+	// flight path angle
+	local.climb_angle = local.rate_of_climb / local.climb_speed
+	
+	//println "Max. rate of climb (0m): " (int local.rate_of_climb) " m/s | " (int (local.rate_of_climb * level.SL_UNITCONV_M_to_FEET)) " ft/s"
+	// the mach-number here is somewhat arbitrary :/
+	//waitthread speedprint "Optimal climb speed (IAS)" local.climb_speed level.SL_SOUNDSPEED
+	//println "Optimal climb angle: " (int (local.climb_angle / level.PI * 180.0)) " deg"
+	
+	// L/m = V^2/R
+	// R = V^2 m / L
+	// L = 0.5 r V^2 S CLmax
+	// CLmax = a * aoastall //// (1 + 1/(STALL_SEVERITY - 1))
+	// R = 2 m / r / S / CLmax = 2 / r / CLmax * m / S
+	// note: no comp correction
+	
+	local.a0 = 2.0 * level.PI
+	local.a = local.a0 / (1.0 + local.a0 / (level.PI * local.ASPECTRATIO * local.me.OSWALD_FACTOR))
+	local.CL_max = local.a * local.me.MAXAOA /// (1.0 + 1.0 / (local.me.STALL_SEVERITY - 1.0))
+	
+	local.turn_radius = 2.0 / level.SL_ISA_RHO0 / local.CL_max * local.wingloading / local.PULL_FACT
+	
+	local.option.PERFORMANCE_turnradius = local.turn_radius
+	local.option.PERFORMANCE_mass = local.me.MASS
+	local.option.PERFORMANCE_climb = local.rate_of_climb
+
+	// cornering speed (approx)
+	// CD = CD0 + CL_max^2 / (piAe)
+	// T = P / V
+	// T = D = 0.5 cd rho V^2 S
+	// P = 0.5 CD rho V^3 S = 0.5 (CD0 + CL_max^2 / (piAe))
+	/*
+	println "Smallest turn radius (0m): " local.turn_radius " m @ CLmax = " local.CL_max
+
+	println "---------------------------"
+	println ""
+	*/
+	local.me remove
+end
+
+speedprint local.caption local.speed local.soundspeed:
+	local.speed_kts = int (local.speed * level.SL_UNITCONV_MPS_to_KNOTS)
+	local.speed_kmh = int (local.speed * level.SL_UNITCONV_MPS_to_KMPH)
+	local.speed_mph = int (local.speed * level.SL_UNITCONV_MPS_to_MPH)
+	local.mach = local.speed / local.soundspeed
+	
+	println local.caption ": " (int local.speed) " m/s | " local.speed_kts " kts | " local.speed_kmh " km/h | " local.speed_mph " mph | " local.mach " M" 
+end
+
+calcmaxspeed local.dens local.ss:
+	local.max_speed_pow3 = 2.0 * self.ENGINE_RATED_POWER / local.dens / self.WINGAREA / self.CD0
+	local.max_speed = waitthread global/skylimit/math.scr::pow local.max_speed_pow3 (1.0/3.0) 10000000.0 215.44
+	
+	//  V^3 = 2 / (CD0 r S) * (PA - 2 * (W^2 / (r V pi b^2 e)))
+	
+	// induced drag correction
+	for(local.i = 1; local.i <= 10; local.i++)
+	{
+		local.propulsive_power = self.ENGINE_RATED_POWER - 2.0 * self.MASS * self.MASS * $world.GRAVITY * $world.GRAVITY / local.dens / local.max_speed / level.PI / self.WINGSPAN / self.WINGSPAN / self.OSWALD_FACTOR
+		
+		if(local.propulsive_power < 0.0)
+		{
+			// cannot achieve height
+			local.max_speed = 0.0
+			local.propulsive_power = 0.0
+			break
+		}
+		else
+		{
+			local.max_speed_pow3 = 2.0 * local.propulsive_power / local.dens / self.WINGAREA / self.CD0
+			local.max_speed = waitthread global/skylimit/math.scr::pow local.max_speed_pow3 (1.0/3.0) 10000000.0 215.44
+		}
+	}
+	
+	// compressibility correction
+	// CD = CD0 + 4 * (W/S)^2 / r^2 / V^4/(pi A e)
+	// PC = CD * ((1 - M^2)^-0.5 - 1) * 0.5 * r * V^3 * S
+	// PC = (CD0 + 4 * (W/S)^2 / (r^2 V^4 pi b^2 / S e)) * ((1 - M^2)^-0.5 - 1) * 0.5 * r * V^3 * S
+	
+	for(local.i = 1; local.i <= 10; local.i++)
+	{
+		local.mach = local.max_speed / local.ss
+		
+		local.mach_mult = waitthread global/skylimit/math.scr::sqrt (1.0 - local.mach * local.mach)
+		local.cpropulsive_power = local.propulsive_power - 0.5 * local.dens * local.max_speed_pow3 * self.WINGAREA * (self.CD0 + 4 * self.MASS * self.MASS * $world.GRAVITY * $world.GRAVITY / self.WINGAREA / local.dens / local.dens / local.max_speed_pow3 / local.max_speed / level.PI / self.WINGSPAN / self.WINGSPAN / self.OSWALD_FACTOR) * (1.0 - local.mach_mult) / local.mach_mult
+		
+		//println "cpropulsive_power: " local.cpropulsive_power " max_speed: " local.max_speed
+		
+		local.max_speed_pow3 = 2.0 * local.cpropulsive_power / local.dens / self.WINGAREA / self.CD0
+		local.max_speed = waitthread global/skylimit/math.scr::pow local.max_speed_pow3 (1.0/3.0) 10000000.0 215.44
+	}
+end local.max_speed

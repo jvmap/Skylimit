@@ -1,0 +1,27 @@
+TIKI
+setup
+{
+	scale 0.52			// Set default scale to 16/30.5 since world is in 16 units per foot and model is in cm's
+	path models/static/tent
+	skelmodel tent.skd
+	
+	surface tent shader static_tent
+	surface tentpoles shader static_tentpoles
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+	}
+}
+
+animations
+{
+	idle     tent.skc
+}
+
+/*QUAKED skylimit_scenery_tent (0.5 0.0 0.5) (0 0 0) (0 0 0)
+*/

@@ -1,0 +1,165 @@
+// Dynamic traceable object
+// used for moving surfaces that can be landed upon
+// (carrier)
+
+// normal is a normal vector
+// n is (normal) distance from origin to plane (as in 'flat surface')
+// x is a local vec, y = n x x
+// xmin, xmax, ymin, ymax define plane extents
+add_surface local.normal local.x local.n local.xmin local.xmax local.ymin local.ymax:
+
+	local.n = local.n * $world.SL_SCALE
+	local.xmin = local.xmin * $world.SL_SCALE
+	local.xmax = local.xmax * $world.SL_SCALE
+	local.ymin = local.ymin * $world.SL_SCALE
+	local.ymax = local.ymax * $world.SL_SCALE
+
+	local.y = vector_cross local.normal local.x
+
+	local.p = local.normal::local.x::local.y::local.n::local.xmin::local.xmax::local.ymin::local.ymax
+	self.dyn_surf = waitthread global/skylimit/common.scr::addtoarray self.dyn_surf local.p
+	
+end
+
+// self can be traced against
+taketrace:
+	if(self.dyn_surf.size >= 1)
+	{
+		level.DYN_ENTS = waitthread global/skylimit/common.scr::addtoarray level.DYN_ENTS self
+	}
+	else
+	{
+		println "ERROR[dynobject::taketrace]: Tried to take trace on an object without surfaces, add surfaces first, model: " self.brushmodel
+	}
+end
+
+// TODO: make trace sphere for quick tracing
+
+//#INLINE
+cleanup_dyn_array:
+	local.j = 0
+	for(local.i = 1; local.i <= level.DYN_ENTS.size; local.i++)
+	{
+		local.e = level.DYN_ENTS[local.i]
+		
+		if(local.e)
+		{
+			local.j++
+			local.phew_much_better_array[local.j] = local.e
+		}
+	}
+	level.DYN_ENTS = local.phew_much_better_array
+end
+
+// check if near any dynobject
+// (within 200 m)
+isnear local.pos:
+	
+	local.NEARDIST = 200.0 / level.SL_UNITSCALE
+	
+	waitthread cleanup_dyn_array
+	
+	local.near = game.false
+	
+	for(local.i = 1; local.i <= level.DYN_ENTS.size; local.i++)
+	{
+		local.e = level.DYN_ENTS[local.i]
+		
+		local.vec = local.e.origin - local.pos
+		local.sqdist = local.vec * local.vec
+		
+		if(local.sqdist <= local.NEARDIST * local.NEARDIST)
+		{
+			local.near = game.true
+			break
+		}
+	}
+	
+end local.near
+
+// static
+trace local.start local.end:
+	
+	local.hit = game.false
+	local.hitpos = local.end
+	
+	waitthread cleanup_dyn_array
+	
+	if(local.end[2] < $world.OBSTACLEHEIGHT || local.start[2] < $world.OBSTACLEHEIGHT)
+	{
+		// this does not (yet) take into account whether one object is closer than another
+		// (TODO?)
+		
+		for(local.i = 1; local.i <= level.DYN_ENTS.size; local.i++)
+		{
+			local.e = level.DYN_ENTS[local.i]
+			waitthread trace_object local.e local.start local.end local
+			
+			if(local.hit)
+			{
+				break
+			}
+		}
+	}
+end (local.hit::local.hitpos::local.hitnormal::local.ent)
+
+// writes results to data_holder
+// so this can be inlined easily
+// returns nothing
+//#INLINE
+trace_object local.e local.start local.end local.data_holder:
+	
+	// relative vecs
+	local.rs = local.start - local.e.origin
+	local.re = local.end - local.e.origin
+	
+	// transform start and end coords to my local csys
+	local.rrs = ( (local.rs * local.e.forwardvector) (local.rs * local.e.leftvector) (local.rs * local.e.upvector) )
+	local.rre = ( (local.re * local.e.forwardvector) (local.re * local.e.leftvector) (local.re * local.e.upvector) )
+	
+	// check against all surfs
+	for(local.i = 1; local.i <= local.e.dyn_surf.size; local.i++)
+	{
+		local.surf 		= local.e.dyn_surf[local.i]
+		local.normal 	= local.surf[1]
+		local.x 		= local.surf[2]
+		local.y 		= local.surf[3]
+		local.n 		= local.surf[4]
+		local.xmin 		= local.surf[5]
+		local.xmax 		= local.surf[6]
+		local.ymin 		= local.surf[7]
+		local.ymax 		= local.surf[8]
+		
+		local.rrsn = local.rrs * local.normal - local.n
+		local.rren = local.rre * local.normal - local.n
+		
+		//println "rssn: " local.rrsn " rsen: " local.rren
+		
+		if(local.rrsn >= 0.0 && local.rren <= 0.0)
+		{
+			// point of impact
+			local.poi = local.rrs - local.rrsn * local.normal
+			
+			local.xc = local.poi * local.x
+			local.yc = local.poi * local.y
+			
+			local.pass_x = local.xmin <= local.xc && local.xc <= local.xmax
+			local.pass_y = local.ymin <= local.yc && local.yc <= local.ymax
+			
+			//println "x: " local.xc " y: " local.yc " px: " local.pass_x " py: " local.pass_y
+			
+			if(local.pass_x && local.pass_y)
+			{
+				// get hitpos
+				local.fraction = local.rrsn / (local.rrsn - local.rren)
+				//println "fraction: " local.fraction
+				
+				local.data_holder.hit = game.true
+				local.data_holder.hitpos = local.start * (1.0 - local.fraction) + local.fraction * local.end
+				local.data_holder.hitnormal = local.normal[0] * local.e.forwardvector + local.normal[1] * local.e.leftvector + local.normal[2] * local.e.upvector
+				local.data_holder.ent = local.e
+				break
+			}
+		}
+	}
+end

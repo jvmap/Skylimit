@@ -1,0 +1,78 @@
+menu "sl_psc" 400 170 FROM_BOTTOM 0.15
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align centerx bottom
+
+resource
+Label
+{
+	name "sl_psc1"
+	rect 0 0 512 24
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	linkcvar sl_psc1
+	fadein 0.2
+	font "facfont-20"
+	textalign "left"
+	linkstring "-" ""
+}
+
+resource
+Label
+{
+	name "sl_psc2"
+	rect 0 24 512 16
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	linkcvar sl_psc2
+	fadein 0.2
+	font "verdana-14"
+	textalign "left"
+	linkstring "-" ""
+}
+
+resource
+Label
+{
+	name "sl_psc3"
+	rect 0 44 512 16
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	linkcvar sl_psc3
+	fadein 0.2
+	font "verdana-14"
+	textalign "left"
+	linkstring "-" ""
+}
+
+resource
+Label
+{
+	name "sl_psc4"
+	rect 0 64 512 16
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	linkcvar sl_psc4
+	fadein 0.2
+	font "verdana-14"
+	textalign "left"
+	linkstring "-" ""
+}
+
+resource
+Label
+{
+	name "text"
+	rect 0 84 512 16
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	title "<< [press fire to select] >>"
+	fadein 0.2
+	font "verdana-14"
+	textalign "left"
+}

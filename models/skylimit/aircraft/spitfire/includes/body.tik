@@ -1,0 +1,204 @@
+setup
+{
+	path models/skylimit/aircraft/spitfire/skel
+	skelmodel body.skd
+}
+
+$include models/skylimit/aircraft/spitfire/includes/includes.tik
+
+init
+{
+	client
+	{
+		// MG 303
+		tagemitter tag_barrel3 mg1s
+		(
+			model models/skylimit/fx/muzzle/s800L.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+		tagemitter tag_barrel4 mg2s
+		(
+			model models/skylimit/fx/muzzle/s800R.tik
+			spawnrate 20.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		tagemitter tag_barrel5 mg3s
+		(
+			model models/skylimit/fx/muzzle/s800LL.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+		tagemitter tag_barrel6 mg4s
+		(
+			model models/skylimit/fx/muzzle/s800RR.tik
+			spawnrate 20.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		
+		// MG50
+		tagemitter tag_barrel3 mg1m
+		(
+			model models/skylimit/fx/muzzle/m900L.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+		tagemitter tag_barrel4 mg2m
+		(
+			model models/skylimit/fx/muzzle/m900R.tik
+			spawnrate 20.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		
+		// CANNON outboard
+		tagemitter tag_barrel1 cannon1
+		(
+			model models/skylimit/fx/muzzle/l900L.tik
+			spawnrate 10.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		tagemitter tag_barrel2 cannon2
+		(
+			model models/skylimit/fx/muzzle/l900R.tik
+			spawnrate 10.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		
+		// CANNON inboard
+		tagemitter tag_barrel7 cannon3
+		(
+			model models/skylimit/fx/muzzle/l900L.tik
+			spawnrate 10.0
+			life 0.02
+			startoff
+			anim fire
+		)
+		tagemitter tag_barrel8 cannon4
+		(
+			model models/skylimit/fx/muzzle/l900R.tik
+			spawnrate 10.0
+			life 0.02
+			startoff
+			anim fire
+		)
+	}
+}
+
+animations
+{
+	idle	body.skc
+		
+	emitteron_mg50 	body.skc
+	{
+		client
+		{
+			enter emitteron mg1m
+			enter emitteron mg2m
+		}
+	}
+	
+	emitteroff_mg50	body.skc
+	{
+		client
+		{
+			enter emitteroff mg1m
+			enter emitteroff mg2m
+		}
+	}
+		
+	emitteron_mg303 	body.skc
+	{
+		client
+		{
+			enter emitteron mg1s
+			enter emitteron mg2s
+			enter emitteron mg3s
+			enter emitteron mg4s
+		}
+	}
+	
+	emitteroff_mg303	body.skc
+	{
+		client
+		{
+			enter emitteroff mg1s
+			enter emitteroff mg2s
+			enter emitteroff mg3s
+			enter emitteroff mg4s
+		}
+	}
+	
+	emitteron_cannon_outboard 	body.skc
+	{
+		client
+		{
+			enter emitteron cannon1
+			enter emitteron cannon2
+		}
+	}
+	
+	emitteroff_cannon_outboard	body.skc
+	{
+		client
+		{
+			enter emitteroff cannon1
+			enter emitteroff cannon2
+		}
+	}
+	
+	emitteron_cannon_inboard 	body.skc
+	{
+		client
+		{
+			enter emitteron cannon3
+			enter emitteron cannon4
+		}
+	}
+	
+	emitteroff_cannon_inboard	body.skc
+	{
+		client
+		{
+			enter emitteroff cannon3
+			enter emitteroff cannon4
+		}
+	}
+	
+	emitteron_cannon_all 	body.skc
+	{
+		client
+		{
+			enter emitteron cannon1
+			enter emitteron cannon2
+			enter emitteron cannon3
+			enter emitteron cannon4
+		}
+	}
+	
+	emitteroff_cannon_all	body.skc
+	{
+		client
+		{
+			enter emitteroff cannon1
+			enter emitteroff cannon2
+			enter emitteroff cannon3
+			enter emitteroff cannon4
+		}
+	}
+}

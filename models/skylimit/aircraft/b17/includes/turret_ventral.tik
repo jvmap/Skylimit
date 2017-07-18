@@ -1,0 +1,58 @@
+// B-17 ventral (belly) turret
+
+setup
+{
+	scale 3.0
+	path models/skylimit/aircraft/b17/skel
+	skelmodel turret_ventral.skd
+
+	surface barrel* shader sl_cal50
+}
+
+$include models/skylimit/aircraft/includes/classdef.tik
+
+init
+{
+	client
+	{
+		tagemitter tag_barrel_left muzzle1
+		(
+			model models/skylimit/fx/muzzle/m900.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+		tagemitter tag_barrel_right muzzle2
+		(
+			model models/skylimit/fx/muzzle/m900.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+	}
+}
+
+animations
+{
+	idle turret_ventral.skc
+	
+	start	turret_ventral.skc
+	{
+		client
+		{
+			enter emitteron muzzle1
+			enter emitteron muzzle2
+		}
+	}
+	
+	stop	turret_ventral.skc
+	{
+		client
+		{
+			enter emitteroff muzzle1
+			enter emitteroff muzzle2
+		}
+	}
+}

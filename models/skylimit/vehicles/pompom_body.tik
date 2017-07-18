@@ -1,0 +1,104 @@
+// Royal Navy pom-pom gun body
+// 8 barrel 2pdr (40mm) AA gun
+// model and skin by jv_map
+
+TIKI
+
+$include models/skylimit/utils/client_sound_cache.tik
+
+setup
+{
+	scale 52.0 // model is in m
+	
+	path models/skylimit/vehicles/pompom
+	skelmodel body.skd
+	
+	surface body shader skylimit_pompom
+	surface sight shader sl_mg17sight
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+	}
+}
+
+animations
+{
+	idle     		body.skc
+	
+	fire			body_fire.skc
+	{
+		client
+		{
+			0 stopaliaschannel cl_pompom_fire
+			0 sound cl_pompom_fire
+			
+			0 tagspawn tag_barrel2
+			(
+				model models/skylimit/fx/muzzle/xxl600.tik
+				life 0.02
+				anim fire
+			)
+			
+			//1 sound cl_pompom_fire
+			1 tagspawn tag_barrel7
+			(
+				model models/skylimit/fx/muzzle/xxl600.tik
+				life 0.02
+				anim fire
+			)
+			
+			//2 sound cl_pompom_fire
+			2 tagspawn tag_barrel8
+			(
+				model models/skylimit/fx/muzzle/xxl600.tik
+				life 0.02
+				anim fire
+			)
+			
+			//3 sound cl_pompom_fire
+			3 tagspawn tag_barrel5
+			(
+				model models/skylimit/fx/muzzle/xxl600.tik
+				life 0.02
+				anim fire
+			)
+			
+			//4 sound cl_pompom_fire
+			4 tagspawn tag_barrel3
+			(
+				model models/skylimit/fx/muzzle/xxl600.tik
+				life 0.02
+				anim fire
+			)
+			
+			//5 sound cl_pompom_fire
+			5 tagspawn tag_barrel1
+			(
+				model models/skylimit/fx/muzzle/xxl600.tik
+				life 0.02
+				anim fire
+			)
+			
+			//6 sound cl_pompom_fire
+			6 tagspawn tag_barrel6
+			(
+				model models/skylimit/fx/muzzle/xxl600.tik
+				life 0.02
+				anim fire
+			)
+			
+			//7 sound cl_pompom_fire
+			7 tagspawn tag_barrel4
+			(
+				model models/skylimit/fx/muzzle/xxl600.tik
+				life 0.02
+				anim fire
+			)
+		}
+	}
+}

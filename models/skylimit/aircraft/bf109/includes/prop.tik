@@ -1,0 +1,13 @@
+setup
+{
+	path models/skylimit/aircraft/bf109/skel
+	skelmodel prop_blades.skd
+}
+
+$include models/skylimit/aircraft/includes/classdef.tik
+$include models/skylimit/aircraft/bf109/includes/includes.tik
+
+animations
+{
+	idle			prop_blades.skc
+}

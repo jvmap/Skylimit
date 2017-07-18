@@ -1,0 +1,43 @@
+// Bofors AA gun
+
+specs:
+	self.damage = 100.0 // also does splash damage
+	
+	self.splash = game.true
+	self.splash_damage_center = 80.0
+	self.splash_damage_bounds = 0.0
+	self.splash_radius = 40.0 // m
+	self.splash_scale = 6.0
+	self.splash_model = skylimit/fx/cannon_shell.tik
+	
+	// bulletattack info
+	self.bulletvelocity = 900.0 // m/s
+	self.bulletlife = 1.5
+	
+	self.means_of_damage = level.MODM_BULLET_MG
+	self.firedelay = 0.5
+	self.acquire_timeout = 0.15
+	self.facquiredelay = 1.0
+	self.sacquiredelay = 0.45
+	self.spread = 0.0064
+	self.time_fuze = game.false
+	
+	// flak info
+	self.turnspeed = 90.0 // deg/s (yaw)
+	self.trainspeed = 45.0 // deg/s (pitch)
+	self.pitch_min = 0.0
+	self.pitch_max = 80.0
+	self.shell_type = "HE"
+	self.flak_spread = 0.03
+	self.flak_radar_spread_mult = 0.0
+	
+	// dmg box size (approx)
+	self.dmg_mins = ( -64 -64 0)
+	self.dmg_maxs = ( 64 64 112)
+	self.col_radius = 40.0
+	self.col_offset = (0 0 0)
+	
+	// (search) range and health (when used as flak)
+	self.range = 1500.0 // m, mostly for deterrence (actual range is less)
+	self.SL_health = 250.0
+end

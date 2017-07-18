@@ -1,0 +1,110 @@
+// aaah very violent :D
+
+TIKI
+setup
+{
+	scale 0.031
+	path models/fx/dummy
+	skelmodel dummy3.skd
+}
+
+init
+{
+	server
+	{
+		classname effectentity
+		notsolid
+		rendereffects +dontdraw
+	}
+	client
+	{
+		cache textures/effects/bang.spr
+		cache textures/sprites/metalshard_heavy.spr
+		cache textures/sprites/metalshard_med.spr
+		cache models/emitters/higgins_mushroom.tik
+ 	}
+}
+
+animations
+{
+	idle dummy3.skc
+
+	start dummy3.skc
+	{
+		server
+		{
+			enter playsound aircraft_boom
+			last commanddelay 1 anim idle
+		}
+
+		client
+		{
+			enter originspawn
+			(
+				model models/fx/bp_debris1.tik
+				count 2
+				color 1.00 1.00 1.00
+				scale 0.016
+				life 1.00
+				velocity 10.00
+				angles crandom -40 0 360
+				avelocity 20 70 500
+				fade
+				sphere
+			)
+			
+			// sand shooters
+			enter originspawn
+			(
+				model vsssource.spr
+				count 40
+				color 0.8 0.7 0.5
+				alpha 0.50
+				scale 0.15
+				life 2.00
+				scalerate 3.0
+				randvel crandom 20.0 crandom 20.0 crandom 10.0
+				collision
+				friction 2.00
+				fade 
+				randomroll
+			)
+			
+			// smoke shooters
+			enter originspawn
+			(
+				model vsssource2.spr
+				count 10
+				color 0.0 0.0 0.0
+				alpha 0.20
+				scale 0.1
+				life 2.00
+				scalerate 3.0
+				randvel crandom 5.0 crandom 5.0 random 10.0
+				collision
+				fade 
+				randomroll
+			)
+			
+			enter originspawn
+			(
+				model gren_explosion.spr
+				count 3
+				color 1.00 1.00 1.00
+				scale 0.0625
+				life 0.70
+				scalerate 0.80
+				accel 0.00 0.00 6.00
+				//offset crandom -1 crandom -1 crandom -1
+				offset 0 0 1
+				//offsetalongaxis 0 0 crandom -1
+				angles crandom -4 range 4 -32 range 12 -8
+				avelocity range 6 10 range 6 10 range 6 10
+				scalemin 0.034
+				scalemax 0.068
+				fade
+				sphere
+			)
+		}
+	}
+}

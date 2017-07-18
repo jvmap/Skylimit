@@ -1,0 +1,162 @@
+TIKI
+setup
+{
+	scale 0.52
+   	path models/skylimit/vehicles/higgins
+	skelmodel higgins.skd
+   	surface all shader skyhiggins
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+	}
+	client
+	{
+		originemitter wake
+		(
+			spawnrate 0.2 //0.8
+			model sl_wake.spr
+			alpha 0.80
+			color 1.00 1.00 1.00
+			scale 6.0
+			life 96.0 //24.00
+			scalerate 0.0015 //0.005
+			angles 90 random 360 crandom 15
+			avelocity 0 crandom -40 0
+			fadein 2.0
+			fade
+			offset 0 0 50
+			startoff
+		)
+		
+		originemitter oil
+		(
+			spawnrate 0.8
+			model sl_wake.spr
+			alpha 1.00
+			color 0.00 0.00 0.00
+			scale 8.0
+			life 15.00
+			scalerate 0.01
+			angles 90 random 360 crandom 15
+			avelocity 0 crandom -40 0
+			fadein 2.0
+			fade
+			offset 0 0 60
+			randvel crandom 140.0 crandom 140.0 0.0
+			startoff
+		)
+		
+		originemitter blood
+		(
+			spawnrate 0.5
+			model sl_wake.spr
+			alpha 0.30
+			color 0.60 0.00 0.00
+			scale 8.0
+			life 15.00
+			scalerate 0.01
+			angles 90 random 360 crandom 15
+			avelocity 0 crandom -40 0
+			fadein 2.0
+			fade
+			offset 0 0 70
+			randvel crandom 140.0 crandom 140.0 0.0
+			startoff
+		)
+		
+		originemitter smoke
+		(
+			spawnrate 2.5
+			model vsssource.spr
+			alpha 1.0
+			color 0.2 0.2 0.2
+			scale 1.0
+			life 4.0
+			scalerate 1.1
+			angles 90 random 360 crandom 15
+			avelocity 0 crandom -40 0
+			fadein 0.2
+			randvel 500.0 200.0 1000.0
+			fade
+			startoff
+		)
+	}
+}	
+
+animations
+{
+	idle	higgins_ride.skc
+	{	
+		client
+		{
+			entry emitteron wake
+			
+			55 originspawn
+			(
+				offsetalongaxis range 100.0 200.0 crandom 120.0 0.0
+				
+				count 2
+				model oceanspray.spr
+				alpha 0.40
+				color 1.00 1.00 1.00
+				spritegridlighting
+				scale 0.1
+				life 1.20
+				scalerate 3.00
+				velocity 10
+				friction 1.00
+				angles range 14 -24 range 14 -24 range 14 -24
+				avelocity range 64 124 range 64 -124 range 64 -124
+				fade
+				inwardsphere
+				alignstretch 1.00
+			)
+		}	
+	}
+	
+	beach		higgins_ride.skc
+	{
+		client
+		{
+			entry emitteroff wake	
+		}	
+	}
+	
+	sink	higgins.skc
+	{	
+		server
+		{
+			entry commanddelay 0.2 anim	randomsink
+			//last anim randomsink
+		}
+		
+		client
+		{	
+			// stop wake
+			entry commanddelay 3.0 emitteroff wake
+			
+			// emit smoke, oil and blood (gore :D)
+			entry emitteron smoke
+			
+			entry commanddelay 5.0 emitteroff smoke
+			
+			entry emitteron oil
+			
+			entry emitteron blood
+		}	
+	}
+	
+	randomsink1	higgins_sink_front.skc random
+	randomsink2	higgins_sink_rear.skc random
+	randomsink3	higgins_sink_left.skc random
+	randomsink4	higgins_sink_right.skc random
+}
+
+/*QUAKED skylimit_higgins (0 0 0) (-32 -32 0) (32 32 64)
+Higgins Boat
+*/

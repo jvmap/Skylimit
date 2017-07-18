@@ -1,0 +1,32 @@
+// ground handling properties
+// default, good handling for most planes
+
+main:
+	self.GROUNDSTEERMAX = 45.0 / 180.0 * level.PI 
+	//self.GROUNDSTEERSPEED = 5.0 // fraction per second
+	self.GROUNDSTEER_SENSITIVITY = 0.2 //0.5
+	self.GROUNDSTEERRECENTERINGSPEED = 0.04 //0.002 // fraction per second s/m //s^2/m^2
+
+	//self.GEARFORCEMAX = self.MASS * 9.81 * 10.0 //3.0 //6.0 //3.5 // N
+	self.GEARSTIFFNESS = self.MASS * 9.81 / 0.5 // N/m
+	
+	self.SHOCKDAMPING = 0.5 // heavy shock damping
+	
+	self.ROLLINGRESISTANCE = 0.10 //0.05 // 0.15
+	self.GROUNDFRICTIONLATERAL = 1.20
+	
+	self.GROUNDBRAKEMULTIPLIER = 10.0
+	
+	self.TAILGEARFORCEBIAS = 1.0 // can be used to improve steering
+	
+	self.GROUNDSTABILIZER = 200000.0 // Nm
+	self.GEARDAMPING = 4.0 // s^-1, spring damping (per kg weight)
+	self.GEAR_OVERDAMPING = 4.0 // s^-1, additional overall rotation damping when on ground
+	
+	self.GROUNDFRICTIONYIELDSPEED_FORWARD = 0.6 //0.1 //0.01 // m/s
+	self.GROUNDFRICTIONYIELDSPEED_LATERAL = 0.6 // m/s
+	self.GROUNDFRICTIONYIELDSLIPANGLE = 0.1 // rad
+	
+	//self.GROUNDFRICTIONSPEEDMOD = 0.20	// smooths steering at higher speeds
+	//self.GROUNDFRICTIONMINSLIPSPEED = 1.0
+end

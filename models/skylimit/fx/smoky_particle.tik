@@ -1,0 +1,50 @@
+TIKI
+setup
+{
+	scale 0.04
+	path models/fx/destruction/bp_debris1
+	skelmodel bp_debris1.skd
+	surface material1 shader bp_debris1
+}
+
+init
+{
+	client
+	{
+		originemitter smoke
+		(
+			model vsssource.spr
+			spawnrate 30.0
+			color 0.0 0.0 0.0
+			alpha 1.0
+			scale 0.5
+			life 2.0
+			friction 1.0
+			randomroll
+			fade
+			fadein 0.1
+			randvel crandom 10.0 crandom 10.0 crandom 10.0
+		)
+		
+		originemitter fire
+		(
+			spawnrate 10.00
+			model sl_explosion.spr
+			color 1.00 1.00 1.00
+			varycolor
+			scale 0.2
+			life 0.2 // 2.00
+			alpha 1.0
+			scalerate 0.50
+			offsetalongaxis crandom 2.0 crandom 2.0 crandom 2.0 //0 crandom -20 range 7 -4
+			fade
+			randomroll
+		)
+	}
+}
+
+
+animations
+{
+	idle bp_debris1.skc	
+}

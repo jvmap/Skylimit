@@ -1,0 +1,69 @@
+// by jv_map
+
+// variant data stash
+add_primary_weapon local.weapname local.wd local.yawmin local.yawmax local.pitchmin local.pitchmax local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8:
+	local.l = spawn listener
+	local.l.weapname = local.weapname
+	local.l.wd = local.wd
+	local.l.yawmin = local.yawmin
+	local.l.yawmax = local.yawmax
+	local.l.pitchmin = local.pitchmin
+	local.l.pitchmax = local.pitchmax
+	
+	local.l.arg1 = local.arg1
+	local.l.arg2 = local.arg2
+	local.l.arg3 = local.arg3
+	local.l.arg4 = local.arg4
+	local.l.arg5 = local.arg5
+	local.l.arg6 = local.arg6
+	local.l.arg7 = local.arg7
+	local.l.arg8 = local.arg8
+
+	self.weapon_primary_list = waitthread global/skylimit/common.scr::addtoarray self.weapon_primary_list local.l
+end
+
+// set weaps for each instance
+setweap_primary local.weapstash:
+	local.weap = spawn listener
+
+	local.weapname = local.weapstash.weapname
+	local.wd = local.weapstash.wd
+	local.yawmin = local.weapstash.yawmin
+	local.yawmax = local.weapstash.yawmax
+	local.pitchmin = local.weapstash.pitchmin
+	local.pitchmax = local.weapstash.pitchmax
+	
+	local.arg1 = local.weapstash.arg1
+	local.arg2 = local.weapstash.arg2
+	local.arg3 = local.weapstash.arg3
+	local.arg4 = local.weapstash.arg4
+	local.arg5 = local.weapstash.arg5
+	local.arg6 = local.weapstash.arg6
+	local.arg7 = local.weapstash.arg7
+	local.arg8 = local.weapstash.arg8
+	
+	local.weap.handler = "global/skylimit/weaponhandlers/" + local.weapname + ".scr"
+
+	local.weap waitthread local.weap.handler::main self local.wd local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8
+
+	// yaw and pitch in [-180,180] range
+	local.weap.yawmin = local.yawmin
+	local.weap.yawmax = local.yawmax
+	local.weap.pitchmin = local.pitchmin
+	local.weap.pitchmax = local.pitchmax
+	
+	local.weap.bulletjam = 0.0
+	local.weap.jammed = game.false
+	local.weap.rounds_per_gun = local.weap.ammo_capacity_rounds_per_gun // fill
+
+	self.weapon_primary_list = waitthread global/skylimit/common.scr::addtoarray self.weapon_primary_list local.weap
+	waitthread global/skylimit/flight.scr::remove_on_death local.weap
+end
+
+assembly:
+	// add all the weaps from the planetype def
+	for(local.i = 1; local.i <= self.PLANETYPE.weapon_primary_list.size; local.i++)
+	{
+		waitthread setweap_primary self.PLANETYPE.weapon_primary_list[local.i]
+	}
+end

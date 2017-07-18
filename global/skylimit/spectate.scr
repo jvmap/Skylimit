@@ -1,0 +1,144 @@
+// player spectate handler
+// by jv_map
+
+spectate:
+	if(self.last_plane)
+	{
+		// keep watching last plane as it crashes
+		// switch back to freelook cam and watch plane die
+		if(self.cam_target != self.last_plane)
+		{
+			//println "-- reset crash cam --"
+			self.cam_target = self.last_plane
+			self.cam_mode = "freelook"
+		}
+	}
+	else
+	{
+		if ( !self.spectatee || (level.teambased && self.spectatee.dmteam != self.dmteam && self.dmteam != "spectator") )
+		{
+			self.spectatee = NULL
+		}
+		
+		if( !self.spectatee || (!self.last_spectate_useheld && self.useheld))
+		{
+			// try watching another player
+			// if no other player on this team then tele somewhere and allow look around
+			waitthread getspectatee
+		}
+		self.last_spectate_useheld = self.useheld
+		
+		if(self.spectatee)
+		{
+			self.cam_target = self.spectatee
+			self.cam_mode = "freelook"
+			self.cam_freelook_initvec = self.cam_target.origin - self.SL_camera.origin
+		}
+		else
+		{
+			if( !level.teambased || self.dmteam == "spectator")
+			{
+				if($intermission)
+				{
+					local.viewpos = $intermission.origin
+				}
+				else
+				{
+					local.viewpos = (0 0 0)
+				}
+			}
+			else
+			{
+				if($("tower_" + self.dmteam))
+				{
+					local.viewpos = $("tower_" + self.dmteam).origin
+				}
+				else
+				{
+					local.viewpos = (0 0 0)
+				}
+			}
+			
+			self.cam_mode = "manual"
+			self.cam_origin = local.viewpos
+			self.cam_angles = self.script_viewangles
+		}
+	}
+end
+
+// spectate any plane
+getspectatee:
+	local.i = 1
+	
+	if( !self.spectatee)
+	{
+		local.take_next = game.true
+		local.start_real_check = local.i
+	}
+
+	local.psize = $SL_plane.size
+	local.ssize = $SL_specable.size
+	
+	if(local.psize < 0)
+	{
+		local.psize = 0
+	}
+	
+	if(local.ssize < 0)
+	{
+		local.ssize = 0
+	}
+	
+	local.total_size = local.psize + local.ssize
+
+	while(local.total_size)
+	{
+		if(local.i <= local.psize)
+		{
+			local.p = $SL_plane[local.i]
+			if(local.take_next && ( !level.teambased || self.dmteam == "spectator" || local.p.dmteam == self.dmteam))
+			{
+				self.spectatee = local.p
+				break
+			}
+			
+			if(local.p == self.spectatee)
+			{
+				local.take_next = game.true
+				local.start_real_check = local.i
+			}
+		}
+		else if(local.i <= local.total_size)
+		{
+			local.w = $SL_specable[local.i - local.psize]
+			if(local.take_next && (local.w.dmteam == self.dmteam || local.w.weapon_owner == self))
+			{
+				self.spectatee = local.w
+				break
+			}
+			
+			if(local.w == self.spectatee)
+			{
+				local.take_next = game.true
+				local.start_real_check = local.i
+			}
+		}
+		else
+		{
+			local.i = 0
+		}
+		
+		local.i++
+		/*
+		if(local.i > $SL_plane.size)
+		{
+			local.i = 1
+		}
+		*/
+		if(local.i == local.start_real_check)
+		{
+			// no other plane could be found
+			break
+		}
+	}
+end

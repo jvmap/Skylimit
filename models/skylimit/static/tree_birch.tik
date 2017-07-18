@@ -1,0 +1,20 @@
+TIKI
+setup
+{
+	scale 0.52
+	path models/static/natural
+	skelmodel birch.skd
+	surface tree2_1 shader skylimit_static_tree2_1
+	surface tree2_2 shader skylimit_static_tree2_2
+	surface tree2_3 shader skylimit_static_tree2_3
+	surface tree2_4 shader skylimit_static_tree2_4
+	surface tree2sprite shader skylimit_static_tree2sprite
+}
+
+animations
+{
+	idle     birch.skc
+}
+
+/*QUAKED static_skylimit_birch (0.5 0.0 0.5) (-16 -16 -8) (16 16 1024)
+*/

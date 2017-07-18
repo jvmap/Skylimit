@@ -1,0 +1,33 @@
+TIKI
+setup
+{
+	scale 1.0
+	path models/skylimit/utils/shaft_adaptor
+	skelmodel shaft_adaptor.skd
+}
+ 
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+		//rendereffects +dontdraw
+		surface all +nodraw
+	}
+}
+
+animations
+{
+	idle 	shaft_adaptor.skc
+	ccw0	ccw0.skc
+	cw0		cw0.skc
+	ccw30	ccw30.skc
+	cw30	cw30.skc
+	ccw60	ccw60.skc
+	cw60	cw60.skc
+	ccw90	ccw90.skc
+	cw90	cw90.skc
+	ccw120	ccw120.skc
+	cw120	cw120.skc
+}

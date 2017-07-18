@@ -1,0 +1,43 @@
+TIKI
+setup
+{
+	scale 1.0
+	path models/fx/dummy
+	skelmodel dummy3.skd
+}
+
+init
+{
+	server
+	{
+		classname effectentity
+		notsolid
+		rendereffects +dontdraw
+	}
+}
+
+animations
+{
+    idle dummy3.skc
+    
+    start dummy3.skc
+    {
+		client
+		{
+			// tracer
+			enter originspawn
+			(
+				model muzsprite.spr
+				velocity 1000.0
+				parentangles
+				life 1.0
+				accel (0 0 -9.81)
+				//dietouch
+				//randvel crandom 30.0 crandom 30.0 crandom 30.0
+				randomroll
+				scale 0.05
+				count 1
+			)
+		}
+	}
+}

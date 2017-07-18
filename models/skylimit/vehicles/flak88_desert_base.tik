@@ -1,0 +1,26 @@
+// Flak88 (no shield)
+
+TIKI
+setup
+{
+	scale 0.52
+	
+	path models/skylimit/vehicles/flak88
+	skelmodel base.skd
+	
+	surface all shader skylimit_flak88_desert
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+	}
+}
+
+animations
+{
+	idle     		base.skc
+}

@@ -1,0 +1,432 @@
+// engine sound handler
+// for engine sound dopplering
+// by jv_map
+
+// init sound system
+// prepares some ents that'll eventually have to emit the noises
+init:
+	level.SL_SND_SOUND_ENTS = 64		// max number of loopsounds
+	
+	level.SL_SND_TIKI = fx/dummy.tik	// TIKI model used to play the sounds
+										// init server section should specify a classname
+	
+	level.SL_SND_LOOPSOUNDERROR = 0.005
+	
+	// ents are shared by all clients to keep entity count constant
+	// so we don't have problems with edicts running out
+	// however when there is a large number of players
+	// we may not have enough ents to play all sounds
+	// there should not be any problems as long as number of players <= sqrt(SL_SND_SOUND_ENTS)
+	
+	// make the sound ents
+	for(local.i = 1; local.i <= level.SL_SND_SOUND_ENTS; local.i++)
+	{
+		level.SND_sound_ent[local.i] = spawn level.SL_SND_TIKI
+		level.SND_sound_ent[local.i].available = game.true
+		level.SND_sound_ent[local.i] notsolid
+		level.SND_sound_ent[local.i] alwaysdraw
+	}
+end
+
+get_sound_ent:
+	local.result = NULL
+
+	for(local.i = 1; local.i <= level.SL_SND_SOUND_ENTS; local.i++)
+	{
+		local.ent = level.SND_sound_ent[local.i]
+		if(local.ent.available)
+		{
+			local.ent.available = game.false
+			local.result = local.ent
+			break
+		}
+	}
+	
+	if !(local.result)
+	{
+		println "WARNING[sound::get_sound_ent]: Out of sound ents to play engine sounds."	
+	}
+end local.result
+
+// releases self (a sound ent)
+release:
+	// stop sounds
+	self stoploopsound
+	
+	waitframe
+	
+	// recycle
+	self.available = game.true
+end
+
+// player microphone, analogous to camera::playercam
+playermic:
+	while(self)
+	{
+		waitthread handle_loopsounds
+		local.scene = self.snd_current_scene
+		local.scene_refs = self.snd_scene_refs
+		wait 0.20
+	}
+	
+	// TODO: release any remaining ents in scene
+	for(local.i = 1; local.i <= level.SND_ENTS.size; local.i++)
+	{
+		if(local.scene[local.i])
+		{
+			// ent is in scene
+			// silence it
+			local.ref = local.scene_refs[local.i]
+			if(local.ref)
+			{
+				local.ref thread release
+			}
+		}
+	}
+end
+
+//#INLINE
+handle_loopsounds:
+	local.current_scene = self.snd_current_scene
+	local.scene_refs = self.snd_scene_refs
+
+	// check if any looping sounds are nearby
+	for(local.i = 1; local.i <= level.SND_ENTS.size; local.i++)
+	{
+		local.ent = level.SND_ENTS[local.i]
+		
+		// ent is not in the new scene unless proven (beyond reasonable doubt) otherwise
+		local.new_scene[local.i] = game.false
+		
+		if(local.ent && local.ent.snd_active)
+		{
+			local.vec = local.ent.origin - self.SL_camera.origin
+			local.sqdist = local.vec * local.vec
+			
+			if(local.sqdist <= local.ent.snd_maxdist * local.ent.snd_maxdist)
+			{
+				local.new_scene[local.i] = game.true
+			}
+		}
+		
+		// get the sound reference if we have one
+		local.ref = local.scene_refs[local.i]
+		
+		// compare this with the current_scene
+		if(local.current_scene[local.i] && local.new_scene[local.i])
+		{
+			// entity is prolongated in the scene
+			// update position
+			if(local.ref)
+			{
+				// update the sound
+				waitthread update_sound local.ref local.ent local.vec game.false
+			}
+			else
+			{
+				//println "-- adding ent because ref is missing --"
+				
+				// this may happen if we were out of sound ents in a previous step
+				// try to resolve the situation
+				local.sound_ent = waitthread get_sound_ent
+				if(local.sound_ent)
+				{
+					// get the sound_ent in place and play the sound
+					waitthread update_sound local.sound_ent local.ent local.vec game.true
+					
+					// stash the sound_ent so we can still access it later
+					local.scene_refs[local.i] = local.sound_ent
+				}
+				else
+				{
+					// out of sound_ent
+					// for the moment just do nothing at all
+					// TODO: just play the sound non-dopplered
+				}
+			}
+		}
+		else if(local.current_scene[local.i] && !local.new_scene[local.i])
+		{
+			//println "-- removing ent from scene --"
+			
+			// entity is removed from my scene
+			if(local.ref)
+			{
+				// stop sounds, release ent and clear the ref
+				local.ref thread release
+				local.scene_refs[local.i] = NIL
+			}
+			else
+			{
+				// hmm didn't have a ref in the first place
+				// weird but have to do nothing then :)
+			}
+		}
+		else if( !local.current_scene[local.i] && local.new_scene[local.i])
+		{
+			//println "-- adding ent to scene --"
+			// entity is added to my scene
+			// need to allocate a sound_ent
+			local.sound_ent = waitthread get_sound_ent
+			if(local.sound_ent)
+			{
+				// get the sound_ent in place and play the sound
+				waitthread update_sound local.sound_ent local.ent local.vec game.true
+				
+				// stash the compound so we can still access it later
+				local.scene_refs[local.i] = local.sound_ent
+			}
+			else
+			{
+				// out of sound_ents
+				// for the moment just do nothing at all
+				// TODO: just play the sound non-dopplered
+			}
+		}
+		else
+		{
+			// entity was not in scene and won't be added either
+			// can sit on sofa lazily
+			// (pref. w/ beer)
+			// (or jet fuel when all out of beer)
+			// *glup* *glup* 
+			
+			// *buuurp*
+		}
+	}
+	
+	self.snd_current_scene = local.new_scene
+	self.snd_scene_refs = local.scene_refs
+end
+
+// sound_ent is the sound tiki playing the sounds
+// ent is the ent that's the source of sounds (the airplane)
+// self is the player who's hearing the sounds
+// vec is vec from self's camera to ent
+// sqdist is the squared distance between ent and self's camera
+//#INLINE
+update_sound local.sound_ent local.ent local.vec local.new:
+	
+	local.SOUND_DIST = 160.0
+	
+	local.playsound = game.true
+	
+	if(local.ent == self.cam_target)
+	{
+		local.sound_ent.offset = (0 0 0) // used by camera
+		
+		if(local.new)
+		{
+			local.sound_ent.origin = self.origin + local.sound_ent.offset
+		}
+		
+		local.alias		= local.ent.snd_alias + "_local"
+		local.volume	= local.ent.snd_volume
+		local.pitch 	= local.ent.snd_pitch
+		
+		//local.sound_ent loopsound local.alias local.volume local.SOUND_DIST local.SOUND_DIST local.pitch
+	}
+	else
+	{
+		local.sound_dist = vector_length local.vec
+		
+		// place the sound right near the player
+		local.DIST = 0.5
+		
+		local.sound_ent.offset = local.vec * (local.DIST / local.sound_dist) // used by camera
+		
+		if(local.new)
+		{
+			local.sound_ent.origin = self.origin + local.sound_ent.offset
+		}
+	
+		local.alias			= local.ent.snd_alias
+	
+		// determine volume
+		local.volume_base	= local.ent.snd_volume
+		local.min_dist		= local.ent.snd_mindist
+		local.max_dist		= local.ent.snd_maxdist
+		
+		if(local.sound_dist <= local.min_dist)
+		{
+			local.volume_mult = 1.0
+		}
+		else
+		{
+			//local.volume_mult = 1.0 - (local.sound_dist - local.min_dist) / (local.max_dist - local.min_dist)
+			local.normal_dist = local.sound_dist / local.max_dist
+			local.volume_mult = 1.0 / (1.0 + (20.0 - 1.0) * local.normal_dist * local.normal_dist)
+		}
+	
+		local.volume = local.volume_mult * local.ent.snd_volume
+	
+		// determine pitch
+	
+		// receiver velocity
+		if(self.cam_target && self.cam_target.isphysicsobject)
+		{
+			local.receiver_velocity = self.cam_target.p_velocity
+			
+			if(self.cam_target.isplane)
+			{
+				local.receiver_soundspeed = self.cam_target.air_soundspeed
+			}
+			else
+			{
+				local.receiver_soundspeed = level.SL_SOUNDSPEED
+			}
+		}
+		else
+		{
+			local.receiver_velocity = (0 0 0)
+			local.receiver_soundspeed = level.SL_SOUNDSPEED
+		}
+		
+		// transmitter velocity
+		if(local.ent.isphysicsobject)
+		{
+			local.transmitter_velocity = local.ent.p_velocity
+			
+			if(local.ent.isplane)
+			{
+				local.transmitter_soundspeed = local.ent.air_soundspeed
+			}
+			else
+			{
+				local.transmitter_soundspeed = level.SL_SOUNDSPEED
+			}
+		}
+		else
+		{
+			local.transmitter_velocity = (0 0 0)
+			local.transmitter_soundspeed = level.SL_SOUNDSPEED
+		}
+		
+		local.pitch_base 	= local.ent.snd_pitch
+		
+		// cheap average
+		local.soundspeed = 0.5 * (local.receiver_soundspeed + local.transmitter_soundspeed)
+		
+		if(local.receiver_velocity * local.transmitter_velocity != 0.0)
+		{
+			// apply doppler shift
+			local.nvec = local.vec * (1.0 / local.sound_dist)
+			
+			local.shift_num = level.SL_SOUNDSPEED + local.receiver_velocity * local.nvec
+			local.shift_den = level.SL_SOUNDSPEED + local.transmitter_velocity * local.nvec
+			
+			if(local.shift_den > 0.0)
+			{
+				// shift pitch
+				local.pitch = local.shift_num / local.shift_den * local.pitch_base
+				
+				// loopsound soundName volume minimum_distance maximum_distance pitch
+				//local.sound_ent loopsound local.alias local.volume local.SOUND_DIST local.SOUND_DIST local.pitch
+			}
+			else
+			{
+				// transmitter is closing in on me faster than speed of sound :|
+				// so I can never hear it
+				//local.sound_ent stoploopsound
+				local.playsound = game.false
+			}
+		}
+		else
+		{
+			// no doppler shift
+			//local.sound_ent loopsound local.alias local.volume local.SOUND_DIST local.SOUND_DIST local.pitch_base
+			local.pitch = local.pitch_base
+		}
+	}
+	
+	if(local.playsound)
+	{
+		if(local.alias != local.sound_ent.last_alias)
+		{
+			local.sound_ent loopsound local.alias local.volume local.SOUND_DIST local.SOUND_DIST local.pitch
+			local.sound_ent.last_alias = local.alias
+			local.sound_ent.last_volume = local.volume
+			local.sound_ent.last_pitch = local.pitch
+		}
+		else
+		{
+			local.dv = local.volume - local.sound_ent.last_volume
+			local.dp = local.pitch - local.sound_ent.last_pitch
+			local.e = local.dv * local.dv + local.dp * local.dp
+			
+			if(local.e > level.SL_SND_LOOPSOUNDERROR)
+			{
+				local.sound_ent loopsound local.alias local.volume local.SOUND_DIST local.SOUND_DIST local.pitch
+				local.sound_ent.last_volume = local.volume
+				local.sound_ent.last_pitch = local.pitch
+			}
+		}
+	}
+	else
+	{
+		local.sound_ent stoploopsound
+		local.sound_ent.last_alias = NULL
+	}
+end
+
+// play dopplerable loopsound
+//#INLINE
+loopsound local.alias local.volume local.pitch local.min_dist local.max_dist:
+	// check if we're registered
+	if !(self.snd_registered)
+	{
+		waitthread register
+	}
+	
+	self.snd_alias = local.alias
+	self.snd_volume = local.volume
+	self.snd_pitch = local.pitch
+	self.snd_mindist = local.min_dist
+	self.snd_maxdist = local.max_dist
+	self.snd_active = game.true
+end
+
+// stops all dopplerable loopsounds from this entity
+//#INLINE
+stoploopsound:
+	/*
+	if (self.snd_registered)
+	{
+		waitthread unregister
+	}
+	*/
+	self.snd_active = game.false
+end
+
+//#INLINE
+register:
+	// make sure we don't get threading problems
+	if !(self.snd_registered)
+	{
+		self.snd_registered = game.true
+		//println "-- registering sound --"
+		level.SND_ENTS = waitthread global/skylimit/common.scr::addtoarray level.SND_ENTS self
+	}
+end
+/*
+unregister:
+	// make sure we don't get threading problems
+	if (self.snd_registered)
+	{
+		self.snd_registered = game.false
+	
+		local.j = 0
+		for(local.i = 1; local.i <= level.SND_ENTS.size; local.i++)
+		{
+			local.e = level.SND_ENTS[local.i]
+			if (local.e && local.e != self)
+			{
+				local.j++
+				local.new_array[local.j] = local.e
+			}
+		}
+		
+		level.SND_ENTS = local.new_array
+	}
+end
+*/

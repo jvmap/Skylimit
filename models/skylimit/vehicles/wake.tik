@@ -1,0 +1,21 @@
+TIKI
+setup
+{
+	scale 32			// Set default scale to 16/30.5 since world is in 16 units per foot and model is in cm's
+	path models/fx/unitsquare
+	skelmodel unitsquare.skd
+	surface all shader sl_wake
+}
+
+init
+{
+	server
+	{
+		classname Object
+	}
+}
+
+animations
+{
+	idle     unitsquare.skc
+}

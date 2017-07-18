@@ -1,0 +1,414 @@
+// common routines
+// by jv_map
+
+// makes a few ents for the stack
+makestack local.class local.amount:	
+	for(local.i = 1; local.i <= local.amount; local.i++)
+	{
+		local.e = spawn local.class
+		local.e waitthread releasetostack
+		
+		level.SL_ENT_STACK[local.class][local.i] = local.e
+	}
+end
+
+// adds self to appriopriate stack
+addtostack:
+	local.stack = level.SL_ENT_STACK[self.classname]
+	if(local.stack)
+	{
+		level.SL_ENT_STACK[self.classname][local.stack.size + 1] = self
+	}
+	else
+	{
+		level.SL_ENT_STACK[self.classname][1] = self	
+	}
+end
+
+// returns size of stack for class
+stacksize local.class:
+
+end level.SL_ENT_STACK[local.class].size
+
+// returns first free ent from stack
+getfromstack local.class local.extend_stack_if_necessary:
+	local.array = level.SL_ENT_STACK[local.class]
+	for(local.i = 1; local.i <= local.array.size; local.i++)
+	{
+		local.e = local.array[local.i]
+		if(local.e.SL_stack_released)
+		{
+			local.e.SL_stack_released = game.false
+			local.e show
+			end local.e	
+		}
+	}
+	
+	if(local.extend_stack_if_necessary)
+	{
+		println "had to increase stack size for class " local.class " to " (waitthread stacksize local.class)
+		
+		// make a new ent
+		local.e = spawn local.class
+		
+		// add this to stack
+		local.e waitthread addtostack
+		
+		end local.e
+	}
+end NULL
+
+// releases ent to class stack
+releasetostack local.delay:
+	if(local.delay)
+		wait local.delay
+	
+	self hide
+	self notsolid
+	self scale 1.0
+	if(self.model)
+	{
+		self anim idle
+		waitframe
+	}
+	self.SL_stack_released = game.true
+end
+
+// returns smallest
+// slightly expedient so it's pileable
+min local.a local.b:
+	if(local.a < local.b)
+	{
+		local.result = local.a
+	}
+	else
+	{
+		local.result = local.b
+	}
+end local.result
+
+// returns greatest
+// slightly expedient so it's pileable
+max local.a local.b:
+	if(local.a > local.b)
+	{
+		local.result = local.a
+	}
+	else
+	{
+		local.result = local.b
+	}
+end local.result
+
+randomvectoroffset local.xcrange local.ycrange local.zcrange:
+	local.x = (2.0 * (randomfloat 1.0) - 1.0) * local.xcrange
+	local.y = (2.0 * (randomfloat 1.0) - 1.0) * local.ycrange
+	local.z = (2.0 * (randomfloat 1.0) - 1.0) * local.zcrange
+end (local.x local.y local.z)
+
+randomangle local.base local.rand: 
+end (local.rand * ((randomfloat 360.0) - 180.0) + local.base)
+
+initarray:
+	local.array[1] = NIL
+end local.array
+
+// requires array to be initialized
+addtoarray local.array local.element:
+	
+	// array operations get priority
+	while(level.SL_PROCESSING_ARRAY)
+	{
+		wait 0.0001
+	}
+	
+	level.SL_PROCESSING_ARRAY = game.true
+	
+	if(local.array[1] == NIL)
+	{
+		local.array[1] = local.element
+	}
+	else
+	{
+		local.array[local.array.size + 1] = local.element
+	}
+	
+	level.SL_PROCESSING_ARRAY = game.false
+
+end local.array
+
+// shifts all records in array 1 entry 'left' (index-1)
+arrayshiftdown local.array:
+
+	// array operations get priority
+	while(level.SL_PROCESSING_ARRAY)
+	{
+		wait 0.0001
+	}
+	
+	level.SL_PROCESSING_ARRAY = game.true
+
+	local.zero_entry = local.array[1]
+	for(local.i = 2; local.i <= local.array.size; local.i++)
+	{
+		local.array[local.i - 1] = local.array[local.i]
+	}
+	local.array[local.array.size] = local.zero_entry
+	
+	level.SL_PROCESSING_ARRAY = game.false
+end
+
+// shifts all records in array 1 entry 'right' (index+1)
+arrayshiftup local.array:
+
+	// array operations get priority
+	while(level.SL_PROCESSING_ARRAY)
+	{
+		wait 0.0001
+	}
+	
+	level.SL_PROCESSING_ARRAY = game.true
+
+	local.zero_entry = local.array[local.array.size]
+	for(local.i = local.array.size; local.i >= 2; local.i--)
+	{
+		local.array[local.i] = local.array[local.i - 1]
+	}
+	local.array[1] = local.zero_entry
+	
+	level.SL_PROCESSING_ARRAY = game.false
+end
+
+arraycopy local.in:
+	
+	// array operations get priority
+	while(level.SL_PROCESSING_ARRAY)
+	{
+		wait 0.0001
+	}
+	
+	level.SL_PROCESSING_ARRAY = game.true
+
+	for(local.i = 1; local.i <= local.in.size; local.i++)
+		local.out[local.i] = local.in[local.i]
+		
+	level.SL_PROCESSING_ARRAY = game.false
+end local.out
+/*
+arrayadd local.array1 local.array2:
+	for(local.i = 1; local.i <= local.array1.size; local.i++)
+	{
+		local.array3[local.i] = local.array1[local.i]
+	}
+	for(local.i = 1; local.i <= local.array2.size; local.i++)
+	{
+		local.array3[local.i + local.array1.size] = local.array2[local.i]	
+	}
+end local.array3
+*/
+stringarraycopy local.array local.identifiers:
+
+	// array operations get priority
+	while(level.SL_PROCESSING_ARRAY)
+	{
+		wait 0.0001
+	}
+	
+	level.SL_PROCESSING_ARRAY = game.true
+
+	for(local.i = 1; local.i <= local.identifiers.size; local.i++)
+	{
+		local.ident = local.identifiers[local.i]
+		local.new_array[local.ident] = local.array[local.ident]
+	}
+	
+	level.SL_PROCESSING_ARRAY = game.false
+end local.new_array
+
+// determines surface normal
+surfnormal local.pos_on_ground local.size_mult:
+	local.trace_offset = (0 0 16)
+
+	local.pos1_offset = (2 0 0)
+	local.pos2_offset = (0 2 0)
+	
+	if(local.size_mult)
+	{
+		local.pos1_offset = local.pos1_offset * local.size_mult
+		local.pos2_offset = local.pos2_offset * local.size_mult
+	}
+	
+	local.startpos = local.pos_on_ground + local.trace_offset
+	local.endpos = local.pos_on_ground - local.trace_offset
+	local.pos1 = local.endpos + local.pos1_offset
+	local.pos2 = local.endpos + local.pos2_offset
+	
+	local.gpos1 = trace local.startpos local.pos1 0
+	local.gpos2 = trace local.startpos local.pos2 0
+	
+	local.vec1 = local.gpos1 - local.pos_on_ground
+	local.vec2 = local.gpos2 - local.pos_on_ground
+	
+	// debug beams
+	/*
+	local.beam1 = spawn func_beam origin local.startpos endpoint local.pos1 maxoffset 0.0
+	local.beam2 = spawn func_beam origin local.startpos endpoint local.pos2 maxoffset 0.0
+	local.beam3 = spawn func_beam origin local.startpos endpoint local.pos_on_ground maxoffset 0.0
+	local.beam1 activate
+	local.beam2 activate
+	local.beam3 activate
+	*/
+end (vector_normalize (vector_cross local.vec1 local.vec2))
+
+// preserves azimuth; adjust pitch and roll to match normal
+// (useful for tank turrets etc or aligning with terrain)
+normaladjust local.normal:
+	// roll
+	local.lfdot = self.leftvector * local.normal
+	local.roll = local.lfdot / level.PI * -180.0
+	self.angles += (0 0 local.roll)
+	
+	// pitch
+	local.fwddot = self.forwardvector * local.normal
+	local.pitch = local.fwddot / level.PI * 180.0
+	self.angles += (local.pitch 0 0)
+end
+
+// nice smooth swing w/ acceleration / deceleration
+// only does yaw atm
+entswing local.target_angle local.speed_fraction:
+	local.THRESHOLD = 0.2 // degrees	
+	
+	while(self)
+	{
+		local.delta = waitthread global/skylimit/math.scr::getanglediff self.angles[1] local.target_angle
+		
+		if(abs local.delta < local.THRESHOLD)
+			break
+			
+		self.angles += (local.delta * local.speed_fraction) * (0.0 1.0 0.0)
+		waitframe
+	}
+end
+
+// courtesy from flight.scr
+cap local.val local.min local.max:
+	if(local.val < local.min)
+		local.val = local.min
+	else if(local.val > local.max)
+		local.val = local.max
+end local.val
+
+// broadcasts artillery echo sound to all players
+// timing depends on distance from sound pos
+arty_echo local.pos:
+	for(local.i = 1; local.i <= $player.size; local.i++)
+	{
+		$player[local.i] thread arty_echo_player local.pos
+	}
+end
+
+arty_echo_player local.pos:
+	local.MAX_DISTANCE = 2000.0
+	local.MIN_DELAY = 1.0 // min echo delay
+
+	local.distance = vector_length (self.origin - local.pos)
+	
+	if(local.distance < local.MAX_DISTANCE)
+	{
+		local.distance_meters = local.distance * level.SL_UNITSCALE
+		local.delay = local.distance_meters / level.SL_SOUNDSPEED
+		
+		if(local.delay < local.MIN_DELAY)
+			local.delay = local.MIN_DELAY
+		
+		wait local.delay
+		
+		if(self)
+		{
+			//println "sound!"
+			self playsound arty_echo
+		}
+	}
+	else
+	{
+		//println "inv dist"	
+	}
+end 
+
+// returns an array with all entries of entity_list
+// with dmteam variable not equal to exclude_team
+inverse_team_selection local.entity_list local.exclude_team:
+	
+	local.j = 0
+	
+	for(local.i = 1; local.i <= local.entity_list.size; local.i++)
+	{
+		local.ent = local.entity_list[local.i]
+		
+		if(local.ent.dmteam != local.exclude_team)
+		{
+			local.j++
+			local.array[local.j] = local.ent
+		}
+	}
+	
+end local.array
+
+// makes an entnum indexed array
+// with sqranges from each entity in the entity_list to origin
+// lead time biases based on entity velocity
+entity_list_sqrange local.entity_list local.origin local.lead_time:
+
+	for(local.i = 1; local.i <= local.entity_list.size; local.i++)
+	{
+		local.ent = local.entity_list[local.i]
+		local.vec = local.ent.origin - local.origin
+		
+		if(local.ent.isphysicsobject && local.lead_time)
+		{
+			local.vec += local.ent.w_velocity * local.lead_time
+		}
+		
+		local.sqrange = local.vec * local.vec
+		local.array[local.ent.entnum] = local.sqrange
+	}
+	
+end local.array
+
+// sorts entity_list using score_list (descending)
+// score_list should be entnum indexed
+sort_by_sqrange_asc local.entity_list local.score_list:
+	
+	// use binary indexing for quick sorting
+	local.done = 0
+	
+	for(local.j = 1; local.j <= local.entity_list.size; local.j++)
+	{
+		local.lowest_score = NIL
+		
+		for(local.i = 1; local.i <= local.entity_list.size; local.i++)
+		{
+			local.ent = local.entity_list[local.i]
+			local.score = local.score_list[local.ent.entnum]
+			
+			// don't call powint b/c of overhead
+			local.bin = 1
+			for(local.k = 1; local.k <= local.i; local.k++)
+			{
+				local.bin = local.bin * 2
+			}
+			
+			if( !(local.done & local.bin) && (local.lowest_score == NIL || local.score <= local.lowest_score))
+			{
+				local.lowest_score = local.score
+				local.lowest_scoring_ent = local.ent
+				local.lowest_scoring_bin = local.bin
+			}
+		}
+		
+		local.done += local.lowest_scoring_bin
+		local.new_array[local.j] = local.lowest_scoring_ent
+	}
+	
+end local.new_array

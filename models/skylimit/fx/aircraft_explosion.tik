@@ -1,0 +1,166 @@
+// crash into terrain
+
+TIKI
+setup
+{
+	scale 0.031
+	path models/fx/dummy
+	skelmodel dummy3.skd
+}
+
+init
+{
+	server
+	{
+		classname effectentity
+		notsolid
+		rendereffects +dontdraw
+		angles 270 0 0
+	}
+	client
+	{
+		cache textures/effects/bang.spr
+		cache textures/sprites/metalshard_heavy.spr
+		cache textures/sprites/metalshard_med.spr
+		cache models/emitters/higgins_mushroom.tik
+ 	}
+}
+
+animations
+{
+	idle dummy3.skc
+
+	start dummy3.skc
+	{
+		server
+		{
+			enter playsound aircraft_boom
+			last commanddelay 1 anim idle
+		}
+
+		client
+		{
+			//enter sound aircraft_boom
+
+			enter originspawn
+			(
+				model textures/effects/bang.spr
+				offset 0 0 8
+				scale 0.2
+				life 0.95
+			)
+			
+			// fiery pieces
+			enter originspawn
+			(
+				model models/skylimit/fx/smoky_particle.tik
+				count 6
+				color 0.0 0.0 0.0
+				alpha 0.75
+				scale 1.0
+				life 3.00
+				randvel crandom 120.0 crandom 120.0 random 60.0
+				fade
+				randomroll
+				accel 0 0 -15.3
+			)
+			
+/*
+			enter commanddelay .3 originspawn
+			(
+				volumetric
+				model greasefire
+				count 45
+				alpha 0.4
+				color 0.25 0.25 0.25
+				scale 0.40
+				life 20
+				spawnrate 5
+				smokeparms 0 1.5 1.2
+				offset crandom 2 crandom 1 random 6
+				randvel crandom 0.012 crandom 0.012 random 0.016
+			)
+
+			enter commanddelay .3 originspawn
+			(
+				volumetric
+				model greasefire
+				count 10
+				alpha 0.4
+				color 0.25 0.25 0.25
+				scale 0.40
+				life 20
+				spawnrate 5
+				smokeparms 0 1.5 1.2
+				offset crandom 1 crandom 0.5 range 6 2
+				randvel crandom 0.012 crandom 0.012 random 0.016
+			)
+*/
+/*
+			// metal chunks
+			enter originspawn
+			(
+				model textures/sprites/metalshard_heavy.spr
+				count 15
+				offset crandom 2 crandom 2 random 2
+				angles random 360 random 360 0
+				avelocity crandom 180 crandom 180 0
+				randvel 0 0 range 39 19
+				radialvelocity 0 1.25 2.5
+				accel 0 0 -25
+				life 2.5
+				scalemin 0.020
+				scalemax 0.048
+			)
+
+			// slightly delayed, metal chunks
+			enter commanddelay 0.1 originspawn
+			(
+				model textures/sprites/metalshard_med.spr
+				count 15
+				offset crandom 2 crandom 2 random 2
+				angles random 360 random 360 0
+				avelocity crandom 180 crandom 180 0
+				randvel 0 0 range 0.39 0.19
+				radialvelocity 0 0.125 0.375
+				accel 0 0 -25
+				life 2.5
+				scalemin 0.020
+				scalemax 0.048
+			)
+	*/		
+			// sand shooters
+			enter originspawn
+			(
+				model vsssource.spr
+				count 40
+				color 0.8 0.7 0.5
+				alpha 0.50
+				scale 0.30
+				life 4.00
+				scalerate 3.0
+				randvel crandom 60.0 crandom 60.0 random 45.0
+				//collision
+				friction 0.30
+				fade 
+				randomroll
+			)
+			
+			// smoke shooters
+			enter originspawn
+			(
+				model vsssource2.spr
+				count 8
+				color 0.0 0.0 0.0
+				alpha 1.0
+				scale 0.2
+				life 6.00
+				scalerate 5.0
+				randvel crandom 20.0 crandom 20.0 random 20.0
+				fade 
+				randomroll
+				friction 0.2
+			)
+		}
+	}
+}

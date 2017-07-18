@@ -1,0 +1,89 @@
+// default machinegun
+// by jv_map
+
+// tag_mult_list is dmg multiplier per tag (for simulating multiple guns at the same location)
+// convergence is in pct of fwd velocity, + is converge to left
+// centery centers tag in left/right sense 
+// if lists contain only 1 entry they should be NULL-terminated
+main local.plane local.wd local.emitter local.tag_list local.tag_mult_list local.tag_convergence_list local.tag_centery_list:
+
+	// defaults
+	self.name = "Machinegun"
+	self.hud_shader = "sl_wmg"
+	self.damage = 5.0 // damage per gun
+	self.means_of_damage = level.MODM_BULLET_MG
+	self.bulletlife = 0.5
+	self.bulletvelocity = 755.0 // m/s
+	self.firedelay = 0.10
+	self.readytofire = game.true
+	self.jamlimit = 11.0 // jam after this many shots have been fired in a row
+	self.jamdecay = 6.0 // reduce jam by this amount each second
+	self.spread = 0.0064 // random spread in fraction of bullet velocity
+	self.splash = game.false
+	self.ammo_capacity_rounds_per_gun = 500
+	self.splash_model = skylimit/fx/cannon_shell.tik
+	
+	self.tag_list = local.tag_list
+	self.tag_mult_list = local.tag_mult_list
+	self.tag_convergence_list = local.tag_convergence_list
+	self.tag_centery_list = local.tag_centery_list
+	
+	self.shell_types = "AP"::"AP"
+	
+	self.number_of_guns = 0
+	for(local.i = 1; local.i <= self.tag_mult_list.size && self.tag_mult_list[local.i]; local.i++)
+	{
+		self.number_of_guns += self.tag_mult_list[local.i]
+	}
+	
+	self.soundset = "browning303"
+	
+	self.emitter = local.emitter
+	
+	// overrides
+	waitthread ("global/skylimit/weapons/" + local.wd + ".wd")::specs
+	
+	local.plane.EMITTERS = waitthread global/skylimit/common.scr::addtoarray local.plane.EMITTERS local.emitter
+	
+	self.hud_shader_jammed = self.hud_shader + "j"
+end
+
+// self is plane
+// w is weap listener
+fire local.w:
+	local.w.readytofire = game.false
+	
+	self.emit[local.w.emitter] = game.true
+
+	for(local.i = 1; local.i <= local.w.tag_list.size && local.w.tag_list[local.i]; local.i++)
+	{
+		local.tag = self gettagposition local.w.tag_list[local.i]
+		
+		if(local.w.tag_centery_list[local.i])
+		{
+			local.tag -= (local.tag - self.origin) * self.leftvector * self.leftvector
+		}
+		
+		local.dir = self.forwardvector + local.w.tag_convergence_list[local.i] * self.leftvector
+		
+		// rescale dir
+		local.length = waitthread global/skylimit/math.scr::sqrt1 (1.0 + local.w.tag_convergence_list[local.i])
+		
+		// normalize
+		local.shootvec = local.dir * (1.0 / local.length)
+		
+		// pick shelltype
+		local.type = local.w.shell_types[randomint local.w.shell_types.size + 1]
+
+		// fire a shell
+		thread global/skylimit/bulletattack.scr::fire local.tag self.pilot self.pilot.dmteam self local.w local.w.tag_mult_list[local.i] local.shootvec local.type
+	}
+	
+	wait local.w.firedelay
+	
+	if(self)
+	{
+		self.emit[local.w.emitter] = game.false
+		local.w.readytofire = game.true
+	}
+end

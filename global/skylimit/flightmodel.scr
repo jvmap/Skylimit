@@ -1,0 +1,281 @@
+// by jv_map
+
+addwheel local.id:
+	local.ent = spawn listener
+	
+	if(local.id != NIL)
+	{
+		local.ent.model = self.PLANETYPE.tikipath + "wheel_" + local.id + ".tik"
+	}
+	
+	if(self.wheels == NIL)
+		self.wheels[1] = local.ent
+	else
+		self.wheels[self.wheels.size + 1] = local.ent
+end local.ent
+
+addprop local.custom_prop:
+	local.ent = spawn listener
+	
+	if(local.custom_prop)
+	{
+		local.ent.model_slow = self.PLANETYPE.tikipath + "prop.tik"
+	}
+	else
+	{
+		local.ent.model_slow = models/skylimit/aircraft/includes/defaultprop.tik
+	}
+	
+	local.ent.model_fast = models/skylimit/aircraft/includes/blurprop.tik
+	
+	if(self.props == NIL)
+		self.props[1] = local.ent
+	else
+		self.props[self.props.size + 1] = local.ent
+end local.ent
+
+addguy:
+	local.ent = spawn listener
+	self.crew_data = waitthread global/skylimit/common.scr::addtoarray self.crew_data local.ent
+end local.ent
+
+plane_assembly:
+	waitexec global/skylimit/flightmodels/includes.fm
+	waitexec self.PLANETYPE.flightmodelfile
+	waitexec global/skylimit/groundmodels/includes.gm
+	waitexec self.PLANETYPE.assemblyfile
+
+	self.ARMOR = self.PLANETYPE.ARMOR
+	self.DAMAGETYPE = self.PLANETYPE.DAMAGETYPE
+	self.MASS += self.PLANETYPE.EQUIPMENT_MASS
+
+	local.NUMWHEELS = 3
+
+	// hide unused skins
+	for(local.i = 1; local.i <= self.PLANETYPE.suppress_skinlist.size; local.i++)
+	{
+		self surface self.PLANETYPE.suppress_skinlist[local.i] "+nodraw"
+	}
+
+	// for looping firing sounds
+	if ( !self.is_hangar_model)
+	{
+		for(local.i = 1; local.i <= level.SL_SND_WEAPONSOUND_CHANNELS; local.i++)
+		{
+			self.weaponsound_ent[local.i] = spawn Animate model skylimit/utils/8tags.tik
+			self.weaponsound_ent[local.i] waitthread attach self "auxorigin" game.true
+		}
+		
+		self.secondary_weapon_sound_ent = spawn Animate model skylimit/utils/8tags.tik
+		self.secondary_weapon_sound_ent waitthread attach self "auxorigin" game.true
+	}
+
+	// wheels
+	self.hasretractablegear = game.false
+	if(self.wheels.size != local.NUMWHEELS)
+	{
+		println "ops aircraft " self.model " must have exactly " local.NUMWHEELS " wheels, not " self.wheels.size
+	}
+	for(local.i = 1; local.i <= local.NUMWHEELS; local.i++)
+	{
+		local.w = self.wheels[local.i]
+		if(local.w.model)
+		{
+			local.w.polymodel = spawn local.w.model
+			local.w.polymodel waitthread attach self local.w.tag game.true
+			local.w.tagent = local.w.polymodel
+			
+			if(local.w.retractable)
+			{
+				if(self.airspawn)
+				{
+					local.w.polymodel anim retracted
+				}
+				else
+				{
+					local.w.polymodel anim down
+				}
+				self.hasretractablegear = game.true
+				
+				if(self.retractablewheels == NIL)
+				{
+					self.retractablewheels[1] = local.w
+				}
+				else
+				{
+					self.retractablewheels[self.retractablewheels.size + 1] = local.w
+				}
+			}
+		}
+		else
+		{
+			local.w.tagent = self
+		}
+		
+		// attach a dust emitter
+		if ( !self.is_hangar_model)
+		{
+			local.w.sfx = spawn level.SL_SFX_WHEELDUST
+			local.w.sfx attach local.w.tagent local.w.groundtag
+		}
+	}
+	
+	self.wheel_left.id = -1
+	self.wheel_right.id = 1
+	self.wheel_center.id = 0
+
+	// this is the prop # that'll catch fire when we're eventually shot down :)
+	self.unlucky_engine_number = randomint self.props.size + 1
+
+	// props
+	for(local.i = 1; local.i <= self.props.size; local.i++)
+	{
+		local.p = self.props[local.i]
+		
+		// prop (hi poly prop model)
+		local.p.polymodel = spawn local.p.model_slow
+		local.p.polymodel waitthread attach self local.p.tag game.true
+		
+		if !(self.is_hangar_model)
+		{
+			// this is the simple low poly prop blur for high prop speeds
+			local.p.simplemodel = spawn local.p.model_fast
+			local.p.simplemodel waitthread attach self local.p.tag game.true
+			local.p.simplemodel surface all "+nodraw"
+			
+			if !(local.p.no_exhaust)
+			{
+				local.p.sfx_exhaust = spawn skylimit/fx/aircraft_engine_exhaust.tik
+				local.p.sfx_exhaust waitthread attach self local.p.tag game.true
+			}
+			
+			local.p.sfx_boost = spawn skylimit/fx/aircraft_engine_boost.tik
+			local.p.sfx_boost waitthread attach self local.p.tag game.true
+			
+			if(local.i == self.unlucky_engine_number)
+			{
+				local.p.sfx_fire = spawn skylimit/fx/aircraft_fire.tik
+				local.p.sfx_fire waitthread attach self local.p.tag game.true
+				
+				local.p.sfx_smoke = spawn skylimit/fx/aircraft_damaged_smoke.tik
+				local.p.sfx_smoke waitthread attach self local.p.tag game.true
+			}
+		}
+	}
+	
+	// attach racks if any
+	for(local.i = 1; local.i <= self.PLANETYPE.racks.size; local.i++)
+	{
+		local.rack = self.PLANETYPE.racks[local.i]
+		
+		local.rmodel 	= local.rack[1]
+		local.rtag 		= local.rack[2]
+		local.rname 	= local.rack[3]
+		
+		local.r = spawn Animate model local.rmodel
+		local.r.tag = local.rtag
+		local.r waitthread attach self local.rtag
+		
+		self.rack[local.rname] = local.r
+	}
+	
+	// attach bombbay
+	if(self.HASBOMBBAY)
+	{
+		self.bombbay_model = self.PLANETYPE.tikipath + "bombbay.tik"
+		
+		local.e = spawn Animate model self.bombbay_model
+		local.e waitthread attach self self.bombbay_tag
+		
+		local.e.tag = self.bombbay_tag
+		//local.e anim closed
+		
+		self.bombbay = local.e
+	}
+
+	if(self.add_crew)
+	{
+		// attach crew members
+		for(local.i = 1; local.i <= self.crew_data.size; local.i++)
+		{
+			local.crew_data = self.crew_data[local.i]
+			
+			if(local.crew_data.offset != NIL)
+			{
+				local.offset = local.crew_data.offset * self.SCALE
+			}
+			else
+			{
+				local.offset = (0.0 0.0 0.0)
+			}
+			
+			local.guy = spawn Animate model local.crew_data.model
+			local.guy waitthread attach self local.crew_data.tag game.true local.offset
+			
+			self.crew[local.i] = local.guy
+		}
+	}
+
+	// init inventory
+	waitthread global/skylimit/items.scr::init_plane self.PLANETYPE.inventory
+	
+	self.total_inventory = waitthread global/skylimit/common.scr::stringarraycopy self.PLANETYPE.inventory level.ITEMS
+	
+	// make plane heavier if inventory has mass
+	for(local.i = 1; local.i <= level.ITEMS.size; local.i++)
+	{
+		local.type = level.ITEMS[local.i]
+		self.MASS += self.item_amount[local.type] * level.SL_item[local.type].mass
+	}
+	
+	for(local.i = 1; local.i <= self.PLANETYPE.loadout.size; local.i++)
+	{
+		local.payload = self.PLANETYPE.loadout[local.i]
+		local.ptype = local.payload[1]
+		
+		local.wm = waitthread attach_loadout local.payload
+		
+		// add wm to loadout list
+		self.item_loadout[local.ptype] = waitthread global/skylimit/common.scr::addtoarray self.item_loadout[local.ptype] local.wm
+		
+		// increase total_inventory and total_payload (used for rearms)
+		self.total_inventory[local.ptype] += level.SL_item[local.ptype].ammo
+		self.total_payload[local.ptype] = waitthread global/skylimit/common.scr::addtoarray self.total_payload[local.ptype] local.payload
+	}
+end
+
+attach_loadout local.payload:
+	local.ptype 	= local.payload[1]
+	local.pmodel 	= local.payload[2]
+	local.ptag 		= local.payload[3]
+	local.prack 	= local.payload[4]
+		
+	local.wm = spawn Animate model local.pmodel
+	
+	if(local.prack)
+	{
+		local.wm.rack = self.rack[local.prack]
+		local.wm attach local.wm.rack local.ptag
+	}
+	else
+	{
+		local.wm waitthread attach self local.ptag
+		local.wm.rack = NULL
+	}
+	local.wm.tag = local.ptag
+
+	self.MASS += level.SL_item[local.ptype].mass
+	
+	// add item to inventory
+	waitthread global/skylimit/items.scr::additem local.ptype level.SL_item[local.ptype].ammo
+end local.wm
+
+// alias
+attach local.object local.tag local.use_angles local.offset:
+	waitthread global/skylimit/attach.scr::attach local.object local.tag local.use_angles local.offset
+end
+
+// alias
+detach:
+	waitthread global/skylimit/attach.scr::detach
+end

@@ -1,0 +1,26 @@
+// tag multiplier
+// by jv_map
+
+TIKI
+
+setup
+{
+	scale 1.0
+	path models/skylimit/utils/8tags
+	skelmodel 8tags.skd
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+		surface all +nodraw
+	}
+}
+
+animations
+{
+	idle	8tags.skc
+}

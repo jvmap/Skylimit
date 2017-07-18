@@ -1,0 +1,9 @@
+setup
+{
+	path models/skylimit/aircraft/b17/skel
+	skelmodel wheel_left.skd
+}
+
+$include models/skylimit/aircraft/b17/includes/includes.tik
+$include models/skylimit/aircraft/includes/classdef.tik
+$include models/skylimit/aircraft/includes/gear_anims_left.tik

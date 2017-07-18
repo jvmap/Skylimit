@@ -1,0 +1,22 @@
+TIKI
+
+setup
+{
+	path models/fx/unitsquare
+	scale 4000.0
+	skelmodel unitsquare.skd
+}
+
+init
+{
+	server
+	{
+	  	classname EffectEntity
+	  	notsolid
+	}
+}
+
+animations
+{
+	idle     unitsquare.skc
+}

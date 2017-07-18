@@ -1,0 +1,68 @@
+// Flak explosion in the air
+
+TIKI
+
+$include models/skylimit/utils/client_sound_cache.tik
+
+setup
+{
+	scale 1.0
+	path models/fx/dummy
+	skelmodel dummy3.skd
+}
+
+init
+{
+	server
+	{
+		classname EffectEntity
+		notsolid
+		rendereffects +dontdraw
+	}
+}
+
+animations
+{
+    idle dummy3.skc
+    
+    start dummy3.skc
+    {
+		client
+		{
+			enter stopaliaschannel cl_flak_explo
+			enter sound cl_flak_explo
+			
+			enter originspawn
+			(
+				count 1
+				model air_explosion.spr
+				alpha 0.40
+				color 1.00 1.00 1.00
+				scale 0.060
+				life 0.20
+				scalerate 2.0
+				scale 0.40
+				//fadedelay 0.00
+				fade
+			)
+			
+			enter originspawn
+			(
+				model vsssource2.spr
+				count 20
+				alpha 0.90
+				color 0.10 0.10 0.10
+				life 3.00
+				scale 0.4
+				scalerate 2.00
+				//radius 22.00
+				friction 1.00
+				//offsetalongaxis crandom 64.0 crandom 64.0 crandom 64.0
+				randvel crandom 20.0 crandom 20.0 crandom 80.0
+				fade
+				randomroll
+			)
+			
+		}
+	}
+}

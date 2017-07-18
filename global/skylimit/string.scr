@@ -1,0 +1,238 @@
+// jv_map's string handling library
+// jv_map@planetmedalofhonor.com
+
+// FULL-STRING COMMANDS
+
+// splits the string up in an array
+string_to_array local.string local.char_seperator:
+	if(local.char_seperator == NIL)
+	{
+		println "specify seperator char!"
+		local.char_seperator = "_"	
+	}
+
+	local.j = 1
+	local.array[local.j] = ""
+	for(local.i = 0; local.i < local.string.size; local.i++)
+	{
+		local.char = local.string[local.i]
+		if(local.char == local.char_seperator)
+		{
+			local.j++
+			local.array[local.j] = ""
+		}
+		else
+		{
+			local.array[local.j] += local.char
+		}
+	}
+end local.array
+
+array_to_string local.array local.char_seperator:
+	if(local.char_seperator == NIL)
+	{
+		println "specify seperator char!"
+		local.char_seperator = "_"	
+	}
+
+	local.string = ""
+	for(local.i = 1; local.i <= local.array.size; local.i++)
+	{
+		local.string += local.array[local.i]
+		if(local.i < local.array.size)
+			local.string += local.char_seperator
+	}
+end local.string
+
+// removes chars_to_trim chars from end
+string_trim_end local.string local.chars_to_trim:
+	local.newstring = ""
+	for(local.i = 0; local.i < local.string.size - local.chars_to_trim; local.i++)
+	{
+		local.newstring += local.string[local.i]
+	}
+end local.newstring
+
+// string should be w/o parentheses
+string_to_vector local.string:
+	local.vec = (0 0 0)
+	local.entries = waitthread string_to_array local.string " "
+	
+	if(local.entries.size == 3)
+	{
+		local.vec[0] = float local.entries[1]
+		local.vec[1] = float local.entries[2]
+		local.vec[2] = float local.entries[3]
+	}
+	else
+	{
+		println "ERROR[string::string_to_vector]: Couldn't cast '" local.string "' to a vector. Sorry."
+		local.vec = NIL // rather error spam than weird behaviour
+	}
+end local.vec
+
+// WORD COMMANDS
+
+// hmm :/
+a local.thingstring:
+	local.c = waitthread char_tolower local.thingstring[0]
+	
+	// the u would be a bit doubtful :/
+	local.an = local.c ==  "a" || local.c == "e" || local.c == "i" || local.c == "o" || local.c == "u"
+	
+	local.pre = "a"
+	if(local.an)
+	{
+		local.pre += "n"
+	}
+	
+	local.string = local.pre + " " + local.thingstring
+end local.string
+
+// same as 'a' but capitalized
+A local.thingstring:
+	local.c = waitthread char_tolower local.thingstring[0]
+	
+	// the u would be a bit doubtful :/
+	local.an = local.c ==  "a" || local.c == "e" || local.c == "i" || local.c == "o" || local.c == "u"
+	
+	local.pre = "A"
+	if(local.an)
+	{
+		local.pre += "n"
+	}
+	
+	local.string = local.pre + " " + local.thingstring
+end local.string
+
+// returns word with first letter in uppercase
+word_capitalize local.word:
+	local.firstchar = local.word[0]
+	local.firstchar_uc = waitthread char_toupper local.firstchar
+	local.newword = local.word
+	local.newword[0] = local.firstchar_uc
+end local.newword
+
+// CHAR COMMANDS
+
+// makes local.char lowercase
+char_tolower local.char:
+	// get char index
+	local.index = waitthread chardata_getindex local.char
+	// make lowercase
+	local.outchar = waitthread chardata_getcharatindex local.index lower
+end local.outchar
+
+// makes local.char uppercase
+char_toupper local.char:
+	// get char index
+	local.index = waitthread chardata_getindex local.char
+	// make uppercase
+	local.outchar = waitthread chardata_getcharatindex local.index upper
+end local.outchar
+
+// CHARDATA
+
+// returns char with index and case
+chardata_getcharatindex local.index local.case:
+	local.array = waitthread ("chardata_" + local.case + "case")
+	local.char = local.array[local.index]
+end local.char
+
+// returns unique char index from the case arrays, or 0 if not found (shouldn't happen)
+chardata_getindex local.char:
+	local.lowerindex = waitthread chardata_getcaseindex local.char lower
+	
+	if(local.lowerindex == 0)
+	{
+		local.upperindex = waitthread chardata_getcaseindex local.char upper
+		end local.upperindex
+	}
+	else
+		end local.lowerindex
+end
+
+// returns index of char in the given case array, or 0 if not found
+chardata_getcaseindex local.char local.case:
+	local.array = waitthread ("chardata_" + local.case + "case")
+	for(local.i = 1; local.i <= local.array.size; local.i++)
+	{
+		local.ar_char = local.array[local.i]
+		if(local.ar_char == local.char)
+			end local.i	
+	}
+end 0
+
+// returns all lowercase chars
+chardata_lowercase:
+	local.hasharray = makeArray
+	a
+	b
+	c
+	d
+	e
+	f
+	g
+	h
+	i
+	j
+	k
+	l
+	m
+	n
+	o
+	p
+	q
+	r
+	s
+	t
+	u
+	v
+	w
+	x
+	y
+	z
+	endArray
+	
+	for(local.i = 1; local.i <= local.hasharray.size; local.i++)
+	{
+		local.array[local.i] = local.hasharray[local.i][1]
+	}	
+end local.array
+
+// returns all uppercase chars
+chardata_uppercase:
+	local.hasharray = makeArray
+	A
+	B
+	C
+	D
+	E
+	F
+	G
+	H
+	I
+	J
+	K
+	L
+	M
+	N
+	O
+	P
+	Q
+	R
+	S
+	T
+	U
+	V
+	W
+	X
+	Y
+	Z
+	endArray
+	
+	for(local.i = 1; local.i <= local.hasharray.size; local.i++)
+	{
+		local.array[local.i] = local.hasharray[local.i][1]
+	}	
+end local.array

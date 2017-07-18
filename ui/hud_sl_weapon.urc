@@ -1,0 +1,425 @@
+// by jv_map
+
+// also contains throttle indicator
+
+// delta108
+// delta20
+
+menu "hud_sl_weap" 226 344 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align left bottom
+
+//==================================================
+// Weapon Indicator
+
+// these are big pics (128x128)
+// scaled down 75% so they don't occupy 
+// too much of the view
+resource
+Label
+{
+name "sl_weappicbig3"
+rect 8 0 96 96
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_wb3
+linkcvartoshader
+}
+
+resource
+Label
+{
+name "sl_weappicbig2"
+rect 8 76 96 96
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_wb2
+linkcvartoshader
+}
+
+resource
+Label
+{
+name "sl_weappicbig1"
+rect 8 152 96 96
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_wb1
+linkcvartoshader
+}
+
+// these are small pics (128x32)
+// true size
+resource
+Label
+{
+name "sl_weappicsmall6"
+rect 8 26 128 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_ws6
+linkcvartoshader
+}
+
+resource
+Label
+{
+name "sl_weappicsmall5"
+rect 8 64 128 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_ws5
+linkcvartoshader
+}
+
+resource
+Label
+{
+name "sl_weappicsmalls4"
+rect 8 102 128 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_ws4
+linkcvartoshader
+}
+
+resource
+Label
+{
+name "sl_weappicsmall3"
+rect 8 140 128 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_ws3
+linkcvartoshader
+}
+
+resource
+Label
+{
+name "sl_weappicsmall2"
+rect 8 178 128 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_ws2
+linkcvartoshader
+}
+
+resource
+Label
+{
+name "sl_weappicsmalls1"
+rect 8 216 128 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_ws1
+linkcvartoshader
+}
+
+// AMMO WIDGETS
+
+// these are small pics (128x32)
+// true size
+resource
+Label
+{
+name "sl_awdg6"
+rect 56 30 110 30
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+statbar horizontal 0.0 1.0
+linkcvar sl_a6
+}
+
+resource
+Label
+{
+name "sl_awdg5"
+rect 56 68 110 30
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+statbar horizontal 0.0 1.0
+linkcvar sl_a5
+}
+
+resource
+Label
+{
+name "sl_awdg4"
+rect 56 106 110 30
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+statbar horizontal 0.0 1.0
+linkcvar sl_a4
+}
+
+resource
+Label
+{
+name "sl_awdg3"
+rect 56 144 110 30
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+statbar horizontal 0.0 1.0
+linkcvar sl_a3
+}
+
+resource
+Label
+{
+name "sl_awdg2"
+rect 56 182 110 30
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+statbar horizontal 0.0 1.0
+linkcvar sl_a2
+}
+
+resource
+Label
+{
+name "sl_awdg1"
+rect 56 220 110 30
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+statbar horizontal 0.0 1.0
+linkcvar sl_a1
+}
+
+// Weap multipliers
+
+// Silly cosmetic shadows
+
+resource
+Label
+{
+name "sl_weapstr6s"
+rect 5 41 64 32
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_wstr6
+linkstring "-" "" // empty
+font "verdana-12"
+textalign left
+}
+
+resource
+Label
+{
+name "sl_weapstr5s"
+rect 5 79 64 32
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_wstr5
+linkstring "-" "" // empty
+font "verdana-12"
+textalign left
+}
+
+resource
+Label
+{
+name "sl_weapstr4s"
+rect 5 117 64 32
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_wstr4
+linkstring "-" "" // empty
+font "verdana-12"
+textalign left
+}
+
+resource
+Label
+{
+name "sl_weapstr3s"
+rect 5 155 64 32
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_wstr3
+linkstring "-" "" // empty
+font "verdana-12"
+textalign left
+}
+
+resource
+Label
+{
+name "sl_weapstr2s"
+rect 5 193 64 32
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_wstr2
+linkstring "-" "" // empty
+font "verdana-12"
+textalign left
+}
+
+resource
+Label
+{
+name "sl_weapstr1s"
+rect 5 231 64 32
+fgcolor 0.00 0.00 0.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_wstr1
+linkstring "-" "" // empty
+font "verdana-12"
+textalign left
+}
+
+// Actual weap multiplier numbers
+
+resource
+Label
+{
+name "sl_weapstr6"
+rect 4 40 64 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_wstr6
+linkstring "-" "" // empty
+font "verdana-12"
+textalign left
+}
+
+resource
+Label
+{
+name "sl_weapstr5"
+rect 4 78 64 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_wstr5
+linkstring "-" "" // empty
+font "verdana-12"
+textalign left
+}
+
+resource
+Label
+{
+name "sl_weapstr4"
+rect 4 116 64 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_wstr4
+linkstring "-" "" // empty
+font "verdana-12"
+textalign left
+}
+
+resource
+Label
+{
+name "sl_weapstr3"
+rect 4 154 64 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_wstr3
+linkstring "-" "" // empty
+font "verdana-12"
+textalign left
+}
+
+resource
+Label
+{
+name "sl_weapstr2"
+rect 4 192 64 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_wstr2
+linkstring "-" "" // empty
+font "verdana-12"
+textalign left
+}
+
+resource
+Label
+{
+name "sl_weapstr1"
+rect 4 230 64 32
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+linkcvar sl_wstr1
+linkstring "-" "" // empty
+font "verdana-12"
+textalign left
+}
+
+//==================================================
+// Throttle Indicator
+
+resource
+Label
+{
+name "sl_throttle_name"
+title "Throttle:"
+rect 40 264 64 16
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+textalign left
+font facfont-20
+}
+
+resource
+Label
+{
+name "sl_throttle_number"
+rect 98 264 128 16
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+textalign left
+font facfont-20
+linkcvar sl_thrtl
+linkstring "0" "Idle"
+linkstring "-1" "Fuel Cutoff"
+linkstring "-2" "Servo Active"
+linkstring "-3" "Servos Active"
+linkstring "-4" "Boost"
+}
+
+// engine setting indicator
+resource
+Label
+{
+name "sl_throttle_setting"
+rect 70 312 64 16
+fgcolor 0.70 0.60 0.05 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+textalign left
+font facfont-20
+linkcvar sl_es
+}

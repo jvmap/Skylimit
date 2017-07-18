@@ -1,0 +1,26 @@
+// aircraft team icon
+// by jv_map
+
+TIKI
+
+setup
+{
+	$path models/skylimit/hud/headicon
+	skelmodel headicon.skd
+	surface all shader skylimit_teamicon_allies
+	scale 500.0
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+	}
+}
+
+animations
+{
+	idle	headicon.skc
+}

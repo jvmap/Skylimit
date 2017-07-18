@@ -1,0 +1,8 @@
+TIKI
+
+setup
+{
+	surface all shader bf109_desert_prop_nolight
+}
+
+$include models/skylimit/aircraft/bf109/includes/prop.tik

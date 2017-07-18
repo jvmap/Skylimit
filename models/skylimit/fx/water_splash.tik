@@ -1,0 +1,111 @@
+// based on water bullet hit effect
+
+TIKI
+
+$include models/skylimit/utils/client_sound_cache.tik
+
+setup
+{
+	scale 1.0
+	path models/fx/dummy
+	skelmodel dummy2.skd
+}
+
+init
+{
+	client
+	{
+		//cache some stuff used in this effect
+		cache bh_ocean_plume.spr
+		cache bh_water_ring.spr
+		cache models/fx/water_splash_drop.tik
+	}
+}
+
+// This section is just needed to be a valid tiki file
+animations
+{
+	idle dummy2.skc 
+	start dummy2.skc
+	{
+		client
+		{
+			enter sound cl_splash
+			
+			// main plume
+			enter originspawn
+			(
+				model bh_ocean_plume.spr
+				spritegridlighting
+				alpha 1.0
+				angles 0 0 0
+				count 1
+				life 0.5
+				scale 0.25
+				fade
+				fadedelay 0.2
+			)
+
+			// spray
+			//enter delayedsfx 0.05 originspawn
+			enter originspawn
+			(
+				model models/fx/water_splash_drop.tik
+				spritegridlighting
+				spawnrange 512
+				angles 270 0 0
+				alpha 0.5
+				count 12
+				alignstretch 0.5
+				velocity 165
+				randvelaxis random 165 crandom 20 crandom 20
+				accel 0 0 -12
+				life 1 0.25
+				scalemin 0.6
+				scalemax 1.0
+				scalerate -1.0
+				fadein 0.2
+				fade
+				fadedelay 0.6
+			)
+			
+			// spray
+			//enter delayedsfx 0.1 originspawn
+			enter originspawn
+			(
+				model models/fx/water_splash_drop.tik
+				spritegridlighting
+				spawnrange 512
+				angles 270 0 0
+				alpha 0.5
+				count 6
+				alignstretch 0.5
+				velocity 50
+				randvelaxis random 50 crandom 60 crandom 60
+				accel 0 0 -8
+				life 0.6 0.2
+				scalemin 0.7
+				scalemax 1.2
+				scalerate -1.0
+				fadein 0.2
+				fade
+				fadedelay 0.5
+			)
+			
+			// add water ripple
+			enter originspawn
+			(
+				model bh_water_ring.spr
+				spritegridlighting
+				//angles 90 0 0
+				alpha 0.5
+				count 1
+				life 2.0 // 0.8 0.1
+				scale 0.1 //0.3
+				scalerate 2.0
+				//fadedelay 0.1
+				fade
+			)
+		}	
+	}
+}

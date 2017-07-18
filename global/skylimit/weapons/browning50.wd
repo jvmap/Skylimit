@@ -1,0 +1,25 @@
+// Browning .50 Cal (12.7mm)
+
+specs:
+	self.name = "Browning .50Cal"
+	self.hud_shader = "sl_wb5"
+	self.damage = 10.0
+	
+	self.bulletvelocity = 900.0 // m/s
+	self.bulletlife = 0.75
+	
+	if(self.number_of_guns >= 3)
+	{
+		self.soundset = "browning50_battery"
+	}
+	else
+	{
+		self.soundset = "browning50"
+	}
+	
+	self.jamdecay = 7.0 // reduce jam by this amount each second
+	
+	self.ammotype = "m"
+	self.calibre = ".50in"
+	self.ammo_capacity_rounds_per_gun = 450
+end

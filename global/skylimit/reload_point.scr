@@ -1,0 +1,94 @@
+// radius is in game units
+setreloadpoint local.team local.pos local.radius:
+	level.SL_reloadpoints[local.team] = waitthread global/skylimit/common.scr::addtoarray level.SL_reloadpoints[local.team] (local.pos::(local.radius * local.radius))
+end
+
+// for moving reload points (carrier)
+setreloadent local.team local.entity local.radius:
+	local.entity.rearm_radius = local.radius
+	level.SL_reloadents[local.team] = waitthread global/skylimit/common.scr::addtoarray level.SL_reloadents[local.team] local.entity
+end
+
+// all in game units
+// basically a reload point in the shape of a box :)
+setreloadbox local.team local.x local.y local.xsize local.ysize:
+	local.xmin = local.x
+	local.xmax = local.x + local.xsize
+	local.ymin = local.y - local.ysize
+	local.ymax = local.y
+
+	level.SL_reloadboxes[local.team] = waitthread global/skylimit/common.scr::addtoarray level.SL_reloadboxes[local.team] (local.xmin::local.xmax::local.ymin::local.ymax)
+end
+
+check_reloads:
+	local.RELOADMAXSPEED = 15.0 // m/s
+	
+	local.cycle_time = 0.5
+	
+	while(1)
+	{
+		local.numplanes = $SL_plane.size
+		
+		for(local.planeid = 1; local.planeid <= local.numplanes; local.planeid++)
+		{
+			local.plane = $SL_plane[local.planeid]
+			
+			local.at_reloadpoint = game.false
+			
+			if(local.plane.pilotcontrol && local.plane.onground && local.plane.speed <= local.RELOADMAXSPEED)
+			{				
+				local.plpos = local.plane.origin
+				local.plpos[2] = 0.0
+				local.team = local.plane.dmteam
+				
+				// check reload points
+				for(local.pointid = 1; !local.at_reloadpoint && local.pointid <= level.SL_reloadpoints[local.team].size; local.pointid++)
+				{
+					local.at_reloadpoint = waitthread check_reload_point local.plpos level.SL_reloadpoints[local.team][local.pointid]
+				}
+				
+				// check reloadents
+				for(local.entid = 1; !local.at_reloadpoint && local.entid <= level.SL_reloadents[local.team].size; local.entid++)
+				{
+					if(level.SL_reloadents[local.team][local.entid])
+					{
+						local.at_reloadpoint = waitthread check_reload_ent local.plpos level.SL_reloadents[local.team][local.entid]
+					}
+				}
+				
+				// check reload boxes
+				for(local.boxid = 1; !local.at_reloadpoint && local.boxid <= level.SL_reloadboxes[local.team].size; local.boxid++)
+				{
+					local.at_reloadpoint = waitthread check_reload_box local.plpos level.SL_reloadboxes[local.team][local.boxid]
+				}
+			}
+			local.plane.at_reloadpoint = local.at_reloadpoint
+			local.plane.at_healpoint = local.at_reloadpoint
+		}
+		wait local.cycle_time
+	}
+end
+
+check_reload_point local.plpos local.p:
+	local.ppos = local.p[1]
+	local.psqradius = local.p[2]
+	
+	local.vec = local.plpos - local.ppos
+	local.sqdist = local.vec * local.vec
+end (local.sqdist <= local.psqradius)
+
+check_reload_ent local.plpos local.p:
+	local.ppos = local.p.origin
+	local.ppos[2] = 0.0
+	local.psqradius = local.p.rearm_radius * local.p.rearm_radius
+	
+	local.vec = local.plpos - local.ppos
+	local.sqdist = local.vec * local.vec
+end (local.sqdist <= local.psqradius)
+
+check_reload_box local.plpos local.b:
+	local.xmin = local.b[1]
+	local.xmax = local.b[2]
+	local.ymin = local.b[3]
+	local.ymax = local.b[4]
+end (local.plpos[0] >= local.xmin && local.plpos[0] <= local.xmax && local.plpos[1] >= local.ymin && local.plpos[1] <= local.ymax)

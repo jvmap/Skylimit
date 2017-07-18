@@ -1,0 +1,27 @@
+// maps input to ucmds (usercommands)
+// this way key mappings can easily be altered without having to modify AI or flight model code.
+// by jv_map
+
+map local.input local.pushtype:
+	local.ucmd[PITCH_UP] = local.input[BACKWARD]
+	local.ucmd[PITCH_DOWN] = local.input[FORWARD]
+	local.ucmd[ROLL_LEFT] = local.input[STRAFE_LEFT]
+	local.ucmd[ROLL_RIGHT] = local.input[STRAFE_RIGHT]
+	local.ucmd[ATTACK_PRIMARY] = local.input[ATTACK_PRIMARY]
+	local.ucmd[ATTACK_SECONDARY] = local.input[ATTACK_SECONDARY]
+	local.ucmd[TOGGLE_GEAR] = local.input[HOLSTER]
+	local.ucmd[THROTTLE_UP] = local.input[JUMP]
+	local.ucmd[THROTTLE_DN] = local.input[CROUCH]
+	local.ucmd[BRAKE] = local.input[USE]
+	local.ucmd[TOGGLE_NOSE_CAM] = local.input[LEAN_RIGHT]
+	local.ucmd[THRUST_REVERSE] = local.input[LEAN_LEFT]
+	local.ucmd[CAM_FREE] = !local.input[RUN]
+	local.ucmd[ITEM_NEXT] = local.input[MWHEEL_UP]
+	local.ucmd[ITEM_PREV] = local.input[MWHEEL_DN]
+	
+	local.ucmd[HANGAR_PICK] = local.input[ATTACK_PRIMARY]
+	local.ucmd[HANGAR_VARIANT_NEXT] = local.input[STRAFE_RIGHT]
+	local.ucmd[HANGAR_VARIANT_PREV] = local.input[STRAFE_LEFT]
+	local.ucmd[HANGAR_CLASS_NEXT] = local.input[BACKWARD]
+	local.ucmd[HANGAR_CLASS_PREV] = local.input[FORWARD]
+end local.ucmd

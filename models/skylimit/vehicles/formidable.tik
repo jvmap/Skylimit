@@ -1,0 +1,91 @@
+// HMS Formidable 'X'
+// Royal Navy 
+// Illustrious class
+// armored fleet carrier
+// model and skin by jv_map
+
+TIKI
+setup
+{
+	// made slightly larger to resolve a scale discrepancy between radiant / game
+	scale 54.0 //52.0 // model is in m
+	
+	path models/skylimit/vehicles/formidable
+	skelmodel formidable.skd
+	
+	surface hull shader skylimit_formidable_base
+	surface island shader skylimit_formidable_base
+	surface details shader skylimit_formidable_base
+	surface outriggers shader skylimit_formidable_outriggers
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+	}
+	client
+	{
+		originemitter wake
+		(
+			spawnrate 0.32
+			model sl_wake.spr
+			alpha 0.80
+			color 1.00 1.00 1.00
+			scale 24.0
+			life 50.0
+			scalerate 0.0015
+			angles 90 random 360 crandom 15
+			avelocity 0 crandom -10 0
+			fadein 2.0
+			fade
+			startoff
+			//randvelaxis -100.0 0.0 0.0
+		)
+		
+		tagemitter bow foam
+		(
+			spawnrate 1.6
+			model sl_wake.spr
+			alpha 0.80
+			color 1.00 1.00 1.00
+			scale 16.0
+			life 10.0
+			scalerate 0.004
+			angles 90 random 360 crandom 15
+			avelocity 0 crandom -10 0
+			fadein 0.5
+			fade
+			startoff
+			//randvelaxis -200.0 0.0 0.0
+		)
+	}
+}
+
+animations
+{
+	idle     		formidable.skc
+	
+	travel		formidable.skc
+	{
+		client
+		{
+			entry emitteron wake
+			entry emitteron foam
+		}
+	}
+	
+	sink			formidable.skc
+	{
+		client
+		{
+			entry emitteroff wake
+			entry emitteroff foam
+		}
+	}
+}
+
+/*QUAKED skylimit_scenery_carrier-formidable (0.0 .0 0.0) (-5000 -1500 0) (5000 1500 400)
+*/

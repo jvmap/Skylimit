@@ -1,0 +1,242 @@
+// attack by a torpedo
+// by jv_map
+
+torpedo local.plane local.inflictor local.inflictor_team:
+	
+	// drop like a bomb
+	waitthread global/skylimit/bombattack.scr::dropbomb local.plane local.inflictor local.inflictor_team game.false game.false game.true
+	
+	waitframe
+	
+	if(self)
+	{
+		self.istorpedo = game.true
+		self.CAM_VIEWDIST = 800.0
+		
+		local.swimdepth = 120.0 // normal scale units
+
+		// swim
+		local.time = 0.0
+		local.DT = 0.025
+		local.DT_UPDATE_ORIGIN = 0.10
+		local.DT_UPDATE_ANGLES = 0.50
+		local.DT_UPDATE_ORIGIN_VIEW = 0.05
+		local.DT_UPDATE_ANGLES_VIEW = 0.05
+		local.DT_TRACE = 1.0
+		//local.CD0 	= 0.02 // 'profile' drag, in air
+		//local.AREA	= 0.2 // CD0 reference area, m^2, in air
+		local.CD0W 	= 0.030 // 'profile' drag, in water
+		local.AREAW	= 4.0 // reference area, m^2, in water
+		local.DH 	= 0.40 // height / radius of the torpedo
+
+		local.pos = self.origin
+		//local.pos[2] = $world.SEALEVEL - local.swimdepth
+		
+		local.nsealevel = $world.SEALEVEL - local.swimdepth * $world.SL_SCALE
+		
+		local.angles = self.angles
+		local.angles[0] = 0.0
+		local.angles[2] = 0.0
+		self.angles = local.angles
+		
+		//local.velocity = self.info.speed / level.SL_UNITSCALE * self.forwardvector
+		
+		local.last_traced_pos = local.pos
+		
+		local.next_trace_time = local.DT_TRACE
+		local.next_update_origin_time = 0.0
+		local.next_update_angles_time = 0.0
+		
+		//self anim swim
+		
+		//self.swimming = game.true
+		self loopsound torpedo
+		
+		self.SL_health = self.info.health
+		self.dmteam = local.inflictor_team
+		
+		// make damageable
+		local.MINS = ( -112 -8 -16)
+		local.MAXS = (112 8 0)
+		waitthread global/skylimit/damage.scr::add_damage_box local.MINS local.MAXS
+		waitthread global/skylimit/damage.scr::takedamage level.DMGB_SOFT level.DMGSPD_VEHICLE
+		
+		while(local.time <= self.info.swimlife)
+		{
+			if(self.damagecueue > 0.0)
+			{
+				self.SL_health -= self.damagecueue
+				
+				if(self.SL_health <= 0.0)
+				{
+					local.boom_pos = local.pos
+					waitthread killmsg local.inflictor
+					break
+				}
+			}
+			
+			if(local.pos[2] <= local.nsealevel)
+			{
+				if (!self.swimming)
+				{
+					self anim swim
+					self.swimming = game.true
+				}
+				
+				//local.speed = vector_length self.p_velocity
+				//local.normalvel = (1.0 / local.speed) * self.p_velocity
+				
+				// hydrodynamic forces
+				
+				local.dh = local.nsealevel - local.pos[2]
+				if(local.dh > local.DH)
+				{
+					local.dh = local.DH // fully submerged
+				}
+				
+				local.force_hydrostatic = level.SL_WATER_DENSITY * $world.GRAVITY * local.dh * local.AREAW * $world.upvector
+				local.force_drag = -0.5 * local.CD0W * level.SL_WATER_DENSITY * local.AREAW * self.info.speed * self.p_velocity // viscous drag
+				local.force_propulsion = 0.5 * local.CD0W * level.SL_WATER_DENSITY * local.AREAW * self.info.speed * self.info.speed * self.forwardvector
+				
+				// let propulsion have no vertical component
+				local.force_propulsion[2] = 0.0
+				
+				local.accel = (1.0 / self.info.mass) * (local.force_hydrostatic + local.force_drag + local.force_propulsion)
+			}
+			else
+			{
+				if (self.swimming)
+				{
+					self anim fly
+					self.swimming = game.false
+				}
+				
+				// aerodynamic forces
+				// negligible
+				local.accel = (0 0 0) //( -0.5 * local.CD0 * $world.DENSITY * local.speed * local.speed * local.AREA / self.info.mass) * local.normalvel
+			}
+			
+			// N = kgms^-2
+			// m^2 kg m^-3 m^2 s^-2			= kg m s^-2
+			
+			// gravity
+			local.accel -= $world.GRAVITY * $world.upvector
+			
+			local.pos += self.p_velocity * (local.DT / level.SL_UNITSCALE) + local.accel * (0.5 * local.DT * local.DT / level.SL_UNITSCALE)
+			self.p_velocity += local.accel * local.DT
+			
+			if(level.time >= local.next_update_angles_time)
+			{
+				// align in direction of velocity
+				self.angles = vector_toangles self.p_velocity
+				
+				if(level.time - self.cam_lastviewtime <= 0.10)
+				{
+					local.next_update_angles_time = level.time + local.DT_UPDATE_ANGLES_VIEW
+				}
+				else
+				{
+					local.next_update_angles_time = level.time + local.DT_UPDATE_ANGLES
+				}
+			}
+			
+			if(local.time >= local.next_trace_time)
+			{
+				local.hit = trace local.last_traced_pos local.pos 0
+				
+				if(local.hit != local.pos)
+				{
+					// explode torpedo
+					//println "trace hit"
+					local.boom_pos = local.hit
+					break
+				}
+				
+				local.last_traced_pos = local.pos
+			}
+			
+			if(local.pos[0] < $world.MINX || local.pos[0] > $world.MAXX || local.pos[1] < $world.MINY || local.pos[1] > $world.MAXY)
+			{
+				//println "end of map"
+				break
+			}
+			
+			local.boom_pos = local.pos
+			/*
+			if(level.time >= local.next_update_origin_time)
+			{
+				// update origin
+				self.origin = local.pos
+				
+				if(level.time - self.cam_lastviewtime <= 0.10)
+				{
+					local.next_update_origin_time = level.time + local.DT_UPDATE_ORIGIN_VIEW
+				}
+				else
+				{
+					local.next_update_origin_time = level.time + local.DT_UPDATE_ORIGIN
+				}
+			}
+			*/
+			
+			// always update origin
+			self.origin = local.pos
+			
+			wait local.DT
+			
+			local.time += local.DT
+		}
+		
+		// boom!
+		if(self)
+		{
+			local.ent = waitthread global/skylimit/common.scr::getfromstack EffectEntity game.true
+			if(local.ent)
+			{
+				local.ent model skylimit/fx/explosion_water.tik
+				local.ent scale (0.2 * self.info.sfx_scale)
+				local.ent angles ( -90 0 0)
+				local.ent origin local.boom_pos
+				local.ent anim start
+				local.ent thread global/skylimit/common.scr::releasetostack 0.5
+			}
+			
+			// submerged shock damage
+			waitthread global/skylimit/damage.scr::radiusdamage local.boom_pos self.info.blast_radius self.info.damage_center self.info.damage_boundary level.MODM_TORPEDO local.inflictor local.inflictor_team self game.false game.false
+			
+			self remove
+		}
+	}
+end
+
+killmsg local.inflictor:
+	if(self.lastdamageinflictor && self.lastdamageinflictor.isplayer && self.lastdamageinflictor == local.inflictor)
+	{
+		local.msg = "You destroyed your own torpedo!"
+		local.inflictor iprint local.msg 1
+	}
+	else
+	{
+		// message 'torpedo destroyer' and 'torpedo owner'
+		if(self.lastdamageinflictor_team == self.dmteam)
+		{
+			local.msgd = "You destroyed a friendly torpedo!"
+			local.msgo = "One of your torpedoes has been destroyed by friendly forces!"
+		}
+		else
+		{
+			local.msgd = "You destroyed " + (waitthread global/skylimit/string.scr::a $world.TEAM_ADJECTIVE[self.dmteam]) + " torpedo!"
+			local.msgo = "One of your torpedoes has been destroyed by the enemy!"
+		}
+		
+		if(self.lastdamageinflictor.isplayer)
+		{
+			self.lastdamageinflictor iprint local.msgd 1
+		}
+		
+		if(local.inflictor && local.inflictor.isplayer)
+		{
+			local.inflictor iprint local.msgo 1
+		}
+	}
+end

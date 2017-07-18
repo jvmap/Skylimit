@@ -1,0 +1,29 @@
+setup
+{
+	path models/skylimit/items/chute
+	scale 0.2
+	skelmodel chute.skd
+	surface cables shader sl_chute_cables
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+	}
+}
+
+animations
+{
+	idle	chute.skc
+	
+	deploy	chute_deploy.skc
+	{
+		server 
+		{
+			last anim idle
+		}
+	}
+}

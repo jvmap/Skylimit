@@ -1,0 +1,1083 @@
+// some maths
+// by jv_map
+
+init:
+	// geometry arrays for path tracer
+
+	// faces: ft,bk,lf,rt,up,dn (ft = +x, lf = +y, up = +z)
+	level.MATH_box_face_normals = (1 0 0)::( -1 0 0)::(0 1 0)::(0 -1 0)::(0 0 1)::(0 0 -1)
+	level.MATH_box_face_signs = 1::( -1)::1::( -1)::1::( -1)
+	
+	// u,v,n local coords
+	level.MATH_box_face_u[1] = (0 1 0)
+	level.MATH_box_face_v[1] = (0 0 1)
+	level.MATH_box_face_u[2] = (0 1 0)
+	level.MATH_box_face_v[2] = (0 0 1)
+	level.MATH_box_face_u[3] = (1 0 0)
+	level.MATH_box_face_v[3] = (0 0 1)
+	level.MATH_box_face_u[4] = (1 0 0)
+	level.MATH_box_face_v[4] = (0 0 1)
+	level.MATH_box_face_u[5] = (0 1 0)
+	level.MATH_box_face_v[5] = (1 0 0)
+	level.MATH_box_face_u[6] = (0 1 0)
+	level.MATH_box_face_v[6] = (1 0 0)
+end
+
+// sin(x), x in rad
+sin local.x:
+end (waitthread global/skylimit/math.scr::cos(local.x - 0.5 * level.PI))
+
+// cos(x), x in rad
+cos local.x:
+	// reduce to [0,2pi]
+	if(local.x > 2.0 * level.PI)
+	{
+		local.x -= (int (local.x / (2.0 * level.PI))) * 2.0 * level.PI
+	}
+	else if(local.x < 0.0)
+	{
+		local.x += ((int ( -local.x / (2.0 * level.PI))) + 1) * 2.0 * level.PI
+	}	
+	
+	// reduce to [-pi,pi]
+	if(local.x > level.PI)
+	{
+		local.x -= 2.0 * level.PI
+	}
+	
+	// taylor series expansion
+	//local.cosx = 1.0 - local.x * local.x / 2.0 + (waitthread powint local.x 4) / (waitthread factorial 4) - (waitthread powint local.x 6) / (waitthread factorial 6) + (waitthread powint local.x 8) / (waitthread factorial 8) - (waitthread powint local.x 10) / (waitthread factorial 10)
+	
+	
+	// performance improvement
+	local.x2 = local.x * local.x
+	local.x4 = local.x2 * local.x2
+	local.x6 = local.x4 * local.x2
+	local.x8 = local.x6 * local.x2
+	local.x10 = local.x8 * local.x2
+	local.cosx = 1.0 - local.x2 / 2.0 + local.x4 / 24.0 - local.x6 / 720.0 + local.x8 / 40320.0 - local.x10 / 3628800.0
+	
+	if(local.cosx > 1.0)
+	{
+		local.cosx = 1.0
+	}
+	else if(local.cosx < -1.0)
+	{
+		local.cosx = -1.0
+	}
+end local.cosx
+
+// inverse sin
+// somewhat inaccurate near +-0.5PI
+arcsin local.x:
+	if(local.x < -0.857 || local.x > 0.857)
+	{
+		// some 9th order approximation
+		local.x3 = local.x * local.x * local.x
+		local.x9 = local.x3 * local.x3 * local.x3
+		
+		local.out = local.x + (0.5 * level.PI - 1.0) * local.x9
+	}
+	else
+	{
+		local.x2 = local.x * local.x
+		local.x3 = local.x2 * local.x
+		local.x5 = local.x3 * local.x2
+	
+		// Taylor series expansion
+		local.out = local.x + 0.1667 * local.x3 + 0.075 * local.x5
+	}
+end local.out
+
+// inverse cos
+arccos local.rad:
+end (0.5 * level.PI - (waitthread global/skylimit/math.scr::arcsin local.rad))
+
+// inverse tan
+arctan local.x:
+	if(local.x == 0.0)
+	{
+		local.angle_rad = 0.0
+	}
+	else
+	{
+		if(local.x < 0.0)
+		{
+			local.negative = game.true
+			local.x = -local.x
+		}
+		
+		if(local.x < 0.76395)
+		{
+			// Taylor expansion
+			local.x2 = local.x * local.x
+			local.x3 = local.x * local.x2
+			local.x5 = local.x3 * local.x2
+			
+			local.angle_rad = local.x - local.x3 / 3.0 + local.x5 / 5.0
+		}
+		else if(local.x < 1.24245)
+		{
+			// McLaurin expansion centered about x=1
+			local.angle_rad = 0.25 * level.PI + 0.5 * (local.x - 1) - 0.5 * (local.x - 1) * (local.x - 1)
+			
+			// this smooths it somewhat
+			local.angle_rad += 0.026
+		}
+		else
+		{
+			// expansion towards infinity
+			local.x2 = local.x * local.x
+			local.x3 = local.x * local.x2
+			local.x5 = local.x3 * local.x2
+			local.x7 = local.x5 * local.x2
+			
+			local.angle_rad = 0.5 * level.PI - 1.0 / local.x + 1.0 / 3.0 / local.x3 - 1.0 / 5.0 / local.x5 + 1.0 / 7.0 / local.x7
+		}
+		
+		if(local.negative)
+		{
+			local.angle_rad = -local.angle_rad
+		}
+	}
+end local.angle_rad
+
+// quadrant-wise arctan, expands arctan domain to [-pi,pi]
+arctan2 local.y local.x:
+	local.value = waitthread arctan (local.y / local.x)
+	
+	if(local.x >= 0)
+	{
+		local.angle_rad = local.value
+	}
+	else
+	{
+		local.angle_rad = local.value + level.PI
+		
+		if(local.angle_rad > level.PI)
+		{
+			local.angle_rad -= 2.0 * level.PI
+		}
+	}
+end local.angle_rad
+
+// faster, less accurate
+quicksin local.x:
+	// reduce to [0,2pi]
+	if(local.x > 2.0 * level.PI)
+	{
+		local.x -= (int (local.x / (2.0 * level.PI))) * 2.0 * level.PI
+	}
+	else if(local.x < 0.0)
+	{
+		local.x += ((int ( -local.x / (2.0 * level.PI))) + 1) * 2.0 * level.PI
+	}	
+	
+	// reduce to [-pi,pi]
+	if(local.x > level.PI)
+	{
+		local.x -= 2.0 * level.PI
+	}
+	
+	if(local.x == 0.0)
+	{
+		local.sin = 0.0
+	}
+	else if(local.x > 0.0)
+	{
+		local.fact = 2.0 * local.x / level.PI - 1.0
+		local.sin = 1.0 - local.fact * local.fact
+	}
+	else
+	{
+		// x < 0
+		local.fact = 2.0 * local.x / level.PI + 1.0
+		local.sin = local.fact * local.fact - 1.0
+	}
+end local.sin
+
+// faster, less accurate
+quickcos local.x:
+end (waitthread global/skylimit/math.scr::quicksin (local.x + 0.5 * level.PI))
+
+// fast square-root
+// only usuable near x=1
+// McLaurin expansion
+sqrt1 local.x:
+end (1.0 + 0.5 * (local.x - 1.0) - 0.125 * (local.x - 1.0) * (local.x - 1.0))
+
+// square-root
+// more accurate than pow^.5
+sqrt local.x:
+	// sqrt(2)
+	local.SQRT_2 = 1.4142135623730951
+
+	// known values, how convenient
+	if(local.x == 0.0)
+	{
+		local.result = 0.0
+	}
+	else if(local.x == 1.0)
+	{
+		local.result = 1.0
+	}
+	else if(local.x == 2.0)
+	{
+		local.result = local.SQRT_2
+	}
+	else if (local.x < 0.0)
+	{
+		// error
+		println "ERROR[math::sqrt]: sqrt(" local.x ") has no real solution"
+		local.result = 0.0
+	}
+	else
+	{
+		// reduce x to [1,2] domain
+		local.wx = local.x
+		local.steps = 0
+		local.dividesteps = 0
+		
+		// reduce below 2.0
+		while (local.wx > 2.0)
+		{
+			local.wx = 0.5 * local.wx
+			local.steps++
+		}
+		
+		// increase above 1.0
+		while(local.wx < 1.0)
+		{
+			local.wx = 2.0 * local.wx
+			local.dividesteps++
+		}
+		
+		// evaluate in [1,2] domain
+		if(local.wx == 1.0)
+		{
+			local.eval = 1.0
+		}
+		else if (local.wx == 2.0)
+		{
+			local.eval = local.SQRT_2
+		}
+		else
+		{
+			// approximation
+			local.EVALSLOPE = 0.4267766953
+			local.EVALMOD = 1.224744871 - 1.51 * local.EVALSLOPE
+			local.eval = local.EVALSLOPE * local.wx + local.EVALMOD
+		}
+		
+		// multiply back to original domain
+		for(local.i = 1; local.i <= local.steps; local.i++)
+		{
+			local.eval = local.eval * local.SQRT_2
+		}
+		
+		// divide back to original domain
+		for(local.i = 1; local.i <= local.dividesteps; local.i++)
+		{
+			local.eval = local.eval / local.SQRT_2
+		}
+	
+		// correct until required accuracy has been reached
+		local.MAXREFINEMENTSTEPS = 2;
+
+		for(local.i = 1; local.i <= local.MAXREFINEMENTSTEPS; local.i++)
+		{
+			local.fact = local.eval * local.eval / local.x
+			local.eval = local.eval / (waitthread sqrt1 local.fact)
+		}
+		
+		local.result = local.eval
+	}
+end local.result
+
+// x^y, x > 0, 0 < x/scale < 1, pow_scale = scale^y should be explicitly stipulated (otherwise scale = 1 is assumed)
+pow local.x local.y local.scale local.pow_scale:
+	// x^y = (x/a)^y * a^y
+	
+	if(local.x < 0.0)
+	{
+		println "ERROR[math::pow]: Don't use me for x < 0 ... " local.x
+		local.result = 0.0
+	}
+	else if(local.x == 0.0)
+	{
+		local.result = 0.0
+	}
+	else
+	{
+		local.N = 4 // number of factors, determines accuracy
+	
+		if (local.scale == NIL)
+		{
+			local.scale = 1.0
+			local.pow_scale = 1.0
+		}
+		
+		local.x_ = local.x / local.scale - 1.0
+		
+		local.result = 1.0
+		for(local.i = local.N; local.i >= 1; local.i--)
+		{
+			local.result = 1.0 + (local.y - local.i + 1) / local.i * local.x_ * local.result
+		}
+		
+		local.result = local.result * local.pow_scale
+		
+		if(local.x > local.scale * 2)
+		{
+			println "ERROR[math::pow]: Attempted to evaluate " local.x "^" local.y " outside convergence domain [0," (local.scale * 2) "], result " local.result " will be wrong!"
+		}
+	}
+end local.result
+
+// exp can only be an int >= 0
+// returns float
+powint local.val local.exp:
+	local.newval = 1.0
+	for(local.i = 1; local.i <= local.exp; local.i++)
+	{
+		local.newval = local.newval * local.val
+	}
+end local.newval
+
+// same as powint but returns integer
+ipowint local.val local.exp:
+end (int (waitthread global/skylimit/math.scr::powint local.val local.exp))
+
+// returns n! ; n >= 0
+factorial local.n:
+	local.y = 1
+	for(local.i = 2; local.i <= local.n; local.i++)
+	{
+		local.y = local.y * local.i;
+	}
+end local.y
+
+// rounds off x to whole multiples of y
+multipleround local.x local.y:
+	local.fact = int (local.x / local.y)
+	local.out = local.fact * local.y
+end local.out
+
+getanglesdiff local.organgles local.targetangles:
+	local.out = (0.0 0.0 0.0)
+	for(local.i = 0; local.i <= 2; local.i++)
+	{
+		local.out[local.i] = waitthread getanglediff local.organgles[local.i] local.targetangles[local.i]
+	}
+end local.out
+
+getanglediff local.organgle local.targetangle:
+	// rephase to [0,360] domain
+	local.organgle = waitthread rerange360 local.organgle
+	local.targetangle = waitthread rerange360 local.targetangle
+	
+	local.anglediff = local.targetangle - local.organgle
+	
+	if(local.anglediff > 180.0)
+	{
+		local.anglediff = -360.0 + local.anglediff
+	}
+	else if(local.anglediff < -180.0)
+	{
+		local.anglediff = 360.0 + local.anglediff
+	}
+end local.anglediff
+
+rerangeviewangles local.angles:
+	// pitch: [-90,90] yaw: [-180,180> roll: 0
+	local.out = local.angles
+	local.out[0] = waitthread rerangeangle local.out[0]
+	
+	if(local.out[0] > 90.0)
+	{
+		local.out[0] = 90.0
+	}
+	else if(local.out[0] < -90.0)
+	{
+		local.out[0] = -90.0
+	}
+	
+	local.out[1] = waitthread rerangeangle local.out[1]
+	
+	local.out[2] = 0.0
+	
+end local.out
+
+rerangeangles local.angles:
+	local.out = (0.0 0.0 0.0)
+	for(local.i = 0; local.i <= 2; local.i++)
+	{
+		local.out[local.i] = waitthread rerangeangle local.angles[local.i]
+	}
+end local.out
+
+/*
+	newangle = angle + n * 360
+	360 * n = newangle - angle --> n = (newangle - angle) / 360]
+	// sup. newangle <= 180 -> n = int ((180 - angle) / 360)
+	newangle = angle + 360 * int ((180 - angle) / 360)
+*/
+
+rerangeangle local.value:
+	// reranges angle to [-180,180] domain
+	// mod to [0,360] domain
+	local.value = waitthread rerange360 local.value
+	
+	// mod to [-180,180] domain
+	if(local.value > 180.0)
+		local.value -= 360.0
+end local.value
+
+// mod to [0,360] domain
+rerange360 local.value:
+end (local.value - ((int (local.value / 360.0)) - (local.value < 0.0)) * 360.0)
+
+// transforms vectors to angles (pitch,yaw,roll)
+// unlike vector_toangles this also includes roll
+// returns angles in degrees
+/*
+vectors_toangles local.vec_fwd local.vec_lf:
+	// fwd = 
+	// cos y * cos p
+	// sin y * cos p
+	// -sin p
+	
+	// --> p = -arcsin fwd[2]
+	// --> y = arccos (fwd[0] / cos p) v y = arcsin (fwd[1] / cos p)
+	
+	// lf = 
+	// sin r sin p cos y - cos r sin y
+	// sin r sin p sin y + cos r cos y
+	// cos p sin r
+	
+	// --> r = arcsin (lf[2] / cos p) v r = pi - arcsin (lf[2] / cos p)
+	
+	// up =
+	// cos r sin p cos y + sin r sin y
+	// cos r sin p sin y - sin r cos y
+	// cos p cos r
+	
+	// determine pitch
+	local.p 	= -1.0 * (waitthread arcsin local.vec_fwd[2])
+	local.cosp 	= waitthread cos local.p
+	
+	// poles
+	if(abs local.cosp < level.EPS)
+	{
+		if(local.vec_fwd[2] > 0.0)
+		{
+			// upward pole
+			local.angles = ( -90.0 0.0 0.0)
+		}
+		else
+		{
+			// downward pole
+			local.angles = ( 90.0 0.0 0.0)
+		}
+	}
+	else
+	{
+		// only need up component anyway
+		local.vec_up2 = local.vec_fwd[0] * local.vec_lf[1] - local.vec_fwd[1] * local.vec_lf[0]
+		
+		local.c00 = local.vec_fwd[0] / local.cosp
+		local.c01 = local.vec_fwd[1] / local.cosp
+		//local.c02 = local.vec_fwd[2] / local.cosp // not used
+		//local.c10 =  local.vec_lf[0] / local.cosp // not used
+		//local.c11 =  local.vec_lf[1] / local.cosp // not used
+		local.c12 =  local.vec_lf[2] / local.cosp
+		//local.c20 =  local.vec_up[0] / local.cosp // not used
+		//local.c21 =  local.vec_up[1] / local.cosp // not used
+		local.c22 =  local.vec_up2 / local.cosp //local.vec_up[2] / local.cosp
+		
+		// determine yaw
+		if(abs local.c01 < 0.5)
+		{
+			local.y = waitthread arcsin local.c01
+			
+			if(local.c00 < 0.0)
+			{
+				if(local.y > 0.0)
+				{
+					local.y = level.PI - local.y
+				}
+				else
+				{
+					local.y = -level.PI - local.y
+				}
+			}
+		}
+		else
+		{
+			local.y = waitthread arccos local.c00
+			
+			if(local.c01 < 0.0)
+			{
+				local.y = -local.y
+			}
+		}
+		
+		// determine roll
+		if(abs local.c12 < 0.5)
+		{
+			local.r = waitthread arcsin local.c12
+			
+			if(local.c22 < 0.0)
+			{
+				if(local.r > 0.0)
+				{
+					local.r = level.PI - local.r
+				}
+				else
+				{
+					local.r = -level.PI - local.r
+				}
+			}
+		}
+		else
+		{
+			local.r = waitthread arccos local.c22
+			
+			if(local.c12 < 0.0)
+			{
+				local.r = -local.r
+			}
+		}
+		
+		local.angles = 180.0 / level.PI * (local.p local.y local.r)
+	}
+	
+end local.angles
+*/
+
+vectors_toangles local.vec_fwd local.vec_lf:
+	local.base_angles = vector_toangles local.vec_fwd
+	
+	// base_lf = lf(r = 0) = 
+	// -sin y
+	//  cos y
+	//  0
+	
+	// up =
+	// cos r sin p cos y + sin r sin y
+	// cos r sin p sin y - sin r cos y
+	// cos p cos r
+	
+	// base_up = up(r = 0) =  { sin p = -fwd[2] }
+	// sin p cos y
+	// sin p sin y
+	// cos p
+	
+	// vec_lf * base_lf = 
+	// -(sin r sin p cos y - cos r sin y) * sin y + (sin r sin p sin y + cos r cos y) * cos y
+	// -sin r sin p cos y sin y + cos r sin2 y + sin r sin p sin y cos y + cos r cos2 y
+	// = cos r
+	
+	local.base_fwd = local.vec_fwd
+	local.base_lf = -1.0 * (angles_toleft local.base_angles)
+	local.base_up = vector_cross local.base_fwd local.base_lf //angles_toup local.base_angles
+	
+	local.cos = local.vec_lf * local.base_lf
+	
+	if(abs local.cos < 0.8)
+	{
+		local.roll_angle = waitthread arccos local.cos
+		
+		if(local.vec_lf * local.base_up < 0.0)
+		{
+			local.roll_angle = -local.roll_angle
+		}
+	}
+	else
+	{
+		// arccos inaccurate here
+		// so just use arcsin instead
+		// (far more sensitive in this region)
+		local.sin = local.vec_lf * local.base_up
+		
+		local.roll_angle = waitthread arcsin local.sin
+		
+		if(local.cos < 0.0)
+		{
+			local.roll_angle = level.PI - local.roll_angle
+		}
+	}
+	
+	// convert to degrees
+	local.roll_angle = local.roll_angle / level.PI * 180.0
+	
+	local.angles = local.base_angles
+	local.angles[2] = local.roll_angle
+end local.angles
+
+// quaternion operations
+axistoquat local.axis local.result_holder:
+	// sweet quat rotation :)
+	local.theta = vector_length local.axis
+	
+	if(local.theta == 0.0)
+	{
+		local.a = 1.0
+		local.b = 0.0
+		local.c = 0.0
+		local.d = 0.0
+	}
+	else
+	{
+		local.normal_axis = local.axis * (1.0 / local.theta)
+		
+		local.qcos_2 = waitthread cos (0.5 * local.theta)
+		local.qsin_2 = waitthread sin (0.5 * local.theta)
+		
+		local.a = local.qcos_2
+		local.b = local.qsin_2 * local.normal_axis[0]
+		local.c = local.qsin_2 * local.normal_axis[1]
+		local.d = local.qsin_2 * local.normal_axis[2]
+	}
+	
+	local.result_holder[1] = local.a
+	local.result_holder[2] = local.b
+	local.result_holder[3] = local.c
+	local.result_holder[4] = local.d
+end
+
+quatmult local.quat1 local.quat2 local.result_holder:
+	
+	local.a = local.quat1[1]
+	local.b = local.quat1[2]
+	local.c = local.quat1[3]
+	local.d = local.quat1[4]
+	
+	local.t = local.quat2[1]
+	local.x = local.quat2[2]
+	local.y = local.quat2[3]
+	local.z = local.quat2[4]
+	
+	local.p = local.a * local.t - local.b * local.x - local.c * local.y - local.d * local.z 
+	local.q = local.b * local.t + local.a * local.x + local.c * local.z - local.d * local.y
+	local.r = local.c * local.t + local.a * local.y + local.d * local.x - local.b * local.z
+	local.s = local.d * local.t + local.a * local.z + local.b * local.y - local.c * local.x
+	
+	local.result_holder[1] = local.p
+	local.result_holder[2] = local.q
+	local.result_holder[3] = local.r
+	local.result_holder[4] = local.s
+end
+
+quatnormalize local.quat:
+	local.a = local.quat[1]
+	local.b = local.quat[2]
+	local.c = local.quat[3]
+	local.d = local.quat[4]
+	
+	local.ln = local.a * local.a + local.b * local.b + local.c * local.c + local.d * local.d
+	
+	local.mult = 1.0 / (waitthread sqrt1 local.ln)
+	
+	local.quat[1] = local.a * local.mult
+	local.quat[2] = local.b * local.mult
+	local.quat[3] = local.c * local.mult
+	local.quat[4] = local.d * local.mult
+end
+
+// hmm this doesn't work very well near poles :/
+// (inverse goniometric approximations are not sufficiently accurate)
+/*
+quattoangles local.quat:
+	
+	// formulas below are valid for z-down coordinate system only
+	// so flip the quaternion
+	// (only works properly if initial rotation is about z-axis)
+	local.w = -local.quat[1]
+	local.x = -local.quat[2]
+	local.y = -local.quat[3]
+	local.z = -local.quat[4]
+	
+	local.w2 = local.w * local.w
+	local.x2 = local.x * local.x
+	local.y2 = local.y * local.y
+	local.z2 = local.z * local.z
+	
+	local.sin_pitch = 2.0 * (local.w * local.y - local.z * local.x)
+	/*
+	if(local.sin_pitch >= 0.99)
+	{
+		// pointing straight down
+		local.pitch = level.PI
+		local.yaw = 2.0 * (waitthread arctan2 local.x local.w)
+		local.roll = 0.0
+	}
+	else if(local.sin_pitch <= -0.99)
+	{
+		// pointing straight up
+		local.pitch = -level.PI
+		local.yaw = -2.0 * (waitthread arctan2 local.x local.w)
+		local.roll = 0.0
+	}
+	else
+	{
+	*-/
+		local.pitch = waitthread arcsin local.sin_pitch
+		local.yaw = waitthread arctan2 (2.0 * (local.w * local.z + local.x * local.y)) (1.0 - 2.0 * (local.y2 + local.z2))
+		local.roll = waitthread arctan2 (2.0 * (local.w * local.x + local.y * local.z)) (1.0 - 2.0 * (local.x2 + local.y2))
+	//}
+	
+	local.angles = (local.pitch local.yaw local.roll) * (180.0 / level.PI)
+end local.angles
+*/
+
+// this works better, but slower :(
+
+quattoangles local.quat:
+	
+	local.a = local.quat[1]
+	local.b = local.quat[2]
+	local.c = local.quat[3]
+	local.d = local.quat[4]
+	
+	local.a2 = local.a * local.a
+	local.b2 = local.b * local.b
+	local.c2 = local.c * local.c
+	local.d2 = local.d * local.d
+	
+	// matty
+	local.fwd = ( (local.a2 + local.b2 - local.c2 - local.d2) (2 * local.a * local.d + 2 * local.b * local.c) (2 * local.b * local.d - 2 * local.a * local.c) )
+	local.lf  = ( (2 * local.b * local.c - 2 * local.a * local.d) (local.a2 - local.b2 + local.c2 - local.d2) (2 * local.a * local.b + 2 * local.c * local.d) )
+	//local.up  = ( (2 * local.a * local.c + 2 * local.b * local.d) (2 * local.c * local.d - 2 * local.a * local.b) (local.a2 - local.b2 - local.c2 + local.d2) )
+	
+	// somewhat 'ironic' , but have to do it this way :/
+	local.angles = waitthread vectors_toangles local.fwd local.lf
+end local.angles
+
+// Euler rotation
+// not as nice as quaternion rotation, but faster (merely due to the way moh works)
+// avelrad is the rotation axis (in rad)
+getnewangles local.avelrad:
+	// (pitch yaw roll)
+	// pitch: about leftvector following from yaw only (in xy plane)
+	// yaw: about world z-axis
+	// roll: about local forwardvector
+	// loses one degree of freedom when pitch -> +-90
+	
+	// rad to deg
+	local.avel = 180.0 / level.PI * local.avelrad
+	
+	// first do yaw
+	local.newyaw = self.angles[1] + local.avel * $world.upvector
+
+	// can now do pitch
+	// angles_toleft returns a vector pointing to the right :/
+	local.yawvec = -1.0 * (angles_toleft (0 local.newyaw 0))
+	local.newpitch = self.angles[0] + local.avel * local.yawvec
+		
+	// finally do roll
+	local.fwdvec = angles_toforward (local.newpitch local.newyaw 0)
+	local.newroll = self.angles[2] + local.avel * local.fwdvec
+	
+	local.newangles = (local.newpitch local.newyaw local.newroll)
+end local.newangles
+
+anglestransform local.angles local.vec_fwd local.vec_lf local.vec_up:
+	local.localfwd 	= angles_toforward local.angles
+	local.locallf	= -1.0 * (angles_toleft local.angles)
+	
+	if !(local.vec_up)
+	{
+		local.vec_up = vector_cross local.vec_fwd local.vec_lf
+	}
+	
+	
+	// transform viewvec to local csys
+	local.fwd = local.localfwd[0] * local.vec_fwd + local.localfwd[1] * local.vec_lf + local.localfwd[2] * local.vec_up
+	local.lf  = local.locallf[0]  * local.vec_fwd + local.locallf[1]  * local.vec_lf + local.locallf[2]  * local.vec_up
+	
+	local.newangles = waitthread global/skylimit/math.scr::vectors_toangles local.fwd local.lf
+end local.newangles
+
+vectortransform local.vec1 local.vec2 local.vec3 local.vec:
+	local.out = (0 0 0)
+	
+	local.out += local.vec[0] * local.vec1
+	local.out += local.vec[1] * local.vec2
+	local.out += local.vec[2] * local.vec3
+end local.out
+
+vectortransforminverse local.vec1 local.vec2 local.vec3 local.vec:
+	local.out = (0 0 0)
+	
+	local.out += local.vec * local.vec1 * (1 0 0)
+	local.out += local.vec * local.vec2 * (0 1 0)
+	local.out += local.vec * local.vec3 * (0 0 1)
+end local.out
+
+// turn with limited turnspeed, only 1 dim
+turn1 local.startangle local.targetangle local.turnspeed local.frametime:
+
+	if (local.frametime == NIL)
+	{
+		local.frametime = 0.05
+	}
+
+	local.anglediff = waitthread getanglediff local.startangle local.targetangle
+		
+	// cap to turnspeed (in deg/s)
+	local.max_angle_delta = local.turnspeed * local.frametime
+	local.anglediff = waitthread global/skylimit/common.scr::cap local.anglediff -local.max_angle_delta local.max_angle_delta
+	
+	local.new_angle = local.startangle + local.anglediff
+end local.new_angle
+
+// turn with limited turnspeed
+turn local.startangles local.targetangles local.turnspeed local.frametime:
+
+	if (local.frametime == NIL)
+	{
+		local.frametime = 0.05
+	}
+
+	local.anglesdiff = waitthread getanglesdiff local.startangles local.targetangles
+		
+	// cap to turnspeed (in deg/s)
+	local.max_angle_delta = local.turnspeed * local.frametime
+	for(local.i = 0; local.i <= 2; local.i++)
+	{
+		local.anglesdiff[local.i] = waitthread global/skylimit/common.scr::cap local.anglesdiff[local.i] -local.max_angle_delta local.max_angle_delta
+	}
+	
+	local.new_angles = local.startangles + local.anglesdiff
+end local.new_angles
+
+// dot product in R^n
+// vec1 and vec2 should have the same size
+hyperdot local.vec1 local.vec2:
+	local.dot = 0.0
+	
+	for(local.i = 1; local.i <= local.vec1.size; local.i++)
+	{
+		local.dot += local.vec1[local.i] * local.vec2[local.i]
+	}
+	
+end local.dot
+
+// checks if path from a to b intersects entity at origin defined 
+// by circumscribing sphere of radius radius and boxes[] dmg/collision boxes
+// returns false or location where hit at
+path_check local.a local.b local.origin local.orientation_parent local.radius local.boxes local.intersection_only:
+	
+	local.sqradius = local.radius * local.radius
+	
+	local.path 				= local.b - local.a
+	local.relative_start 	= local.a - local.origin
+	local.path_distance_sq  = local.path * local.path
+	
+	//println "path: " local.a " -> " local.b " : " local.path
+	
+	// check if path intersects my bounding sphere
+	local.offset = local.relative_start - local.relative_start * local.path * local.path * (1.0 / local.path_distance_sq)
+	local.offset_sq = local.offset * local.offset
+	
+	local.result = game.false
+	local.nearmiss = game.false
+	
+	//println "offset: " (vector_length local.offset) ", radius: " local.radius
+	
+	if(local.offset_sq <= local.sqradius)
+	{
+		// take into account the finite distance of the interval (path length) for the bounding sphere check
+		// need path length now
+		local.path_length = vector_length local.path
+		local.path_coord = -1.0 / local.path_length * local.relative_start * local.path
+		
+		if( -local.radius <= local.path_coord && local.path_coord <= local.path_length + local.radius)
+		{
+			local.nearmiss = game.true
+		
+			// transform the problem back to unoriented space
+			// hence transform the path line to local space
+			
+			local.ra = local.a - local.origin
+			local.rb = local.b - local.origin
+			
+			local.ta = local.ra * local.orientation_parent.forwardvector * (1 0 0) +  local.ra * local.orientation_parent.leftvector * (0 1 0) + local.ra * local.orientation_parent.upvector * (0 0 1)
+			local.tb = local.rb * local.orientation_parent.forwardvector * (1 0 0) +  local.rb * local.orientation_parent.leftvector * (0 1 0) + local.rb * local.orientation_parent.upvector * (0 0 1)
+			
+			local.tpath = local.tb - local.ta
+			
+			// check if path intersects any of my boxes
+			for(local.i = 1; local.i <= local.boxes.size && !local.result; local.i++)
+			{
+				//println "checking box #" local.i
+				
+				local.box = local.boxes[local.i]
+				local.mins = local.box[1]
+				local.maxs = local.box[2]
+				
+				if !(local.intersection_only)
+				{
+					// first check if either point is within the box
+					local.a_pass_x = local.ta[0] >= local.mins[0] && local.ta[0] <= local.maxs[0]
+					local.a_pass_y = local.ta[1] >= local.mins[1] && local.ta[1] <= local.maxs[1]
+					local.a_pass_z = local.ta[2] >= local.mins[2] && local.ta[2] <= local.maxs[2]
+					local.a_pass = local.a_pass_x && local.a_pass_y && local.a_pass_z
+					
+					local.b_pass_x = local.tb[0] >= local.mins[0] && local.tb[0] <= local.maxs[0]
+					local.b_pass_y = local.tb[1] >= local.mins[1] && local.tb[1] <= local.maxs[1]
+					local.b_pass_z = local.tb[2] >= local.mins[2] && local.tb[2] <= local.maxs[2]
+					local.b_pass = local.b_pass_x && local.b_pass_y && local.b_pass_z
+				}
+				else
+				{
+					local.a_pass = game.false
+					local.b_pass = game.false
+				}
+				
+				if(local.a_pass)
+				{
+					// have a hit
+					// just return a
+					local.result = local.a
+					break
+				}
+				else if(local.b_pass)
+				{
+					// have a hit
+					local.result = local.b
+					break
+				}
+				else
+				{				
+					// both points outside box
+					// check if path intersects any of the faces
+					for(local.j = 1; local.j <= level.MATH_box_face_normals.size; local.j++)
+					{
+						//println "checking face #" local.j
+						
+						local.u = level.MATH_box_face_u[local.j]
+						local.v = level.MATH_box_face_v[local.j]
+						local.n = level.MATH_box_face_normals[local.j]
+						
+						// cull backward faces
+						if(local.n * local.tpath < 0.0)
+						{
+							local.sign = level.MATH_box_face_signs[local.j]
+							
+							if(local.sign > 0)
+							{
+								local.nc = local.maxs * local.n
+							}
+							else
+							{
+								local.nc = local.mins * local.n
+							}
+							
+							local.nca = local.ta * local.n
+							local.ncb = local.tb * local.n
+							
+							local.npath = local.tpath * (1.0 / local.path_length)
+							
+							// must intersect face
+							if(local.nca >= 0.0 && local.ncb <= 0.0 && local.npath * local.n < 0.0)
+							{
+								local.uc = local.ta * local.u - local.npath * local.u * (local.ta * local.n - local.nc) / (local.npath * local.n)
+								local.vc = local.ta * local.v - local.npath * local.v * (local.ta * local.n - local.nc) / (local.npath * local.n)
+								
+								local.umin = local.mins * local.u
+								local.umax = local.maxs * local.u
+								local.vmin = local.mins * local.v
+								local.vmax = local.maxs * local.v
+								
+								local.pass_u = local.uc >= local.umin && local.uc <= local.umax
+								local.pass_v = local.vc >= local.vmin && local.vc <= local.vmax
+								
+								if(local.pass_u && local.pass_v)
+								{
+									// have a hit, return intersection point
+									local.relhitpos  = local.uc * local.u + local.vc * local.v + local.nc * local.n
+									local.hitpos = local.relhitpos * (1 0 0) * self.forwardvector + local.relhitpos * (0 1 0) * self.leftvector + local.relhitpos * (0 0 1) * self.upvector + local.origin
+									local.result = local.hitpos
+									break
+								}
+							}
+							else
+							{
+								// did not intersect face
+							}
+						}
+						else
+						{
+							// culled face
+						}
+					}
+				}
+			}
+		}
+	}
+	
+end (local.result::local.nearmiss)
+
+// calcs bounding sphere radius according to boxes array
+bounding_sphere_radius local.boxes:
+	local.max_sqradius = 0.0
+	local.max_vec = ( 0 0 0 )
+
+	for(local.i = 1; local.i <= local.boxes.size; local.i++)
+	{
+		local.box = local.boxes[local.i]
+		local.mins = local.box[1]
+		local.maxs = local.box[2]
+		
+		local.sqradius = local.mins * local.mins
+		if(local.sqradius > local.max_sqradius)
+		{
+			local.max_sqradius = local.sqradius
+			local.max_vec = local.mins
+		}
+		
+		local.sqradius = local.maxs * local.maxs
+		if(local.sqradius > local.max_sqradius)
+		{
+			local.max_sqradius = local.sqradius
+			local.max_vec = local.maxs
+		}
+	}
+end (vector_length local.max_vec)
+
+// turns boxes array into vertices array
+boxes_vertices local.boxes:
+
+	for(local.ibox = 1; local.ibox <= local.boxes.size; local.ibox++)
+	{
+		local.box = local.boxes[local.ibox]
+		
+		local.mins = local.box[1]
+		local.maxs = local.box[2]
+		
+		local.verts[local.ibox][1] = local.mins
+		local.verts[local.ibox][2] = (local.mins[0] local.mins[1] local.maxs[2])
+		local.verts[local.ibox][3] = (local.mins[0] local.maxs[1] local.mins[2])
+		local.verts[local.ibox][4] = (local.mins[0] local.maxs[1] local.maxs[2])
+		local.verts[local.ibox][5] = (local.maxs[0] local.mins[1] local.mins[2])
+		local.verts[local.ibox][6] = (local.maxs[0] local.mins[1] local.maxs[2])
+		local.verts[local.ibox][7] = (local.maxs[0] local.maxs[1] local.mins[2])
+		local.verts[local.ibox][8] = local.maxs
+	}
+
+end local.verts
+
+// evaluate function between [xstart,xend> for error evaluation (e.g. make csv file)
+// (debug only)
+func_debug local.func local.xstart local.xend local.steps:
+	println "FUNC_DEBUG -- " local.func "(x); " local.xstart " <= x <= " local.xend " (" local.steps " steps)"
+	
+	for(local.x = local.xstart; local.x <= local.xend; local.x += (local.xend - local.xstart) / local.steps)
+	{
+		println local.x "; " (waitthread local.func local.x)
+	}
+	
+	println "FUNC_DEBUG -- COMPLETE"
+end

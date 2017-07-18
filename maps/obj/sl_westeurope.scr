@@ -1,0 +1,136 @@
+// Skylimit West-Europe
+// ARCHITECTURE: At0miC
+// Sky Limit
+// by jv_map
+
+main:
+
+	setcvar "g_obj_alliedtext1" "Caen, France" 
+	setcvar "g_obj_alliedtext2" "July 17th, 1944"
+	setcvar "g_obj_alliedtext3" ""
+
+	setcvar "g_obj_axistext1" "The Sky Is The Limit"
+	setcvar "g_obj_axistext2" "jv_map"
+	setcvar "g_obj_axistext3" "At0miC"
+
+	setcvar "g_scoreboardpic" "skylimit_score_westeurope"
+	
+	local.master = spawn ScriptMaster
+	local.master aliascache airalarm sound/mechanics/Mec_Alarm_10.wav soundparms 1.0 0.0 1.0 0.0 1024 6000 auto loaded maps "m dm moh obj "
+
+	$world.GRAVITY = 9.81 // gravity acceleration per frame (m/s^2)
+	$world.DENSITY = 1.225 // kg/m^3
+	$world.AVG_GROUNDLVL = -7950.0
+	$world.TEMPERATURE = 295.0 // K (22 degC)
+	
+	$world.NORTHYAW = 170.0
+	$world.SL_SCALE = 0.03125 //0.02083333 (=1/48)
+	$world.SEALEVEL = -8192.0
+	
+	$world.OBSTACLEHEIGHT = -7232.0	// height (z-level) of tallest obstacle
+	
+	// map boundaries
+	$world.MINX = -8128.0
+	$world.MAXX = 8128.0
+	$world.MINY = -8128.0
+	$world.MAXY = 8128.0
+	$world.MAXZ = 7040.0
+	
+	$world.TEAM_NAME[allies] = "Allies"
+	$world.TEAM_NAME[axis] = "Germans"
+	
+	$world.TEAM_ADJECTIVE[allies] = "Allied"
+	$world.TEAM_ADJECTIVE[axis] = "German"
+	
+	waitthread global/skylimit/main.scr::main
+
+	level.dmroundlimit = 45
+	level.clockside = kills
+
+	// clouds
+	waitthread global/skylimit/clouds.scr::day
+
+	level.pause_time = 40.0
+
+	waitthread global/skylimit/reload_point.scr::setreloadbox allies 3880 -5264 128 368
+	waitthread global/skylimit/reload_point.scr::setreloadbox axis -3136 5120 448 192
+
+	thread airalarm
+end
+
+//-//-//-//-//-//-//-//-//-//-//-//->
+// Air Raid In Town
+//-//-//-//-//-//-//-//-//-//-//-//->
+
+airalarm:
+
+	wait level.pause_time
+
+	$speaker1 loopsound airalarm
+
+end
+
+PLANETYPES_DM:
+	waitthread global/skylimit/plane_selection.scr::addoption spitfireIX1B_fighter europe
+	waitthread global/skylimit/plane_selection.scr::addoption spitfireIX1C_fighter europe
+	waitthread global/skylimit/plane_selection.scr::addoption p47_fighter silver
+	
+	waitthread global/skylimit/plane_selection.scr::addoption bf109G10_fighter europe1
+	waitthread global/skylimit/plane_selection.scr::addoption bf109G10_heavyfighter europe1
+	waitthread global/skylimit/plane_selection.scr::addoption fw190A8_fighter trop
+	waitthread global/skylimit/plane_selection.scr::addoption fw190A8_heavyfighter trop
+end
+
+PLANETYPES_OBJ:
+	// set the service groups (number of planes per sharable type)
+	waitthread global/skylimit/plane_selection.scr::setservicegroup allies spitfire 8
+	waitthread global/skylimit/plane_selection.scr::setservicegroup allies p47 8
+	waitthread global/skylimit/plane_selection.scr::setservicegroup allies b17 2
+	
+	waitthread global/skylimit/plane_selection.scr::setservicegroup axis bf109 8
+	waitthread global/skylimit/plane_selection.scr::setservicegroup axis fw190 8
+	waitthread global/skylimit/plane_selection.scr::setservicegroup axis ju87 8
+
+	waitthread global/skylimit/plane_selection.scr::addoption spitfireIX1B_fighter europe
+	waitthread global/skylimit/plane_selection.scr::addoption spitfireIX1C_fighter europe
+	waitthread global/skylimit/plane_selection.scr::addoption spitfireIX1B_fighterbomber europe
+	waitthread global/skylimit/plane_selection.scr::addoption p47_fighter silver
+	waitthread global/skylimit/plane_selection.scr::addoption p47_fighterbomber silver
+	waitthread global/skylimit/plane_selection.scr::addoption b17 europe_green "big"
+	
+	waitthread global/skylimit/plane_selection.scr::addoption bf109G10_fighter europe1
+	waitthread global/skylimit/plane_selection.scr::addoption bf109G10_heavyfighter europe1
+	waitthread global/skylimit/plane_selection.scr::addoption fw190A8_fighter trop
+	waitthread global/skylimit/plane_selection.scr::addoption fw190A8_heavyfighter trop
+	waitthread global/skylimit/plane_selection.scr::addoption fw190F_fighterbomber trop
+	waitthread global/skylimit/plane_selection.scr::addoption ju87_bomber europe
+end
+
+ffa:
+end
+
+// set the TDM flaks
+tdm:
+	// allied flaks
+	waitthread global/skylimit/vehicle.scr::makeflak (3776.0 -5376.0 -7624.0) 135 allies "skylimit/vehicles/turretflak_base.tik" "skylimit/vehicles/turretflak_housing.tik" "skylimit/vehicles/turretflak_barrel.tik" "hinge" "Bofors gun" "bofors" game.false
+	waitthread global/skylimit/vehicle.scr::makeflak (3136.0 -5436.0 -7624.0) 135 allies "skylimit/vehicles/turretflak_base.tik" "skylimit/vehicles/turretflak_housing.tik" "skylimit/vehicles/turretflak_barrel.tik" "hinge" "Bofors gun" "bofors" game.false
+	waitthread global/skylimit/vehicle.scr::makeflak (3264.0 -4672.0 -7624.0) 135 allies "skylimit/vehicles/turretflak_base.tik" "skylimit/vehicles/turretflak_housing.tik" "skylimit/vehicles/turretflak_barrel.tik" "hinge" "Bofors gun" "bofors" game.false
+	
+	// axis flaks
+	waitthread global/skylimit/vehicle.scr::makeflak ( -3068.0 5556.0 -7624.0) 315 axis "skylimit/vehicles/flak88_base.tik" "skylimit/vehicles/flak88_housing.tik" "skylimit/vehicles/flak88_barrel.tik" "hinge" "Flak 88" "flak88" game.false
+	waitthread global/skylimit/vehicle.scr::makeflak ( -2876.0 5556.0 -7624.0) 315 axis "skylimit/vehicles/flak88_base.tik" "skylimit/vehicles/flak88_housing.tik" "skylimit/vehicles/flak88_barrel.tik" "hinge" "Flak 88" "flak88" game.false
+	waitthread global/skylimit/vehicle.scr::makeflak ( -2684.0 5556.0 -7624.0) 315 axis "skylimit/vehicles/flak88_base.tik" "skylimit/vehicles/flak88_housing.tik" "skylimit/vehicles/flak88_barrel.tik" "hinge" "Flak 88" "flak88" game.false
+end
+
+// set the OBJ flaks
+obj:
+	// allied flaks
+	waitthread global/skylimit/vehicle.scr::makeflak (3776.0 -5376.0 -7624.0) 135 allies "skylimit/vehicles/turretflak_base.tik" "skylimit/vehicles/turretflak_housing.tik" "skylimit/vehicles/turretflak_barrel.tik" "hinge" "Bofors gun" "bofors" game.true
+	waitthread global/skylimit/vehicle.scr::makeflak (3136.0 -5436.0 -7624.0) 135 allies "skylimit/vehicles/turretflak_base.tik" "skylimit/vehicles/turretflak_housing.tik" "skylimit/vehicles/turretflak_barrel.tik" "hinge" "Bofors gun" "bofors" game.true
+	waitthread global/skylimit/vehicle.scr::makeflak (3264.0 -4672.0 -7624.0) 135 allies "skylimit/vehicles/turretflak_base.tik" "skylimit/vehicles/turretflak_housing.tik" "skylimit/vehicles/turretflak_barrel.tik" "hinge" "Bofors gun" "bofors" game.true
+
+	// axis flaks
+	waitthread global/skylimit/vehicle.scr::makeflak ( -3068.0 5556.0 -7624.0) 315 axis "skylimit/vehicles/flak88_base.tik" "skylimit/vehicles/flak88_housing.tik" "skylimit/vehicles/flak88_barrel.tik" "hinge" "Flak 88" "flak88" game.true
+	waitthread global/skylimit/vehicle.scr::makeflak ( -2876.0 5556.0 -7624.0) 315 axis "skylimit/vehicles/flak88_base.tik" "skylimit/vehicles/flak88_housing.tik" "skylimit/vehicles/flak88_barrel.tik" "hinge" "Flak 88" "flak88" game.true
+	waitthread global/skylimit/vehicle.scr::makeflak ( -2684.0 5556.0 -7624.0) 315 axis "skylimit/vehicles/flak88_base.tik" "skylimit/vehicles/flak88_housing.tik" "skylimit/vehicles/flak88_barrel.tik" "hinge" "Flak 88" "flak88" game.true
+end

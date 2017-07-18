@@ -1,0 +1,291 @@
+// for hit/damage messages
+// by jv_map
+
+message:
+	if(self.destroyed)
+	{
+		local.ff = level.teambased && self.lastdamageinflictor_team == self.dmteam
+		
+		// message inflictor if player
+		if(local.ff)
+		{
+			// friendly fire
+			waitthread msg self.lastdamageinflictor self.msg_destroyed_inflictor_friendlyfire
+		}
+		else
+		{
+			// not friendly fire
+			waitthread msg self.lastdamageinflictor self.msg_destroyed_inflictor_enemyfire
+		}
+		
+		// message all other players if necessary
+		for(local.i = 1; local.i <= $player.size; local.i++)
+		{
+			local.p = $player[local.i]
+			
+			if(local.p == self.lastdamageinflictor)
+			{
+				continue
+			}
+			
+			if(level.teambased)
+			{
+				if(local.p.dmteam == "spectator" || self.dmteam == "neutral")
+				{
+					if(local.ff)
+					{
+						waitthread msg local.p self.msg_destroyed_neutralteam_friendlyfire
+					}
+					else
+					{
+						waitthread msg local.p self.msg_destroyed_neutralteam_enemyfire
+					}
+				}
+				else if(local.p.dmteam == self.dmteam)
+				{
+					if(local.ff)
+					{
+						waitthread msg local.p self.msg_destroyed_friendlyteam_friendlyfire
+					}
+					else
+					{
+						waitthread msg local.p self.msg_destroyed_friendlyteam_enemyfire
+					}
+				}
+				else
+				{
+					if(local.ff)
+					{
+						waitthread msg local.p self.msg_destroyed_enemyteam_friendlyfire
+					}
+					else
+					{
+						waitthread msg local.p self.msg_destroyed_enemyteam_enemyfire
+					}
+				}
+			}
+			else
+			{
+				waitthread msg local.p self.msg_destroyed_neutral
+			}
+		}
+	}
+	else // merely damaged
+	{
+		wait 0.2
+		
+		if (!self.destroyed)
+		{
+			local.ff = level.teambased && self.lastdamageinflictor_team == self.dmteam
+			
+			// message inflictor if player
+			if(local.ff)
+			{
+				// friendly fire
+				waitthread msg self.lastdamageinflictor self.msg_damaged_inflictor_friendlyfire
+			}
+			else
+			{
+				// not friendly fire
+				waitthread msg self.lastdamageinflictor self.msg_damaged_inflictor_enemyfire
+			}
+			
+			// message all other players if necessary
+			for(local.i = 1; local.i <= $player.size; local.i++)
+			{
+				local.p = $player[local.i]
+				
+				if(local.p == self.lastdamageinflictor)
+				{
+					continue
+				}
+				
+				if(level.teambased)
+				{
+					if(local.p.dmteam == "spectator" || self.dmteam == "neutral")
+					{
+						if(local.ff)
+						{
+							waitthread msg local.p self.msg_damaged_neutralteam_friendlyfire
+						}
+						else
+						{
+							waitthread msg local.p self.msg_damaged_neutralteam_enemyfire
+						}
+					}
+					else if(local.p.dmteam == self.dmteam)
+					{
+						if(local.ff)
+						{
+							waitthread msg local.p self.msg_damaged_friendlyteam_friendlyfire
+						}
+						else
+						{
+							waitthread msg local.p self.msg_damaged_friendlyteam_enemyfire
+						}
+					}
+					else
+					{
+						if(local.ff)
+						{
+							waitthread msg local.p self.msg_damaged_enemyteam_friendlyfire
+						}
+						else
+						{
+							waitthread msg local.p self.msg_damaged_enemyteam_enemyfire
+						}
+					}
+				}
+				else
+				{
+					waitthread msg local.p self.msg_damaged_neutral
+				}
+			}
+		}
+	}
+end
+
+msg local.receiver local.msg:
+	if(local.receiver && local.receiver.isplayer && local.msg)
+	{
+		local.receiver iprint local.msg 1
+	}
+end
+
+teamname:
+
+	if(self.dmteam == "neutral")
+	{
+		self.friendlyteam = "armed force"
+		self.enemyteam = "armed force"
+	}
+	else
+	{
+		if(self.dmteam == allies)
+		{
+			self.enemy_team = axis
+		}
+		else
+		{
+			self.enemy_team = allies
+		}
+		
+		self.friendlyteam = $world.TEAM_NAME[self.dmteam]
+		self.enemyteam = $world.TEAM_NAME[self.enemy_team]
+	}
+	
+end
+
+setmsg_generic_primary:
+	waitthread teamname
+
+	self.msg_destroyed_inflictor_friendlyfire 		= "Watch it! You destroyed a friendly " + self.name + "!"
+	self.msg_destroyed_inflictor_enemyfire 			= "You destroyed " + (waitthread global/skylimit/string.scr::a self.nationality) + " " + self.name + "!"
+	
+	self.msg_destroyed_friendlyteam_friendlyfire 	= "One of our " + self.name + "s has been destroyed by friendly fire!"
+	self.msg_destroyed_enemyteam_friendlyfire 		= "The enemy has destroyed one of its own " + self.name + "s!"
+	self.msg_destroyed_neutralteam_friendlyfire 	= "The " + self.friendlyteam + " have destroyed one of their own " + self.name + "s!"
+
+	self.msg_destroyed_friendlyteam_enemyfire 		= "The enemy has destroyed one of our " + self.name + "s!"
+	self.msg_destroyed_enemyteam_enemyfire 			= "We've destroyed " + (waitthread global/skylimit/string.scr::a self.nationality) + " " + self.name + "!"
+	self.msg_destroyed_neutralteam_enemyfire 		= (waitthread global/skylimit/string.scr::A self.nationality) + " " + self.name + " has been destroyed by the " + self.enemyteam + "!"
+
+	self.msg_destroyed_neutral						= (waitthread global/skylimit/string.scr::A self.nationality) + " " + self.name + " has been destroyed!"
+
+	self.msg_damaged_inflictor_friendlyfire 		= "Watch it! You damaged a friendly " + self.name + "!"
+	self.msg_damaged_inflictor_enemyfire 			= "You damaged " + (waitthread global/skylimit/string.scr::a self.nationality) + " " + self.name + "!"
+	
+	self.msg_damaged_friendlyteam_friendlyfire 		= "One of our " + self.name + "s has been damaged by friendly fire!"
+	self.msg_damaged_enemyteam_friendlyfire 		= "The enemy has damaged one of its own " + self.name + "s!"
+	self.msg_damaged_neutralteam_friendlyfire 		= "The " + self.friendlyteam + " have damaged one of their own " + self.name + "s!"
+
+	self.msg_damaged_friendlyteam_enemyfire 		= "The enemy has damaged one of our " + self.name + "s!"
+	self.msg_damaged_enemyteam_enemyfire 			= "We've damaged " + (waitthread global/skylimit/string.scr::a self.nationality) + " " + self.name + "!"
+	self.msg_damaged_neutralteam_enemyfire 			= (waitthread global/skylimit/string.scr::A self.nationality) + " " + self.name + " has been damaged by the " + self.enemyteam + "!"
+
+	self.msg_damaged_neutral						= (waitthread global/skylimit/string.scr::A self.nationality) + " " + self.name + " has been damaged!"
+end
+
+setmsg_generic_secondary:
+	waitthread teamname
+	
+	self.msg_destroyed_inflictor_friendlyfire 		= "Watch it! You destroyed a friendly " + self.name + "!"
+	self.msg_destroyed_inflictor_enemyfire 			= "You destroyed " + (waitthread global/skylimit/string.scr::a self.nationality) + " " + self.name + "!"
+
+	self.msg_damaged_inflictor_friendlyfire 		= "Watch it! You damaged a friendly " + self.name + "!"
+	self.msg_damaged_inflictor_enemyfire 			= "You damaged " + (waitthread global/skylimit/string.scr::a self.nationality) + " " + self.name + "!"
+end
+
+setmsg_unique_primary:
+	waitthread teamname
+
+	self.msg_destroyed_inflictor_friendlyfire 		= "Watch it! You destroyed our " + self.name + "!"
+	self.msg_destroyed_inflictor_enemyfire 			= "You destroyed the " + self.nationality + " " + self.name + "!"
+	
+	self.msg_destroyed_friendlyteam_friendlyfire 	= "Our " + self.name + " has been destroyed by friendly fire!"
+	self.msg_destroyed_enemyteam_friendlyfire 		= "The enemy has destroyed its own " + self.name + "!"
+	self.msg_destroyed_neutralteam_friendlyfire 	= "The " + self.friendlyteam + " have destroyed their own " + self.name + "!"
+
+	self.msg_destroyed_friendlyteam_enemyfire 		= "The enemy has destroyed our " + self.name + "!"
+	self.msg_destroyed_enemyteam_enemyfire 			= "We've destroyed the " + self.nationality + " " + self.name + "!"
+	self.msg_destroyed_neutralteam_enemyfire 		= "The " + self.nationality + " " + self.name + " has been destroyed by the " + self.enemyteam + "!"
+
+	self.msg_destroyed_neutral						= "The " + self.nationality + " " + self.name + " has been destroyed!"
+
+	self.msg_damaged_inflictor_friendlyfire 		= "Watch it! You damaged our " + self.name + "!"
+	self.msg_damaged_inflictor_enemyfire 			= "You damaged the " + self.nationality + " " + self.name + "!"
+	
+	self.msg_damaged_friendlyteam_friendlyfire 		= "Our " + self.name + " has been damaged by friendly fire!"
+	self.msg_damaged_enemyteam_friendlyfire 		= "The enemy has damaged its own " + self.name + "!"
+	self.msg_damaged_neutralteam_friendlyfire 		= "The " + self.friendlyteam + " have damaged their own " + self.name + "!"
+
+	self.msg_damaged_friendlyteam_enemyfire 		= "The enemy has damaged our " + self.name + "!"
+	self.msg_damaged_enemyteam_enemyfire 			= "We've damaged the " + self.nationality + " " + self.name + "!"
+	self.msg_damaged_neutralteam_enemyfire 			= "The " + self.nationality + " " + self.name + " has been damaged by the " + self.enemyteam
+
+	self.msg_damaged_neutral						= "The " + self.nationality + " " + self.name + " has been damaged!"
+end
+
+setmsg_unique_secondary:
+	waitthread teamname
+
+	self.msg_destroyed_inflictor_friendlyfire 		= "Watch it! You destroyed our " + self.name + "!"
+	self.msg_destroyed_inflictor_enemyfire 			= "You destroyed the " + self.nationality + " " + self.name + "!"
+
+	self.msg_damaged_inflictor_friendlyfire 		= "Watch it! You damaged our " + self.name + "!"
+	self.msg_damaged_inflictor_enemyfire 			= "You damaged the " + self.nationality + " " + self.name + "!"
+end
+
+setmsg_capital_ship:
+	waitthread teamname
+
+	self.msg_destroyed_inflictor_friendlyfire 		= "Watch it! You sank the " + self.name + "!"
+	self.msg_destroyed_inflictor_enemyfire 			= "You sank the " + self.name + "!"
+	
+	self.msg_destroyed_friendlyteam_friendlyfire 	= "The " + self.name + " was sunk by friendly fire!"
+	self.msg_destroyed_enemyteam_friendlyfire 		= "The enemy has sunk the " + self.name + "!"
+	self.msg_destroyed_neutralteam_friendlyfire 	= "The " + self.friendlyteam + " have sunk the " + self.name + "!"
+
+	self.msg_destroyed_friendlyteam_enemyfire 		= "The enemy has sunk the " + self.name + "!"
+	self.msg_destroyed_enemyteam_enemyfire 			= "We've sunk the " + self.name + "!"
+	self.msg_destroyed_neutralteam_enemyfire 		= "The " + self.name + " was sunk by the " + self.enemyteam + "!"
+
+	self.msg_destroyed_neutral						= "The " + self.name + " was sunk!"
+
+	self.msg_damaged_inflictor_friendlyfire 		= "Watch it! You damaged the " + self.name + "!"
+	self.msg_damaged_inflictor_enemyfire 			= "You damaged the " + self.name + "!"
+	
+	self.msg_damaged_friendlyteam_friendlyfire 		= "The " + self.name + " has been damaged by friendly fire!"
+	self.msg_damaged_enemyteam_friendlyfire 		= "The enemy has damaged the " + self.name + "!"
+	self.msg_damaged_neutralteam_friendlyfire 		= "The " + self.friendlyteam + " have damaged the " + self.name + "!"
+
+	self.msg_damaged_friendlyteam_enemyfire 		= "The enemy has damaged the " + self.name + "!"
+	self.msg_damaged_enemyteam_enemyfire 			= "We've damaged the " + self.name + "!"
+	self.msg_damaged_neutralteam_enemyfire 			= "The " + self.name + " has been damaged by the " + self.enemyteam
+
+	self.msg_damaged_neutral						= "The " + self.name + " has been damaged!"
+end
+
+// none
+setmsg_none:
+end

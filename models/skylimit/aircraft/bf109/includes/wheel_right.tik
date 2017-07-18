@@ -1,0 +1,9 @@
+setup
+{
+	path models/skylimit/aircraft/bf109/skel
+	skelmodel wheel_right.skd
+}
+
+$include models/skylimit/aircraft/includes/classdef.tik
+$include models/skylimit/aircraft/bf109/includes/includes.tik
+$include models/skylimit/aircraft/includes/gear_anims_right.tik

@@ -1,0 +1,52 @@
+// generates some simple random clouds
+// by jv_map
+
+day:
+	// low stratus layer
+	waitthread spreadclouds 10 "grey" "grey" 1000.0 2000.0
+	
+	// hi stratus layer
+	waitthread spreadclouds 10 "grey" "grey" 4000.0 6000.0
+end
+
+day_clear:
+	// hi stratus layer
+	waitthread spreadclouds 3 "grey" "grey" 4000.0 5000.0
+end
+
+sunset:
+	// medium stratus layer
+	waitthread spreadclouds 20 "dark" "lite" 1500.0 3000.0
+end
+
+// spreads clouds between minalt and maxalt (in m)
+spreadclouds local.amount local.model_bottom local.model_top local.minalt local.maxalt:
+	local.mincoord = -16300.0
+	local.maxcoord = 16300.0
+	
+	local.h_avg = (local.maxalt + local.minalt) * 0.5 / level.SL_UNITSCALE
+	local.h_spread = (local.maxalt - local.minalt) * 0.5 / level.SL_UNITSCALE
+	
+	local.h_avg += $world.AVG_GROUNDLVL
+	
+	for(local.i = 1; local.i <= local.amount; local.i++)
+	{
+		local.basepos = (0 0 local.h_avg) + (waitthread global/skylimit/common.scr::randomvectoroffset 7000.0 7000.0 local.h_spread)
+		
+		local.basepos[0] = waitthread global/skylimit/flight.scr::cap local.basepos[0] local.mincoord local.maxcoord
+		local.basepos[1] = waitthread global/skylimit/flight.scr::cap local.basepos[1] local.mincoord local.maxcoord
+
+		local.yaw = randomfloat 360.0
+		
+		local.typenum = randomint 2 + 1
+		
+		local.tikimodel_bottom = "skylimit/clouds/cloud" + local.typenum + "_" + local.model_bottom + ".tik"
+		local.tikimodel_top = "skylimit/clouds/cloud" + local.typenum + "_" + local.model_top + ".tik"
+			
+		local.cloudbottom = spawn local.tikimodel_bottom origin local.basepos angles ( -90.0 local.yaw 0.0)
+		local.cloudbottom alwaysdraw
+		
+		local.cloudtop = spawn local.tikimodel_top origin local.basepos angles ( 90.0 local.yaw 0.0)
+		local.cloudtop alwaysdraw
+	}
+end

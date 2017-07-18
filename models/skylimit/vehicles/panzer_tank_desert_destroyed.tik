@@ -1,0 +1,59 @@
+TIKI
+setup
+{
+	scale 0.01625				// Set default scale to 16/30.5 since world is in 16 units per foot and model is in cm's
+	path models/vehicles/panzer_iv_d
+	skelmodel panzer_iv_d.skd
+	
+	surface tread shader skylimit_panzer_iv_tread_d_desert
+	surface frontwheel shader skylimit_panzer_iv_frontwheel_d_desert
+	surface frontwheelband shader skylimit_panzer_iv_frontwheelband_d_desert
+	surface backwheel shader skylimit_panzer_iv_backwheel_d_desert
+	surface backwheelband shader skylimit_panzer_iv_backwheelband_d_desert
+	surface smallwheel shader skylimit_panzer_iv_smallwheel_d_desert
+	surface smallwheelband shader skylimit_panzer_iv_smallwheelband_d_desert
+	surface verysmallwheel shader skylimit_panzer_iv_verysmallwheel_d_desert
+	surface backwheelaxel shader skylimit_panzer_iv_backwheelaxel_d_desert
+	surface turret shader skylimit_panzer_iv_turret_d_desert
+	surface boxes shader skylimit_panzer_iv_boxes_d_desert
+	surface undercarriage shader skylimit_panzer_iv_undercarriage_d_desert
+	surface turret2s shader skylimit_panzer_iv_undercarriage_d_desert
+
+}
+init
+{
+	server
+	{
+		classname Animate
+        setsize "-140 -80 0" "140 80 120"
+		notsolid
+    }
+	client
+	{
+		originemitter smoke
+		(
+			spawnrate 1.5
+			scale 0.2
+			model vsssource.spr
+			color 0.10 0.10 0.10
+			alpha 0.90
+			randvel 4.0 -8.0 20.0
+			scalerate 3.0
+			life 8.00
+			fade
+			randomroll
+		)
+	}
+}
+
+animations
+{
+	idle     	panzer_iv_d.skc
+	off			panzer_iv_d.skc
+	{
+		client
+		{
+			entry emitteroff smoke	
+		}	
+	}
+}

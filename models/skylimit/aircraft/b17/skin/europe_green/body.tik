@@ -1,0 +1,14 @@
+TIKI
+
+setup
+{
+	surface all shader b17_body
+}
+
+$include models/skylimit/aircraft/b17/includes/body.tik
+
+/*QUAKED skylimit_b17_europe-green (0.0 0.0 0.0) (-1000 -1000 0) (1000 1000 1000)
+B17 Flying Fortress
+Model by Bjarne BZR
+Skin by jv_map
+*/

@@ -1,0 +1,34 @@
+// by jv_map
+
+specs:
+	self.hud_shader = "sl_itpd"
+
+	self.mass = 765.0 // kg, LT F5b
+	self.ammo = 1
+	self.firedelay = 0.20
+	self.semiauto = game.true
+	self.expendable = game.true
+	self.external = game.true
+	self.cooldowntime = 2.0
+	self.kamikazable = game.true
+	
+	self.name = (int self.mass) + "kg Torpedo"
+	
+	self.rearm_time = 2.0
+	self.sfx_scale = 1.5
+	self.blast_radius = 50.0
+	
+	self.health = 50.0 // can be shot
+	
+	self.damage_center = 50000.0 // damage at point of impact
+	self.damage_boundary = 25000.0 // damage at max blast radius
+	
+	self.swimlife = 120.0 // s
+	self.speed = 20.0 // m/s	
+end
+
+// self is plane
+fire local.item local.ent:
+	local.ent.info = local.item
+	local.ent thread global/skylimit/torpedoattack.scr::torpedo self self.pilot self.dmteam
+end

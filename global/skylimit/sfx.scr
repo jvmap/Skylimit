@@ -1,0 +1,70 @@
+// some sfx
+// by jv_map
+
+// makes a bomb crater
+crater local.pos local.scale local.normalcheck local.autoremove:
+	// a nice small crater
+	
+	local.MINNORMALDOT = 0.90
+	
+	if(waitthread global/skylimit/dynobject.scr::isnear local.pos)
+	{
+		end
+	}
+	
+	if(local.normalcheck)
+	{
+		// need to determine normal :(
+		local.inside_normal = waitthread global/skylimit/common.scr::surfnormal local.pos 16.0
+		
+		if(local.inside_normal * $world.upvector > local.MINNORMALDOT)
+		{
+			local.outside_normal = waitthread global/skylimit/common.scr::surfnormal (local.pos - (24.0 24.0 0.0)) 48.0
+			
+			if(local.inside_normal * local.outside_normal >= 0.99) // surface is sufficiently flat
+			{
+				local.normal = local.inside_normal
+			}
+			else
+			{
+				// cancel crater
+				end
+			}
+		}
+		else
+		{
+			// cancel crater, it is on a steep incline
+			end
+		}
+		
+		local.angles = vector_toangles ( -1.0 * local.normal)
+	}
+	else
+	{
+		local.angles = ( 90 0 0)
+	}
+	
+	// random roll
+	local.angles[2] = randomfloat 360.0
+	
+	local.crater = spawn EffectEntity model skylimit/fx/crater.tik origin local.pos angles local.angles scale local.scale
+	
+	if(local.autoremove)
+	{
+		level.SL_CRATERS = waitthread global/skylimit/common.scr::addtoarray level.SL_CRATERS local.crater
+		
+		if(level.SL_CRATERS.size > level.SL_MAXCRATERS)
+		{
+			if(level.SL_CRATERS[1])
+			{
+				level.SL_CRATERS[1] remove
+			}
+			
+			level.SL_CRATERS[1] = NIL // this will be suffixed after shift
+			
+			// shift array
+			waitthread global/skylimit/common.scr::arrayshiftdown level.SL_CRATERS
+		}
+	}
+	
+end local.crater

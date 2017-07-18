@@ -1,0 +1,6 @@
+$include models/skylimit/clouds/base.tik
+
+setup
+{
+	surface all shader sl_clouds1_lite
+}

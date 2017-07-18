@@ -1,0 +1,142 @@
+TIKI
+setup
+{
+	scale 1.0
+	path models/fx/dummy
+	skelmodel dummy3.skd
+}
+
+init
+{
+	server
+	{
+		classname effectentity
+		notsolid
+		rendereffects +dontdraw
+	}
+	client
+	{
+			originemitter metalchunk
+			(
+				spawnrate 2.00
+				model models/fx/ibeam_piece.tik
+				count 2
+				color 1.00 1.00 1.00
+				collision
+				bouncefactor 0.30
+				life 1.00
+				radius 10.00
+				velocity 400.00
+				radialvelocity 10.00 10.00 100.00
+				accel 0.00 0.00 -200.00
+				offsetalongaxis 0 crandom -40 crandom -30
+				angles range -220 -440 crandom -220 range -220 110
+				avelocity crandom -400 crandom -400 crandom -300
+				scalemin 0.30
+				scalemax 1.00
+			)
+	/*
+			originemitter metal
+			(
+				spawnrate 2.00
+				model models/fx/metal_section.tik
+				count 4
+				color 1.00 1.00 1.00
+				collision
+				bouncefactor 0.30
+				scale 0.30
+				life 2.00
+				radius 10.00
+				velocity 600.00
+				radialvelocity 10.00 10.00 100.00
+				randvelaxis crandom -200 crandom -200 crandom -20
+				accel 0.00 0.00 -200.00
+				friction -1.00
+				angles range -220 -440 crandom -220 range -220 110
+				avelocity crandom -400 crandom -400 crandom -300
+				scalemin 0.30
+				scalemax 1.00
+			)
+
+			originemitter exploder
+			(
+			  	spawnrate 1.00
+				model models/fx/metal_section.tik
+				alpha 0.50
+				color 0.40 0.40 0.40
+				varycolor
+				scale 1.50
+				life 0.60
+				scalerate 10.00
+				scalemin 0.20
+				scalemax 2.00
+				fade
+				align
+			)
+*/
+			originemitter flash
+			(
+				spawnrate 1.00
+				count 1
+				model air_explosion.spr
+				alpha 0.40
+				color 1.00 1.00 1.00
+				scale 0.030
+				life 0.20 //0.20 //0.15
+				scalerate 2.0 //4.0 //9.00
+				offsetalongaxis 0 crandom -64 0
+				scalemin 0.050
+				scalemax 0.20
+				//fadedelay 0.00
+				fade
+			)
+
+			originemitter smoke
+			(
+				spawnrate 10.0 //10.00
+				model vsssource2.spr
+				count 10
+				alpha 0.70
+				color 0.20 0.20 0.20
+				life 2.00
+				scale 0.1
+				scalerate 7.00
+				radius 22.00
+				//velocity 100.00
+				//accel 0.00 2.00 50.0 //333.00
+				friction 2.00
+				fade
+				randomroll
+			)
+	}
+}
+
+animations
+{
+    idle dummy3.skc
+	start dummy3.skc
+	{
+		client
+	        {
+			enter emitteron metalchunk
+			enter emitteron flash
+			enter emitteron exploder
+			enter emitteron metal
+			enter emitteron smoke
+			enter emitteron bolt
+
+	        }
+	}
+	stop dummy3.skc
+	{
+		client
+	        {
+	    		enter emitteroff metalchunk
+			enter emitteroff flash
+			enter emitteroff exploder
+			enter emitteroff metal
+			enter emitteroff smoke
+			enter emitteroff smoke
+		}
+	}
+}

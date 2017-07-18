@@ -1,0 +1,16 @@
+menu "sl_crosshair" 256 256 NONE 1
+bgcolor 0 0 0 0
+align centerx centery
+
+resource
+Label
+{
+name "Default"
+rect 0 0 256 256
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 1.00 0.00
+borderstyle "NONE"
+linkcvartoshader
+linkcvar sl_X
+}
+end.

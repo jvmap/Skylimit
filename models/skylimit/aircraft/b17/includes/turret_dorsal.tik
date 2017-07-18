@@ -1,0 +1,15 @@
+// B-17 dorsal (top) turret
+
+setup
+{
+	path models/skylimit/aircraft/b17/skel
+	skelmodel turret_dorsal.skd
+}
+
+$include models/skylimit/aircraft/b17/includes/includes.tik
+$include models/skylimit/aircraft/includes/classdef.tik
+
+animations
+{
+	idle turret_dorsal.skc
+}

@@ -1,0 +1,6 @@
+setup
+{
+	scale 0.61
+}
+
+$define skelpath models/skylimit/aircraft/bf109/skel

@@ -1,0 +1,54 @@
+// slighly larger tracers so they can be seen well
+
+TIKI
+
+$include models/skylimit/utils/client_sound_cache.tik
+
+setup
+{
+	scale 3.0
+	path models/skylimit/weapons/cal50
+	skelmodel cal50.skd
+	surface all shader sl_cal50
+}
+
+init
+{
+	server
+	{
+      	classname Animate
+      	notsolid
+	}
+	client
+	{
+		tagemitter tag_barrel muzzle
+		(
+			model models/skylimit/fx/muzzle/m900.tik
+			spawnrate 20.0
+			life 0.02
+			anim fire
+			startoff
+		)
+	}
+}
+
+animations
+{
+	idle	cal50.skc
+	
+	start	cal50.skc
+	{
+		client
+		{
+			enter emitteron muzzle
+		}
+	}
+	
+	stop	cal50.skc
+	{
+		client
+		{
+			enter emitteroff muzzle
+		}
+	}
+}

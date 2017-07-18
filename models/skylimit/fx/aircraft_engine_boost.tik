@@ -1,0 +1,88 @@
+TIKI
+setup
+{
+	scale 1.0
+	path models/fx/dummy
+	skelmodel dummy3.skd
+}
+
+init
+{
+	server
+	{
+		classname effectentity
+		notsolid
+		rendereffects +dontdraw
+	}
+	client
+	{
+		originemitter whitesmoke
+		(
+			model vsssource.spr
+			alpha 0.50
+			color 0.90 0.90 0.90
+			scale 0.4
+			life 2.00
+			spawnrate 18.0
+			scalerate 1.20
+			//velocity -200.0
+			randvel crandom 40.0 crandom 40.0 crandom 40.0
+			offset crandom 30 crandom 30 random 30
+			fade
+			
+			startoff
+		)
+		
+		originemitter fire
+		(
+			parentlink
+			
+			spawnrate 10.00
+			model explosed2.spr
+			alpha 1.00 //0.50
+			color 0.50 0.50 1.00
+			varycolor
+			life 0.8 //2.00
+			scalerate 0.20
+			radius 10.00
+			friction 2.00
+			offset crandom 4 crandom 4 crandom 4
+			scalemin 0.25
+			scalemax 0.50
+			fade
+			avelocity 10.0 10.0 10.0
+			
+			startoff
+		)
+	}
+}
+
+animations
+{
+	idle dummy3.skc
+	
+	on dummy3.skc
+	{
+		client
+		{
+			enter emitteron whitesmoke
+			enter emitteron fire
+		}	
+	}
+	
+	fire_off dummy3.skc
+	{
+		client
+		{
+			enter emitteroff fire
+		}	
+	}
+	
+	off dummy3.skc
+	{
+		client
+		{
+			enter emitteroff whitesmoke
+		}	
+	}
+}

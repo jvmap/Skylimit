@@ -1,0 +1,80 @@
+// by jv_map
+
+specs:
+	self.name = "Engine Boost"
+	self.hud_shader = "sl_ibst"
+	
+	self.mass = 0.0
+	self.ammo = 1
+	self.external = game.false
+	self.powerup = game.true
+	self.rearm_time = 0.50
+	self.cooldowntime = 2.0
+	
+	// cannot rearm boost unless we're on a full reload pad
+	self.need_full_reload = game.true
+	
+	self.duration = 5.0
+end
+
+// self is plane
+fire local.item:
+	self.powerup_active = game.true
+	self.powerup_boost = game.true
+	self.powerup_boost_fraction = 0.0
+	
+	for(local.i = 1; local.i <= self.props.size; local.i++)
+	{
+		local.p = self.props[local.i]
+		local.p.sfx_boost anim on
+		local.p.sfx_boost playsound powerup_boost_start
+		local.p.sfx_boost commanddelay 3.15 loopsound powerup_boost_loop
+	}
+	
+	//thread global/skylimit/items.scr::powerup_stopwatch 5.0
+	
+	local.boost_start_time = level.time
+	local.boost_startup_time = 4.0
+	while(self && level.time - local.boost_start_time < local.boost_startup_time)
+	{
+		self.powerup_boost_fraction = (level.time - local.boost_start_time) / local.boost_startup_time
+		waitframe
+	}
+	
+	if !(self) end
+	
+	self.powerup_boost_fraction = 1.0
+	
+	local.boost_startshutoff_time = level.time
+	local.boost_shutoff_time = 1.0
+	while(self && level.time - local.boost_startshutoff_time < local.boost_shutoff_time)
+	{
+		self.powerup_boost_fraction = 1.0 - (level.time - local.boost_startshutoff_time) / local.boost_shutoff_time
+		waitframe
+	}
+	
+	if !(self) end
+	
+	for(local.i = 1; local.i <= self.props.size; local.i++)
+	{
+		local.p = self.props[local.i]
+		local.p.sfx_boost anim fire_off
+		local.p.sfx_boost stoploopsound
+		local.p.sfx_boost playsound powerup_boost_cutoff
+	}
+	
+	self.powerup_boost_fraction = 0.0
+	self.powerup_boost = game.false
+	
+	wait 0.5
+	
+	if !(self) end
+	
+	for(local.i = 1; local.i <= self.props.size; local.i++)
+	{
+		local.p = self.props[local.i]
+		local.p.sfx_boost anim off
+	}
+
+	self.powerup_active = game.false
+end

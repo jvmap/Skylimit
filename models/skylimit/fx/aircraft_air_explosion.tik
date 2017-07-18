@@ -1,0 +1,91 @@
+TIKI
+setup
+{
+	scale 0.031
+	path models/fx/dummy
+	skelmodel dummy3.skd
+}
+
+init
+{
+	server
+	{
+		classname effectentity
+		notsolid
+		rendereffects +dontdraw
+	}
+	
+	client
+	{
+		cache models/skylimit/fx/smoky_particle.tik
+	}
+}
+
+animations
+{
+	idle dummy3.skc
+
+	start dummy3.skc
+	{
+		server
+		{
+			enter playsound aircraft_boom
+			last commanddelay 1 anim idle
+		}
+
+		client
+		{
+
+			// fiery pieces
+			enter originspawn
+			(
+				model models/skylimit/fx/smoky_particle.tik
+				count 6
+				color 0.0 0.0 0.0
+				alpha 0.75
+				scale 1.0
+				life 3.00
+				velocity 100.0
+				randvel crandom 120.0 crandom 120.0 crandom 120.0
+				fade
+				randomroll
+				emitterangles
+				parentangles
+				accel 0 0 -15.3
+			)
+			
+			enter originspawn
+			(
+				model gren_explosion.spr
+				count 1
+				color 1.00 1.00 1.00
+				scale 0.50
+				life 0.70
+				scalerate 0.80
+				accel 0.00 0.00 6.00
+				angles crandom -4 range 4 -32 range 12 -8
+				avelocity range 6 10 range 6 10 range 6 10
+				//scalemin 0.034
+				//scalemax 0.068
+				fade
+				sphere
+			)
+					
+			// smoke shooters
+			enter originspawn
+			(
+				model vsssource2.spr
+				count 8
+				color 0.0 0.0 0.0
+				alpha 1.0
+				scale 0.2
+				life 6.00
+				scalerate 5.0
+				randvel crandom 20.0 crandom 20.0 crandom 20.0
+				fade 
+				randomroll
+				friction 0.2
+			)
+		}
+	}
+}

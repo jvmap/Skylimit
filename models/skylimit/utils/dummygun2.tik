@@ -1,0 +1,26 @@
+TIKI
+setup
+{
+	scale 1.0
+	path models/fx/dummy
+	skelmodel dummy2.skd
+}
+
+init
+{
+	server
+	{
+		classname Weapon
+		weapontype cannon
+		name ""
+		notdroppable
+		rank 2 2 //210 210
+		
+		exec global/skylimit/input.scr setwid 2
+	}	
+}
+
+animations
+{
+	idle	dummy2.skc
+}

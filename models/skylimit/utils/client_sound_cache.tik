@@ -1,0 +1,32 @@
+// aliases and caches client sounds via the TIKI method
+// subsequently client sounds can be used instead of server sounds
+// so network traffic can be reduced considerably
+
+// note: client sounds only work in mp maps (obj/dm)
+
+init
+{
+	client
+	{
+		aliascache cl_antitank_fire1 sound/weapons/fire/TankCannonFire1.wav soundparms 1.5 0.0 1.0 0.0 200 800 weapon loaded maps "obj dm"
+		aliascache cl_antitank_fire2 sound/weapons/fire/Flak88Fire1.wav soundparms 1.5 0.0 1.0 0.0 200 800 weapon loaded maps "obj dm"
+		aliascache cl_antitank_fire3 sound/weapons/fire/Flak88Fire3.wav soundparms 1.5 0.0 1.0 0.0 200 800 weapon loaded maps "obj dm"
+		aliascache cl_antitank_fire4 sound/weapons/fire/Flak88Fire4.wav soundparms 1.5 0.0 1.0 0.0 200 800 weapon loaded maps "obj dm"
+		
+		aliascache cl_cannon_explo sound/weapons/explo/explo_mine1.wav soundparms 0.8 0.0 1.5 0.1 200 400 auto loaded maps "obj dm"
+		aliascache cl_flak_explo sound/weapons/explo/Explo_Elec2.wav soundparms 1.4 0.2 0.6 0.8 200 800 auto loaded maps "obj dm"
+		
+		aliascache cl_flak_fire1 sound/weapons/fire/50CalFire1.wav soundparms 1.05 0.2 0.95 0.1 200 800 weapon loaded maps "obj dm"
+		aliascache cl_flak_fire2 sound/weapons/fire/50CalFire2.wav soundparms 1.05 0.2 0.95 0.1 200 800 weapon loaded maps "obj dm"
+		
+		aliascache cl_pompom_fire sound/skylimit/weapons/pompom.wav soundparms 1.0 0.2 0.95 0.1 200 400 weapon loaded maps "obj dm"
+		aliascache cl_naval_fire sound/skylimit/weapons/naval_gun.wav soundparms 2.0 0.0 1.0 0.0 200 1000 weapon loaded maps "obj dm"
+		
+		aliascache cl_bomb1 sound/skylimit/bomb/bomb1.wav soundparms 1.0 0.5 1.0 0.5 200 1600 auto loaded maps "obj dm"
+		aliascache cl_bomb2 sound/skylimit/bomb/bomb2.wav soundparms 1.0 0.5 1.0 0.5 200 1600 auto loaded maps "obj dm"
+		aliascache cl_bomb3 sound/skylimit/bomb/bomb3.wav soundparms 1.0 0.5 1.0 0.5 200 1600 auto loaded maps "obj dm"
+		aliascache cl_bomb4 sound/skylimit/bomb/bomb4.wav soundparms 1.0 0.5 1.0 0.5 200 1600 auto loaded maps "obj dm"
+		
+		aliascache cl_splash sound/characters/body_fallwater_02.wav soundparms 1.0 0.5 1.0 0.5 200 400 auto loaded maps "obj dm"
+	}
+}

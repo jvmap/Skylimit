@@ -1,0 +1,18 @@
+TIKI
+
+$include models/skylimit/aircraft/bf109/includes/body.tik
+
+setup
+{
+	path models/skylimit/aircraft/bf109/skel
+	
+	surface all shader bf109_trop
+	
+	skelmodel prop_spinner.skd
+	surface spinner shader bf109_trop_prop
+}
+
+/*QUAKED skylimit_bf109_europe (0.0 0.0 0.0) (-65 -40 0) (65 40 120)
+Bf109 Desert camo
+Model and skin by jv_map
+*/

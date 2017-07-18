@@ -1,0 +1,1198 @@
+// Sky Limit
+// by jv_map
+
+main:
+	// this is for simple boolean handling :)
+	game.true = bool 1
+	game.false = !game.true
+	
+	level.PI = 3.1415926
+	level.SL_MAXINT = 2147483647
+	
+	level.SL_MAPBOUNDS = 8160.0 // max map size
+	
+	level.FRAMETIME = 0.05
+	
+	level.SL_UNITCONV_MPS_to_KNOTS = 1.943846 // m/s to knots
+	level.SL_UNITCONV_M_to_FEET = 3.2808399 // m to feet
+	level.SL_UNITCONV_MPS_to_KMPH = 3.6 // m/s to km/h
+	level.SL_UNITCONV_MPS_to_MPH = 2.23693629 // m/s to mph
+	level.SL_UNITSCALE = 1.0 / (50.0 * $world.SL_SCALE) // 1 game unit equals this many meters
+
+	level.SL_ISA_P0		= 101325.0	// ISA 0m reference pressure (Pa)
+	level.SL_ISA_RHO0	= 1.225		// ISA 0m reference density (kg/m^3)
+
+	level.SL_R_AIR = 288.0			// specific gas constant of air (J/kg/K)
+	level.SL_GAMMA_AIR = 1.4		// specific heat ratio (7/5 for all biatomic gasses)
+	level.SL_CP_AIR = level.SL_GAMMA_AIR / (level.SL_GAMMA_AIR - 1.0) * level.SL_R_AIR	// specific heat of air at constant pressure (J/kg/K)
+	
+	// speed of sound in air (m/s) @ sealevel
+	level.SL_SOUNDSPEED = waitthread global/skylimit/math.scr::sqrt ( level.SL_GAMMA_AIR * level.SL_R_AIR * $world.TEMPERATURE )
+									
+	level.SL_COMP_MACH = 0.8		// max compressible mach number
+									// compressibility drag won't increase beyond this mach number
+	
+	level.SL_PROP_COMP_MACH = 0.99  // propeller compressible mach number
+	
+	level.SL_TEMPERATURE_GRADIENT = -0.0065 // linear temperature decrease with respect to altitude in troposphere (K/m)
+	
+	level.SL_WATER_DENSITY			= 998.0 // kg/m^3, density of water
+	
+	level.SL_MINDAMAGE 				= 0.01		// minimum hitpoints; damage event will be discarded/ignored if it does less damage
+	level.SL_DAMAGE_FORCE 			= 1000.0  // N / hp
+	level.SL_DAMAGE_FORCE_MAX 		= 4.0 * level.SL_DAMAGE_FORCE
+	level.SL_COLLISION_DAMAGE 		= 0.001 // hp/(kgm/s) specific damage done during collision
+	level.SL_COLLISION_ELASTICITY 	= 0.5 // collision elasticity (energy conservation)
+	level.SL_SND_MINDIST 			= 40.0 	// distance error required to update sound position, in game units
+											// greater reduces network traffic, but increases spatialization error
+	
+	level.SL_OBJ_RUNWAY_REPAIR_TIME	= 0.0005 // s/hp
+	level.SL_TOTAL_HANGAR_HEALTH	= 100000.0 // hp
+	
+	level.SL_HEALTH_RADARSTATION = 10000.0 // hp
+	
+	level.SL_SND_ENGINE_PITCH_IDLE 			= 0.5
+	level.SL_SND_ENGINE_PITCH_FULLPOWER 	= 2.0
+	
+	level.SL_SND_ENGINE_VOLUME	= 2.0
+	level.SL_SND_PROP_VOLUME	= 4.0
+	
+	// in game units
+	level.SL_SND_ENGINE_MINDIST	= 128.0 / level.SL_UNITSCALE
+	level.SL_SND_ENGINE_MAXDIST = 640.0 / level.SL_UNITSCALE
+	
+	level.SL_SND_PROP_MINDIST = 400.0
+	level.SL_SND_PROP_MAXDIST = 1500.0
+	level.SL_SND_PROP_MINPITCH = 0.5
+	
+	level.SL_SFX_WHEELDUST = skylimit/fx/aircraft_dust_emitter.tik
+	
+	level.SL_SND_WEAPONSOUND_CHANNELS = 3 // number of channels available for firing sounds
+	
+	level.SL_SERVICEABLE_PLANES[allies] = 1
+	level.SL_SERVICEABLE_PLANES[axis] = 1
+	
+	level.SL_STACKSIZE_EffectEntity = 32
+	
+	level.SL_MAXCRATERS = 50
+	
+	level.SL_SUSPENSION_TIME = 45.0 // penalty time for teamdamage / selfdamage (s)
+	
+	level.INF = 100.0 // should be big enough (1% error never noticable)
+	level.EPS = 1.0 / level.INF
+	
+	level.sl_numchutes = 0 // number of chutes in air
+	
+	// means of damage
+	level.MODM_NULL				= 0
+	level.MODM_BULLET_MG		= 1		// mg or small calibre hit
+	level.MODM_BULLET_ANTITANK 	= 2		// antitank gun shell or (very) large calibre hit
+	level.MODM_BOMB				= 4		// bomb direct impact
+	level.MODM_EXPLOSION		= 8		// bomb and general explosion splash damage
+	level.MODM_KAMIKAZE			= 16	// aircraft crashing or colliding damage
+	level.MODM_SHRAPNEL			= 32	// damage from fragmentation weapons
+	level.MODM_TORPEDO			= 64	// torpedo hit (or plane crash water)
+	level.MODM_ROCKET			= 128	// rocket direct impact
+	
+	level.CHUTE_HEALTH 		= 1
+	
+	// bombbay states
+	level.BB_OPEN			= 0
+	level.BB_OPENING		= 1
+	level.BB_CLOSED			= 2
+	level.BB_CLOSING 		= 3
+	
+	// tick-thinker thread flags
+	level.TTTF_NONE = 0
+	level.TTTF_SLOW = 1
+	
+	// engine settings
+	level.ES_CRUISE		= 0 // normal flight settings
+	level.ES_TAKEOFF	= 1 // take off 
+	level.ES_CLIMB		= 2 // climb
+	level.ES_TAXI		= 3 // taxi settings
+	level.ES_REVERSE 	= 4 // reverse, not constant speed
+	level.ES_FEATHER	= 5 // full feathering
+	
+	// hud indicators
+	level.ES_INDICATOR[level.ES_CRUISE]		= "CR"
+	level.ES_INDICATOR[level.ES_TAKEOFF]	= "TO"
+	level.ES_INDICATOR[level.ES_CLIMB]		= "CL"
+	level.ES_INDICATOR[level.ES_TAXI]		= "TX"
+	level.ES_INDICATOR[level.ES_REVERSE]	= "R"
+	level.ES_INDICATOR[level.ES_FEATHER]	= "F"
+	
+	// spawn messages (linkstrings)
+	level.SPMSG_NONE 			= "-"
+	level.SPMSG_YES 			= "0"
+	level.SPMSG_NO 				= "1"
+	level.SPMSG_AIRFIELD_DAMAGE = "2"
+	level.SPMSG_NO_MORE_PLANES 	= "3"
+	level.SPMSG_BAN 			= "4"
+	level.SPMSG_CARRIER_SUNK	= "5"
+	level.SPMSG_SUSPENSION		= "6"
+	
+	// input push types
+	// do not change values
+	//level.SL_PT_HOLD	= 0
+	//level.SL_PT_PRESS	= 1
+	//level.SL_PT_RELEASE	= 2
+	
+	// unique player ID
+	level.SL_current_pid 	= 0
+	//level.SL_lowest_pid		= 0
+	
+	if !(level.master)
+		level.master = spawn ScriptMaster
+	
+	local.mapstring = "obj dm " + (getcvar mapname)
+	
+	// using server firing sounds is no longer allowed as it wastes bandwidth
+	//level.master aliascache aircraft_gun_fire sound/weapons/fire/MG42Burst_01.wav soundparms 0.7 0.4 0.9 0.2 100 900 weapon loaded maps local.mapstring
+	
+	level.master aliascache aircraft_boom1 sound/weapons/explo/Explo_MetalMed1.wav soundparms 0.9 0.2 0.8 0.2 150 1600 weapon loaded maps local.mapstring
+	level.master aliascache aircraft_boom2 sound/weapons/explo/Explo_MetalMed2.wav soundparms 0.9 0.2 0.8 0.2 150 1600 weapon loaded maps local.mapstring
+	level.master aliascache aircraft_boom3 sound/weapons/explo/Explo_MetalMed3.wav soundparms 0.9 0.2 0.8 0.2 150 1600 weapon loaded maps local.mapstring
+	level.master aliascache aircraft_boom4 sound/weapons/explo/Explo_MetalMed4.wav soundparms 0.9 0.2 0.8 0.2 150 1600 weapon loaded maps local.mapstring
+	//level.master aliascache aircraft_impending_stall sound/skylimit/impending_stall.wav soundparms 2.5 0.0 1.0 0.0 100 100 auto loaded maps local.mapstring
+	//level.master aliascache aircraft_stall sound/skylimit/stall.wav soundparms 2.5 0.0 1.0 0.0 100 100 dialog loaded maps local.mapstring
+	level.master aliascache aircraft_skid sound/skylimit/skid.wav soundparms 0.4 0.1 0.5 0.3 150 500 auto loaded maps local.mapstring
+	level.master aliascache aircraft_gear_down sound/skylimit/gear_down.wav soundparms 1.0 0.1 1.0 0.1 150 300 body loaded maps local.mapstring
+	level.master aliascache aircraft_gear_up sound/skylimit/gear_up.wav soundparms 1.0 0.1 1.0 0.1 150 300 body loaded maps local.mapstring
+	
+	level.master aliascache aircraft_collide1 sound/mechanics/damage_vehicle_2.wav soundparms 1.0 0.5 1.1 0.5 300 300 auto loaded maps local.mapstring
+	level.master aliascache aircraft_collide2 sound/mechanics/damage_vehicle_3.wav soundparms 1.0 0.5 1.1 0.5 300 300 auto loaded maps local.mapstring
+	
+	level.master aliascache bombbay_open sound/skylimit/bombbay_open.wav soundparms 1.5 0.0 1.0 0.0 200 400 auto loaded maps local.mapstring
+	level.master aliascache bombbay_close sound/mechanics/DoorTailgateOpen_01.wav soundparms 1.5 0.0 1.0 0.0 200 400 auto loaded maps local.mapstring
+	
+	level.master aliascache powerup_boost_start sound/skylimit/boost_start.wav soundparms 1.4 0.2 0.9 0.0 400 2000 voice loaded maps local.mapstring
+	level.master aliascache powerup_boost_loop sound/skylimit/boost_loop.wav soundparms 1.4 0.2 0.9 0.0 400 2000 voice loaded maps local.mapstring
+	level.master aliascache powerup_boost_cutoff sound/skylimit/boost_cutoff.wav soundparms 0.8 0.2 0.9 0.0 400 2000 voice loaded maps local.mapstring
+
+	level.master aliascache weapon_switch sound/weapons/foley/AmmoPUMG1.wav soundparms 1.3 0.2 0.8 0.2 150 150 auto loaded maps local.mapstring
+	level.master aliascache weapon_jam sound/weapons/foley/MineTrigger1.wav soundparms 1.0 0.0 1.0 0.2 150 150 auto loaded maps local.mapstring
+
+	level.master aliascache browning303_fire_loop sound/skylimit/weapons/browning303_loop.wav soundparms 0.4 0.0 1.0 0.0 160 900 auto loaded maps local.mapstring
+	level.master aliascache browning303_fire_echo sound/skylimit/weapons/browning303_echo.wav soundparms 0.4 0.0 1.0 0.0 160 900 auto loaded maps local.mapstring
+	
+	level.master aliascache browning50_fire_loop sound/skylimit/weapons/browning50_loop.wav soundparms 0.4 0.0 1.0 0.0 160 900 auto loaded maps local.mapstring
+	level.master aliascache browning50_fire_echo sound/skylimit/weapons/browning50_echo.wav soundparms 0.4 0.0 1.0 0.0 160 900 auto loaded maps local.mapstring
+	
+	level.master aliascache browning50_battery_fire_loop sound/skylimit/weapons/browning50_battery_loop.wav soundparms 0.4 0.0 1.0 0.0 160 900 auto loaded maps local.mapstring
+	level.master aliascache browning50_battery_fire_echo sound/skylimit/weapons/browning50_echo.wav soundparms 0.4 0.0 1.0 0.0 160 900 auto loaded maps local.mapstring
+
+	level.master aliascache mg17_fire_loop sound/skylimit/weapons/mg17_loop.wav soundparms 0.4 0.0 1.0 0.0 160 900 auto loaded maps local.mapstring
+	level.master aliascache mg17_fire_echo sound/skylimit/weapons/mg17_echo.wav soundparms 0.4 0.0 1.0 0.0 160 900 auto loaded maps local.mapstring
+
+	level.master aliascache mg131_fire_loop sound/skylimit/weapons/mg131_loop.wav soundparms 0.6 0.0 1.0 0.0 160 900 auto loaded maps local.mapstring
+	level.master aliascache mg131_fire_echo sound/skylimit/weapons/mg131_echo.wav soundparms 0.6 0.0 1.0 0.0 160 900 auto loaded maps local.mapstring
+
+	level.master aliascache hispano_fire_loop sound/skylimit/weapons/hispano_loop.wav soundparms 0.4 0.0 1.0 0.0 160 900 auto loaded maps local.mapstring
+	level.master aliascache hispano_fire_echo sound/skylimit/weapons/hispano_echo.wav soundparms 0.4 0.0 1.0 0.0 160 900 auto loaded maps local.mapstring
+
+	level.master aliascache mg151_fire_loop sound/skylimit/weapons/mg151_loop.wav soundparms 0.6 0.0 1.0 0.0 160 900 auto loaded maps local.mapstring
+	level.master aliascache mg151_fire_echo sound/skylimit/weapons/mg151_echo.wav soundparms 0.6 0.0 1.0 0.0 160 900 auto loaded maps local.mapstring
+	
+	level.master aliascache mgff_fire_loop sound/skylimit/weapons/mgff_loop.wav soundparms 0.6 0.0 1.0 0.0 160 900 auto loaded maps local.mapstring
+	level.master aliascache mgff_fire_echo sound/skylimit/weapons/mgff_echo.wav soundparms 0.6 0.0 1.0 0.0 160 900 auto loaded maps local.mapstring
+
+	level.master aliascache mk108_fire_loop sound/skylimit/weapons/mk108_loop.wav soundparms 0.8 0.0 1.0 0.0 160 900 auto loaded maps local.mapstring
+	level.master aliascache mk108_fire_echo sound/skylimit/weapons/mk108_echo.wav soundparms 0.8 0.0 1.0 0.0 160 900 auto loaded maps local.mapstring
+
+	level.master aliascache aircraft_engine_servo sound/skylimit/servo_run.wav soundparms 2.0 0.0 1.0 0.0 200 600 weaponidle loaded maps local.mapstring
+	level.master aliascache aircraft_engine_start sound/skylimit/engine_start.wav soundparms 2.0 0.0 1.0 0.0 200 600 weaponidle loaded maps local.mapstring
+	level.master aliascache aircraft_engine_cutoff sound/skylimit/engine_cutoff.wav soundparms 1.00 0.0 0.50 0.0 200 600 weaponidle loaded maps local.mapstring
+	
+	level.master aliascache aircraft_taxi sound/skylimit/taxi.wav soundparms 0.8 0.0 1.0 0.0 200 600 auto loaded maps local.mapstring
+	level.master aliascache aircraft_taxi_halt sound/skylimit/taxi_halt.wav soundparms 0.8 0.0 1.0 0.0 200 600 auto loaded maps local.mapstring
+	
+	level.master aliascache aircraft_rearm1 sound/weapons/foley/SpringfieldReloadFill1.wav soundparms 1.3 0.2 0.8 0.15 150 300 auto loaded maps local.mapstring
+	level.master aliascache aircraft_rearm2 sound/weapons/foley/SpringfieldReloadFill2.wav soundparms 1.3 0.2 0.8 0.15 150 300 auto loaded maps local.mapstring
+	
+	level.master aliascache arty_echo sound/skylimit/arty_echo.wav soundparms 1.0 0.0 1.0 0.0 128 128 auto loaded maps local.mapstring
+	
+	level.master aliascache torpedo	sound/skylimit/torpedo.wav soundparms 1.0 0.0 1.0 0.0 400 600 auto loaded maps local.mapstring
+	
+	level.master aliascache sl_b_zing1 sound/weapons/zings/Wpn_WhizBy04.wav soundparms 0.4 0.2 0.9 0.2 160 180 auto loaded maps local.mapstring
+	level.master aliascache sl_b_zing2 sound/weapons/zings/wpn_whizby05.wav soundparms 0.9 0.2 0.9 0.2 160 180 auto loaded maps local.mapstring
+	level.master aliascache sl_b_zing3 sound/weapons/zings/wpn_whizby06.wav soundparms 0.9 0.2 0.9 0.2 160 180 auto loaded maps local.mapstring
+	level.master aliascache sl_b_zing4 sound/weapons/zings/wpn_whizby07.wav soundparms 0.6 0.2 0.9 0.2 160 180 auto loaded maps local.mapstring
+	level.master aliascache sl_b_zing5 sound/weapons/zings/wpn_whizby08.wav soundparms 0.9 0.2 0.9 0.2 160 180 auto loaded maps local.mapstring
+	level.master aliascache sl_b_zing6 sound/weapons/zings/wpn_whizby09.wav soundparms 0.9 0.2 0.9 0.2 160 180 auto loaded maps local.mapstring
+	level.master aliascache sl_b_zing7 sound/weapons/zings/wpn_whizby10.wav soundparms 0.7 0.2 0.9 0.2 160 180 auto loaded maps local.mapstring
+	level.master aliascache sl_b_zing8 sound/weapons/zings/wpn_whizby11.wav soundparms 0.9 0.2 0.9 0.2 160 180 auto loaded maps local.mapstring
+	level.master aliascache sl_b_zing9 sound/weapons/zings/wpn_whizby13.wav soundparms 0.9 0.2 0.9 0.2 160 180 auto loaded maps local.mapstring
+	level.master aliascache sl_b_zing10 sound/weapons/zings/wpn_whizby15.wav soundparms 0.9 0.2 0.9 0.2 160 180 auto loaded maps local.mapstring
+	level.master aliascache sl_b_zing11 sound/weapons/zings/wpn_whizby16.wav soundparms 0.9 0.2 0.9 0.2 160 180 auto loaded maps local.mapstring
+	level.master aliascache sl_b_zing12 sound/weapons/zings/wpn_whizby17.wav soundparms 0.9 0.2 0.9 0.2 160 180 auto loaded maps local.mapstring
+	level.master aliascache sl_b_zing13 sound/weapons/zings/wpn_whizby20.wav soundparms 0.9 0.2 0.9 0.2 160 180 auto loaded maps local.mapstring
+	level.master aliascache sl_b_zing14 sound/weapons/zings/wpn_whizby21.wav soundparms 0.5 0.2 0.9 0.2 160 180 auto loaded maps local.mapstring
+	level.master aliascache sl_b_zing15 sound/weapons/zings/wpn_whizby26.wav soundparms 0.9 0.2 0.9 0.2 160 180 auto loaded maps local.mapstring
+	level.master aliascache sl_b_zing16 sound/weapons/zings/wpn_whizby28.wav soundparms 0.9 0.2 0.9 0.2 160 180 auto loaded maps local.mapstring
+	level.master aliascache sl_b_zing17 sound/weapons/zings/wpn_whizby29.wav soundparms 0.9 0.2 0.9 0.2 160 180 auto loaded maps local.mapstring
+	level.master aliascache sl_b_zing18 sound/weapons/zings/wpn_whizby30.wav soundparms 0.9 0.2 0.9 0.2 160 180 auto loaded maps local.mapstring
+	level.master aliascache sl_b_zing19 sound/weapons/zings/wpn_whizby36.wav soundparms 0.9 0.2 0.9 0.2 160 180 auto loaded maps local.mapstring
+	level.master aliascache sl_b_zing20 sound/weapons/zings/wpn_whizby39.wav soundparms 0.3 0.2 0.9 0.2 160 180 auto loaded maps local.mapstring
+	
+	level.master.maps = local.mapstring
+	
+	local.dist = 160.0
+	local.maxdist = 200.0
+	
+	level.master aliascache aircraft_engineA sound/skylimit/engine/A.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
+	level.master aliascache aircraft_engineB sound/skylimit/engine/B.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
+	level.master aliascache aircraft_engineC sound/skylimit/engine/C.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
+	level.master aliascache aircraft_engineD sound/skylimit/engine/D.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
+	level.master aliascache aircraft_engineE sound/skylimit/engine/E.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
+
+	// new prop sound
+	level.master aliascache aircraft_prop sound/skylimit/engine/prop.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist item loaded maps local.mapstring
+	level.master aliascache aircraft_prop_local sound/skylimit/engine/prop_local.wav soundparms 1.0 0.0 1.0 0.0 local.dist local.maxdist "local" loaded maps local.mapstring
+
+	// gametype selector
+	local.gt = int (getcvar g_gametype)
+	if(local.gt == 0)
+	{
+		// single player
+		// not supported (TODO?)
+		end
+	}
+	else if(local.gt == 1)
+	{
+		// ffa
+		level.SL_GAMETYPE = "ffa"
+		level.SL_FINITE_PLANES = game.false
+		level.SL_PLANETYPE_SUFFIX = "DM"
+		level.teambased = game.false
+		level.SL_NOAIRFIELDS = game.true
+		setcvar g_gametypestring "Dogfight"
+	}
+	else if(local.gt == 2)
+	{
+		// tdm
+		level.SL_GAMETYPE = "tdm"
+		level.SL_FINITE_PLANES = game.false
+		level.SL_PLANETYPE_SUFFIX = "DM"
+		level.teambased = game.true
+		level.SL_NOAIRFIELDS = game.false
+		setcvar g_gametypestring "Team Dogfight"
+	}
+	else if(local.gt == 3)
+	{
+		// handle like tdm
+		level.SL_GAMETYPE = "tdm"
+		level.SL_FINITE_PLANES = game.false
+		level.SL_PLANETYPE_SUFFIX = "DM"
+		level.teambased = game.true
+		level.SL_NOAIRFIELDS = game.false
+		setcvar g_gametypestring "Roundbased Team Dogfight"
+		end
+	}
+	else if(local.gt == 4)
+	{
+		// obj
+		level.SL_GAMETYPE = "obj"
+		level.SL_FINITE_PLANES = game.true
+		level.SL_PLANETYPE_SUFFIX = "OBJ"
+		level.teambased = game.true
+		level.SL_NOAIRFIELDS = game.false
+		setcvar g_gametypestring "Air Assault"
+	}
+	else
+	{
+		// hmm maybe a sh gametype
+		// not supported (TODO?)
+		end
+	}
+	
+	level.roundstart = game.false
+
+	level.SL_MAPSCR = "maps/" + (getcvar mapname) + ".scr"
+	level.SL_GAMETYPESCR = "global/skylimit/gametype_" + level.SL_GAMETYPE + ".scr"
+
+	level.SKYLIMIT = game.true
+	setcvar g_statefile "global/skylimit/skylimit"
+
+	// init math
+	waitthread global/skylimit/math.scr::init
+
+	// init player input system
+	waitthread global/skylimit/input.scr::init
+
+	waitthread global/skylimit/items.scr::init_map
+	
+	// init damage vars
+	waitthread global/skylimit/damage.scr::init
+	
+	// init sound system
+	waitthread global/skylimit/sound.scr::init
+	
+	soundtrack global/skylimit/soundtrack.mus
+	
+	// cache some fx
+	waitthread cache
+	
+	level waittill prespawn
+	
+	waitthread initspawnpoints allies
+	waitthread initspawnpoints axis
+	
+	// get plane options
+	waitthread level.SL_MAPSCR::("PLANETYPES_" + level.SL_PLANETYPE_SUFFIX)
+
+	waitthread global/skylimit/plane_selection.scr::inithangar allies
+	waitthread global/skylimit/plane_selection.scr::inithangar axis
+	
+	// make some useful stacks
+	// we'll use the entity spots later on
+	
+	// EffectEntity is used a.o. for bullethit effects
+	thread global/skylimit/common.scr::makestack EffectEntity level.SL_STACKSIZE_EffectEntity
+	
+	level waittill spawn
+	
+	if(level.roundbased)
+	{
+		// wait for roundstart
+		level.roundstart = game.false
+		thread roundstart
+	}
+	else
+	{
+		level.roundstart = game.true
+	}
+	
+	if(level.SL_GAMETYPE == "ffa")
+	{
+		// occasional mid-air reloads
+		thread dm_reload
+	}
+	else if(level.SL_GAMETYPE == "tdm")
+	{
+		// occasional mid-air reloads
+		thread dm_reload
+		
+		// can reload at airfield
+		thread global/skylimit/reload_point.scr::check_reloads
+	}
+	else if(level.SL_GAMETYPE == "obj")
+	{
+		// init the runways so they take damage
+		waitthread global/skylimit/runway.scr::init_runways allies
+		waitthread global/skylimit/runway.scr::init_runways axis
+		
+		// can reload at airfield
+		thread global/skylimit/reload_point.scr::check_reloads
+	}
+	
+	if(level.SL_NOAIRFIELDS)
+	{
+		// remove airfields
+		waitthread hideairfields
+	}
+	else
+	{
+		// setup the field hangars
+		waitthread global/skylimit/hangar.scr::init_fieldhangars allies
+		waitthread global/skylimit/hangar.scr::init_fieldhangars axis
+		
+		// hide the airfield fills
+		waitthread showairfields
+	}
+	
+	// init radarstations
+	waitthread global/skylimit/radarstation.scr::init
+	
+	// launch gametype specific threads
+	waitthread level.SL_MAPSCR::level.SL_GAMETYPE
+	
+	level.dmrespawning = game.true
+	
+	//exec global/skylimit/statefile_gen.scr
+	//pause
+	
+	if(level.SL_FINITE_PLANES)
+	{
+		// total plane counter
+		thread plane_counter
+		waitframe
+	}
+	
+	thread playerhandler
+	
+	thread global/skylimit/collision.scr::collision
+	
+	exec global/skylimit/ai.scr
+end
+
+roundstart:
+	// can also fake a roundstart
+	level waittill roundstart
+	level.roundstart = game.true
+end
+
+dm_reload:
+
+	local.RELOAD_DELAY = 10.0
+	local.RELOAD_DURATION = 2.0
+
+	while(game.true)
+	{
+		wait local.RELOAD_DELAY
+		level.DM_RELOAD = game.true
+		wait local.RELOAD_DURATION
+		level.DM_RELOAD = game.false
+	}
+
+end
+
+playerhandler:
+	while(game.true)
+	{
+		for(local.i = 1; local.i <= $player.size; local.i++)
+		{
+			local.p = $player[local.i]
+			if(local.p.planed != 1)
+			{
+				local.p.planed = 1
+				local.p thread plane level.SL_current_pid
+				
+				//level.SL_static_players[level.SL_current_pid] = local.p
+				
+				level.SL_current_pid++
+				
+				if(level.SL_current_pid > level.SL_MAXINT - 1)
+					level.SL_current_pid = 0
+			}
+		}
+		waitframe
+	}
+end
+
+plane local.pid:
+	local.RESPAWNDELAY = 2.0
+	local.VIEWANGLES_LOCK_TIME = 0.50
+
+	local.CAM_TRANSITION_TIME_FLIGHT = 0.4
+	local.CAM_TRANSITION_TIME_SPEC = 2.0
+
+	// unique player identifier
+	self.SL_pid = local.pid
+	self.keymap = "flight"
+
+	self.next_respawn_time = 0.0
+	self.join_time = level.time
+
+	self.isplayer = game.true
+	
+	local.last_team_spawned_in = NULL
+	
+	// start input system
+	waitthread global/skylimit/input.scr::init_player
+	
+	// which player to follow
+	self.spectate_bias = 1
+	
+	self.cam_transition_time = local.CAM_TRANSITION_TIME_SPEC
+	
+	// start camera system
+	thread global/skylimit/camera.scr::playercam
+	
+	// start sound system
+	thread global/skylimit/sound.scr::playermic
+	
+	thread playerspawn
+	
+	// remove hud compass and crosshair
+	self commanddelay 2.0 stufftext "set ui_compass 0; ui_addhud sl_spec; ui_addhud sl_spec2"
+	self commanddelay 2.0 stufftext "set sl_orgx 0; globalwidgetcommand crosshair enabledcvar sl_orgx"
+	
+	if(level.SL_GAMETYPE == "obj")
+	{
+		// show fleet size
+		self commanddelay 2.0 stufftext "ui_addhud sl_fs"
+	}
+	else
+	{
+		// hide fleet size
+		self commanddelay 2.0 stufftext "ui_removehud sl_fs"
+	}
+	
+	self commanddelay 1.0 primarydmweapon rifle
+	
+	// for the plane selection screen
+	self.last_chosen_class_id[allies] = 1
+	self.last_chosen_variant[allies] = 1
+	self.last_chosen_class_id[axis] = 1
+	self.last_chosen_variant[axis] = 1
+	
+	while(self)
+	{
+		self.active_playing = game.false
+		self.killed = game.false
+		self.can_have_weapon_out = game.true
+		
+		// remove unused huds
+		self stufftext "ui_removehud skylimit_fade; ui_removehud hud_skylimit; ui_removehud sl_psc; ui_removehud sl_psl; ui_removehud sl_psr; ui_removehud sl_crosshair"
+		self stufftext "ui_removehud hud_sl_item; ui_removehud hud_sl_weap; ui_removehud hud_sl_cmps; set sl_rearm 0; set sl_X sl_X2"
+		
+		// spectate loop
+		local.has_clicked = game.false
+		local.has_released_fire = game.false
+		self.cam_transition_time = local.CAM_TRANSITION_TIME_SPEC
+	
+		while(self)
+		{
+			self.wtf_why_cant_i_respawn = NIL // clear reason
+			self.show_respawn_countdown = game.false
+			
+			if(self.suspend_on_respawn)
+			{
+				self.suspended = game.true
+				self.raise_suspension_time = level.time + level.SL_SUSPENSION_TIME
+				self.suspend_on_respawn = game.false
+			}
+			
+			local.can_respawn_norm = self.dmteam != "spectator" && level.time >= self.next_respawn_time && self.dmteam == local.last_team_spawned_in
+			
+			if(local.can_respawn_norm)
+			{
+				if(self.suspended && level.time <= self.raise_suspension_time)
+				{
+					if(self.court_martial)
+					{
+						self.wtf_why_cant_i_respawn = level.SPMSG_BAN
+					}
+					else
+					{
+						self.wtf_why_cant_i_respawn = level.SPMSG_SUSPENSION
+					}
+					self.show_respawn_countdown = game.true
+					self.respawn_countdown = self.raise_suspension_time - level.time
+				}
+				else
+				{
+					self.suspended = game.false
+				}
+			}
+			
+			local.can_respawn_game = local.can_respawn_norm && !self.suspended && waitthread level.SL_GAMETYPESCR::canrespawn
+			
+			if(local.can_respawn_game && local.has_clicked)
+			{
+				// respawn
+				break
+			}
+			
+			if(self.show_respawn_countdown)
+			{
+				waitthread updatecvarstring "sl_spmsgext" (int (self.respawn_countdown + 0.5))
+			}
+			else
+			{
+				waitthread updatecvarstring "sl_spmsgext" "-"
+			}
+			
+			if (local.can_respawn_norm)
+			{
+				// show respawn message
+				if(local.can_respawn_game)
+				{
+					local.respawn_msg = level.SPMSG_YES
+				}
+				else
+				{
+					if(self.wtf_why_cant_i_respawn)
+					{
+						local.respawn_msg = self.wtf_why_cant_i_respawn
+					}
+					else
+					{
+						local.respawn_msg = level.SPMSG_NO
+					}
+				}
+			}
+			else
+			{
+				local.respawn_msg = level.SPMSG_NONE
+			}
+			
+			if(self.last_respawn_message != local.respawn_msg)
+			{
+				self stufftext ("set sl_spmsg " + local.respawn_msg)
+				self.last_respawn_message = local.respawn_msg
+			}
+			
+			if(self.dmteam != "spectator")
+			{
+				// press use to follow a diff player
+				if( !self.showing_press_use_to_follow_a_diff_player)
+				{
+					self stufftext "set sl_spctrl 1"
+					self.showing_press_use_to_follow_a_diff_player = game.true
+				}
+			}
+			else
+			{
+				if(self.showing_press_use_to_follow_a_diff_player)
+				{
+					self stufftext "set sl_spctrl 0"
+					self.showing_press_use_to_follow_a_diff_player = game.false
+				}
+			}
+			
+			if (!(isAlive self) || self.dmteam != local.last_team_spawned_in)
+			{				
+				if(level.SL_GAMETYPE == "obj" && self.dmteam != local.last_team_spawned_in)
+				{
+					// update fleet counters
+					waitthread update_my_fleet_counters (2.0 + self.join_time - level.time)
+				}
+				
+				self.locked_viewangles = self.script_viewangles
+				self.viewangles_release_time = level.time + local.VIEWANGLES_LOCK_TIME
+				
+				self respawn
+				waitthread player_respawn
+				local.last_team_spawned_in = self.dmteam
+			}
+			else
+			{
+				if(local.has_released_fire && local.can_respawn_game)
+				{
+					local.has_clicked = local.has_clicked || self.fireheld
+				}
+				else if (!self.fireheld)
+				{
+					local.has_released_fire = game.true
+				}
+			}
+			
+			wait 0.03
+			waitthread global/skylimit/spectate.scr::spectate
+			wait 0.02
+		}
+		
+		if !(self)
+		{
+			break
+		}
+		
+		if(self.last_respawn_message != level.SPMSG_NONE)
+		{
+			// clear the spectate hud
+			self stufftext ("set sl_spmsg " + level.SPMSG_NONE)
+			self.last_respawn_message = level.SPMSG_NONE
+		}
+		
+		// press use to follow a diff player
+		if(self.showing_press_use_to_follow_a_diff_player)
+		{
+			self stufftext "set sl_spctrl 0"
+			self.showing_press_use_to_follow_a_diff_player = game.false
+		}
+		
+		// ready to spawn and choose a plane
+		waitthread global/skylimit/plane_selection.scr::chooseplane
+		
+		if(self && self.dmteam == local.last_team_spawned_in && self.SL_chosen_plane)
+		{	
+			// ready to fly away
+			self.cam_transition_time = local.CAM_TRANSITION_TIME_FLIGHT
+			
+			// make sure hud compass is removed
+			self stufftext "set ui_compass 0"
+			
+			// activate flight hud
+			self stufftext "ui_addhud hud_skylimit; ui_addhud hud_sl_item; ui_addhud hud_sl_weap; ui_addhud hud_sl_cmps; ui_addhud sl_crosshair"
+			
+			self.active_playing = game.true
+			(spawn Animate) thread global/skylimit/flight.scr::fly self self.SL_chosen_plane
+
+			while(self && !self.killed)
+			{
+				waitframe
+			}
+			
+			if(self)
+			{
+				self dead
+				self.next_respawn_time = level.time + local.RESPAWNDELAY
+			}
+		}
+	}
+end
+
+// courtesy from flight.scr
+//#INLINE
+updatecvarstring local.cvar local.value:
+	if(group.cvar_lastvalue[local.cvar] != local.value)
+	{
+		self stufftext ("set " + local.cvar + " " + local.value)
+		group.cvar_lastvalue[local.cvar] = local.value
+	}
+end
+
+player_respawn:
+	if(self.max_health == 100.0)
+	{
+		//println "-- player_respawn -- " level.time
+	
+		self.max_health = 200.0
+		self heal 1
+		
+		self.SL_lastwid = 1
+		
+		// player spawned
+		self notsolid
+		self hide
+		self takeall
+		self nodamage
+		self gravity 0.0
+	
+		self model skylimit/utils/theinvisibleman.tik
+	
+		thread finish_spawn	0.20
+	
+		// reactivate the camera
+		waitthread global/skylimit/camera.scr::activatecamera
+	}
+end
+
+finish_spawn local.delay:
+	wait local.delay
+	
+	// take crap guns and give dummy gun
+	// we need the dummy gun so we can check for certain key presses
+	// that can only get registered if player is holding a weapon
+	self give skylimit/utils/dummygun.tik
+	self useweaponclass cannon
+	self activatenewweapon righthand
+	
+	self.SL_lastwid = 1
+	
+	self give skylimit/utils/dummygun2.tik
+	self give skylimit/utils/dummygun3.tik
+	
+	self hide
+end
+
+playerspawn:
+	while(self)
+	{
+		if(self.max_health == 100.0)
+		{
+			//println "--- detected player spawn --- " level.time
+			waitthread player_respawn
+		}
+		waitframe
+	}
+end
+
+// kinda ugly :(
+// not used atm, anyway
+/*
+suppress_weaponselection:
+	while(self && !self.fireheld)
+	{
+		waitframe
+	}
+		
+	if(self)
+	{
+		self primarydmweapon rifle
+	}
+end
+*/
+initspawnpoints local.team:
+	local.sps = $("spawnpoint_" + local.team)
+	
+	if !(local.sps)
+	{
+		println "please add some " local.team " spawnpoints!"	
+	}
+	
+	//println "Found " $("spawnpoint_" + local.team).size " " local.team " spawnpoints"
+	
+	// sort all by ID and store in level.SL_spawnpoints array
+	local.highestid = 0
+	for(local.i = 1; local.i <= local.sps.size; local.i++)
+	{
+		local.sp = local.sps[local.i]
+		if(local.sparray[local.sp.id] != NIL)
+		{
+			println "duplicate spawn #id " local.team " " local.sp.id "!"
+		}
+		
+		local.sparray[local.sp.id] = local.sp
+		
+		if(local.sp.id > local.highestid)
+			local.highestid = local.sp.id
+	}
+	
+	// sanitize array: clear unused entries and shift
+	local.j = 0
+	for(local.i = 1; local.i <= local.highestid; local.i++)
+	{
+		local.sp = local.sparray[local.i]
+		if(local.sp != NIL)
+		{
+			local.j++
+			local.sanesparray[local.j] = local.sp
+			
+			// also init .inuse variable
+			local.sp.inuse = game.false
+			
+			// make sure we have a startangle
+			if(local.sp.startangle == NIL)
+			{
+				println "spawnpoint_" local.team " @ " local.sp.origin " has no #startangle!"
+				local.sp.startangle = 0
+			}
+		}
+	}
+	
+	level.SL_spawnpoints[local.team] = local.sanesparray
+end
+
+// called from input system
+cleanup_skylimit:
+
+	println ">>> cleanup_skylimit " level.time " <<<"
+
+	if(level.desired_statefile == NIL)
+	{
+		local.newsf = "global/mike"
+	}
+	else
+	{
+		local.newsf = level.desired_statefile
+	}
+	
+	setcvar g_statefile local.newsf
+	self resetstate
+	
+	// clean up the hud in 2 batches
+	// in case some packets get lost out there
+	waitthread cleanup_skylimit_hud
+	
+	wait 2.0
+	
+	if(self)
+	{
+		waitthread cleanup_skylimit_hud
+	}
+end
+
+cleanup_skylimit_hud:
+	// remove huds
+	self stufftext "ui_removehud skylimit_fade; ui_removehud hud_skylimit; ui_removehud sl_psc; ui_removehud sl_psl; ui_removehud sl_psr; ui_removehud sl_crosshair"
+	self stufftext "ui_removehud hud_sl_item; ui_removehud hud_sl_weap; ui_removehud hud_sl_cmps; ui_removehud sl_fs; ui_removehud sl_spec; ui_removehud sl_spec2"
+	
+	// show original hud compass and crosshair
+	self stufftext "set ui_compass 1; set sl_orgx 1"
+end
+
+// for finite plane handling
+plane_counter:
+
+	// initial planes
+	// need this to determine clockside
+	waitthread count_initial_planes allies
+	waitthread count_initial_planes axis
+
+	while (!level.roundstart)
+	{
+		waitframe
+	}
+
+	while(1)
+	{
+		waitthread countplanes allies
+		waitthread countplanes axis
+		waitthread plane_counter_setclockside
+		waitframe
+	}
+end
+
+// make the team with least relative losses win the match when time runs out
+//#INLINE
+plane_counter_setclockside:
+	local.fact_allies = float level.SL_TOTAL_PLANES[allies] / float level.SL_INITIAL_PLANES[allies]
+	local.fact_axis = float level.SL_TOTAL_PLANES[axis] / float level.SL_INITIAL_PLANES[axis]
+	
+	local.cs = level.clockside
+	
+	if(local.fact_allies > local.fact_axis + level.EPS)
+	{
+		level.clockside = allies
+	}
+	else if(local.fact_allies < local.fact_axis - level.EPS)
+	{
+		level.clockside = axis
+	}
+	else
+	{
+		level.clockside = draw
+	}
+end
+
+count_initial_planes local.team:
+	local.planes = 0
+	for(local.i = 1; local.i <= level.SL_TEAMSERVICEGROUPS[local.team].size; local.i++)
+	{
+		local.planes += level.SL_SERVICEGROUPS[local.team][level.SL_TEAMSERVICEGROUPS[local.team][local.i]]
+	}
+	
+	level.SL_INITIAL_PLANES[local.team] = local.planes
+end
+
+//#INLINE
+countplanes local.team:
+	local.cur_total = level.SL_TOTAL_PLANES[local.team]
+
+	local.planes = 0
+	for(local.i = 1; local.i <= level.SL_TEAMSERVICEGROUPS[local.team].size; local.i++)
+	{
+		local.planes += level.SL_SERVICEGROUPS[local.team][level.SL_TEAMSERVICEGROUPS[local.team][local.i]]
+	}
+	
+	level.SL_SERVICEABLE_PLANES[local.team] = local.planes
+	
+	// total planes
+	// also add in-service planes
+	local.planes_inservice = 0
+	for(local.i = 1; local.i <= level.SL_PLANEOPTIONS[local.team].size; local.i++)
+	{
+		local.planes_inservice += level.SL_PLANEOPTIONS[local.team][local.i].amount_inservice
+	}
+	
+	local.total_planes = local.planes + local.planes_inservice
+	
+	level.SL_TOTAL_PLANES[local.team] = local.total_planes
+	
+	if(local.total_planes != local.cur_total)
+	{
+		waitthread update_fleet_counters local.team local.total_planes
+	}
+	
+	if(local.total_planes <= 0)
+	{
+		// oi, somebody lost
+		if(local.team == "allies")
+		{
+			teamwin axis
+		}
+		else
+		{
+			teamwin allies
+		}
+	}
+end
+
+//#INLINE
+update_fleet_counters local.team local.planes:
+	// update score counters for all players
+	for(local.i = 1; local.i <= $player.size; local.i++)
+	{
+		local.p = $player[local.i]
+		if(local.p.dmteam == local.team)
+		{
+			// update primary counter
+			local.num = 1
+		}
+		else if(local.p.dmteam == "spectator")
+		{
+			if(local.team == allies)
+			{
+				// update primary counter
+				local.num = 1
+			}
+			else
+			{
+				// update secondary counter
+				local.num = 2
+			}
+		}
+		else
+		{
+			// update secondary counter
+			local.num = 2
+		}
+		local.p stufftext ("set sl_fs" + local.num + " " + local.planes)
+	}
+end
+
+update_my_fleet_counters local.delay:
+	
+	wait local.delay
+	
+	if !(self)
+	{
+		end
+	}
+	
+	if(level.roundstart)
+	{
+		if(self.dmteam == "allies")
+		{
+			local.team1 = "allies"
+			local.team2 = "axis"
+		}
+		else if(self.dmteam == "axis")
+		{
+			local.team1 = "axis"
+			local.team2 = "allies"
+		}
+		else // spectator
+		{
+			local.team1 = "allies"
+			local.team2 = "axis"
+		}
+		
+		self stufftext ("set sl_fs1 " + level.SL_TOTAL_PLANES[local.team1])
+		self stufftext ("set sl_fs2 " + level.SL_TOTAL_PLANES[local.team2])
+	}
+	else
+	{
+		self stufftext ("set sl_fs1 n/a")
+		self stufftext ("set sl_fs2 n/a")
+	}
+end
+
+hideairfields:
+	waitthread hideairfieldst allies
+	waitthread hideairfieldst axis
+end
+
+hideairfieldst local.team:
+
+	// hide runways etc
+	local.f = $("airfield_" + local.team)
+	for(local.i = 1; local.i <= local.f.size; local.i++)
+	{
+		local.f[local.i] hide
+	}
+	
+	if(local.f.size >= 1)
+	{
+		// hide hangars
+		local.h = $("fieldhangar_" + local.team)
+		for(local.i = 1; local.i <= local.h.size; local.i++)
+		{
+			local.h[local.i] hide
+			$(local.h[local.i].target) hide
+		}
+		
+		// show replacement object
+		local.l = $("airfield_" + local.team + "_landfill")
+		for(local.i = 1; local.i <= local.l.size; local.i++)
+		{
+			local.l[local.i] show
+		}
+	}
+	
+end
+
+// this merely hides the replacement object
+showairfields:
+	waitthread showairfieldst allies
+	waitthread showairfieldst axis
+end
+
+showairfieldst local.team:
+
+	// hide replacement object
+	local.l = $("airfield_" + local.team + "_landfill")
+	for(local.i = 1; local.i <= local.l.size; local.i++)
+	{
+		local.l[local.i] hide
+	}
+	
+end
+
+cache:
+	cache models/fx/dummy.tik
+	cache models/skylimit/fx/aircraft_air_explosion.tik
+	cache models/skylimit/fx/aircraft_damage.tik
+	cache models/skylimit/fx/aircraft_damaged_smoke.tik
+	cache models/skylimit/fx/aircraft_dust_emitter.tik
+	cache models/skylimit/fx/aircraft_engine_boost.tik
+	cache models/skylimit/fx/aircraft_engine_exhaust.tik
+	cache models/skylimit/fx/aircraft_explosion.tik
+	cache models/skylimit/fx/aircraft_fire.tik
+	cache models/skylimit/fx/aircraft_water_splash.tik
+	cache models/skylimit/fx/bomb_hit.tik
+	cache models/skylimit/fx/bomb_hit_hangar.tik
+	cache models/skylimit/fx/bullet_hit_terrain.tik
+	cache models/skylimit/fx/cannon_shell.tik
+	cache models/skylimit/fx/crater.tik
+	cache models/skylimit/fx/explosion_water.tik
+	cache models/skylimit/fx/flak_shell.tik
+	cache models/skylimit/fx/randomspray.tik
+	cache models/skylimit/fx/shell_hit.tik
+	cache models/skylimit/fx/ship_gore_emitter.tik
+	cache models/skylimit/fx/smoke.tik
+	cache models/skylimit/fx/smoky_particle.tik
+	cache models/skylimit/fx/tank_explosion.tik
+	cache models/skylimit/fx/tracer.tik
+	cache models/skylimit/fx/water_splash.tik
+	cache models/skylimit/fx/muzzle/2pdr.tik
+	cache models/skylimit/fx/muzzle/l600L.tik
+	cache models/skylimit/fx/muzzle/l600R.tik
+	cache models/skylimit/fx/muzzle/l700.tik
+	cache models/skylimit/fx/muzzle/l700L.tik
+	cache models/skylimit/fx/muzzle/l700R.tik
+	cache models/skylimit/fx/muzzle/l900.tik
+	cache models/skylimit/fx/muzzle/l900L.tik
+	cache models/skylimit/fx/muzzle/l900R.tik
+	cache models/skylimit/fx/muzzle/m700.tik
+	cache models/skylimit/fx/muzzle/m900.tik
+	cache models/skylimit/fx/muzzle/m900L.tik
+	cache models/skylimit/fx/muzzle/m900R.tik
+	cache models/skylimit/fx/muzzle/naval114mm.tik
+	cache models/skylimit/fx/muzzle/s700.tik
+	cache models/skylimit/fx/muzzle/s700L.tik
+	cache models/skylimit/fx/muzzle/s700R.tik
+	cache models/skylimit/fx/muzzle/s800.tik
+	cache models/skylimit/fx/muzzle/s800L.tik
+	cache models/skylimit/fx/muzzle/s800LL.tik
+	cache models/skylimit/fx/muzzle/s800R.tik
+	cache models/skylimit/fx/muzzle/s800RR.tik
+	cache models/skylimit/fx/muzzle/xl500.tik
+	cache models/skylimit/fx/muzzle/xxl600.tik
+	cache models/skylimit/fx/muzzle/xxl900.tik
+	cache models/skylimit/hud/aircraft_allies.tik
+	cache models/skylimit/hud/aircraft_axis.tik
+	cache models/skylimit/hud/carrier_allies.tik
+	cache models/skylimit/hud/flak_allies.tik
+	cache models/skylimit/hud/flak_axis.tik
+	cache models/skylimit/hud/objective_allies.tik
+	cache models/skylimit/hud/objective_axis.tik
+	cache models/skylimit/hud/radar_carrier_allies.tik
+	cache models/skylimit/hud/radar_flak_allies.tik
+	cache models/skylimit/hud/radar_flak_axis.tik
+	cache models/skylimit/hud/radar_station_allies.tik
+	cache models/skylimit/hud/radar_station_axis.tik
+	cache models/skylimit/human/allied_pilot.tik
+	cache models/skylimit/items/chute_grey.tik
+	cache models/skylimit/items/chute_health.tik
+	cache models/skylimit/items/parahealth.tik
+	cache models/skylimit/utils/8tags.tik
+	cache models/skylimit/utils/dummygun.tik
+	cache models/skylimit/utils/dummygun2.tik
+	cache models/skylimit/utils/dummygun3.tik
+	cache models/skylimit/utils/theinvisibleman.tik
+	cache models/skylimit/utils/unitconnector.tik
+	cache models/skylimit/weapons/37mm.tik
+	cache models/skylimit/weapons/cal50.tik
+	cache models/skylimit/weapons/german_250kg.tik
+	cache models/skylimit/weapons/german_50kg.tik
+	cache models/skylimit/weapons/german_50kg_grey.tik
+	cache models/skylimit/weapons/lewis.tik
+	cache models/skylimit/weapons/mg17.tik
+	cache models/skylimit/weapons/torpedo.tik
+	cache models/skylimit/weapons/twin_mg.tik
+	cache models/skylimit/weapons/racks/3rack.tik
+end

@@ -1,0 +1,6 @@
+path sound/amb
+
+normal wind_weak.wav
+
+!normal volume 0.5
+!normal loop

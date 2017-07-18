@@ -1,0 +1,60 @@
+// destroyable (field) hangars
+// by jv_map
+
+init_fieldhangars local.team:
+	local.spots = $("fieldhangar_" + local.team)
+
+	if !(local.spots)
+	{
+		end	
+	}
+
+	level.SL_NUMBER_OF_HANGARS[local.team] = local.spots.size
+
+	local.health = level.SL_TOTAL_HANGAR_HEALTH / level.SL_NUMBER_OF_HANGARS[local.team]
+
+	for(local.i = 1; local.i <= local.spots.size; local.i++)
+	{
+		local.isobj = level.SL_GAMETYPE == "obj"
+		local.spots[local.i] waitthread global/skylimit/brushobject.scr::brushobject "hangar" local.spots[local.i].nationality local.team local.isobj local.health level.DMGB_STRUCTURE "generic_primary" "global/skylimit/hangar.scr" hangar_destroyed local.isobj "objective"
+	}
+end
+
+// callback from brushobject loop
+hangar_destroyed:
+	if(level.SL_GAMETYPE == "obj")
+	{
+		local.fact = 1.0 - 1.0 / level.SL_NUMBER_OF_HANGARS[self.dmteam]
+		
+		level.SL_NUMBER_OF_HANGARS[self.dmteam]--
+		
+		local.planes_destroyed = 0
+		
+		// subtract from all service groups
+		for(local.i = 1; local.i <= level.SL_TEAMSERVICEGROUPS[self.dmteam].size; local.i++)
+		{
+			local.g = level.SL_TEAMSERVICEGROUPS[self.dmteam][local.i]
+			
+			local.cur_amount = level.SL_SERVICEGROUPS[self.dmteam][local.g]
+			
+			if(level.SL_NUMBER_OF_HANGARS[self.dmteam] > 0)
+			{
+				local.new_amount = int (local.cur_amount * local.fact + 0.5)
+			}
+			else
+			{
+				local.new_amount = 0
+			}
+			
+			local.planes_destroyed += local.cur_amount - local.new_amount
+			
+			level.SL_SERVICEGROUPS[self.dmteam][local.g] = local.new_amount
+		}
+		
+		if(local.planes_destroyed > 0)
+		{
+			// notify
+			iprintlnbold_noloc local.planes_destroyed " " $world.TEAM_ADJECTIVE[self.dmteam] " aircraft have been destroyed in their hangar!"
+		}
+	}
+end

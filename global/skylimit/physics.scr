@@ -1,0 +1,218 @@
+// physics
+// by jv_map
+
+init local.init_quat local.init_velocity local.init_avelocity:
+	if !(level.PI)
+		level.PI = 3.1415926
+	
+	level.PH_MINIMPULSE = 0.0 //1.0 // m/s^2
+	level.PH_MAXIMPULSE = 100000000.0
+	level.PH_UNITSCALE = level.SL_UNITSCALE // 1 game unit equals this many meters
+
+	level.PH_MINVEL = 0.05 // m/s; when velocity drops below this the object is simply stopped
+	level.PH_MINVEL_SQ = level.PH_MINVEL * level.PH_MINVEL
+	
+	level.PH_MINROT = 0.05 // min angular velocity in deg/s
+	level.PH_MINROT_SQ = level.PH_MINROT * level.PH_MINROT
+	
+	local.VEC_ZERO = (0.0 0.0 0.0)
+
+	if !(local.init_quat)
+		local.init_quat = 1.0::0.0::0.0::0.0
+
+	if !(local.init_velocity)
+		local.init_velocity = local.VEC_ZERO
+	
+	if !(local.init_avelocity)
+		local.init_avelocity = local.VEC_ZERO
+	
+	self.p_velocity = local.init_velocity
+	self.w_velocity = self.p_velocity * (1.0 / level.SL_UNITSCALE)
+	self.accel = (0 0 0)
+	
+	// rotational vectors in direction of arbitrary rotation axis
+	self.p_avelocity = local.init_avelocity
+	self.aaccel = (0 0 0)
+	
+	waitthread com
+	
+	self.p_vload = 0.0
+	
+	self.p_fixed = game.false
+	self.p_fix_time = 0.0
+
+	self.p_quat = local.init_quat
+	self.p_working_quat = 0.0::0.0::0.0::0.0 // for faster data transfer between threads
+	
+	// available to other bits of the script
+	self.p_accel = (0 0 0)
+	self.p_aaccel = (0 0 0)
+	
+	self.isphysicsobject = game.true
+	
+	// apply quat
+	waitthread update 0.0
+end
+
+// returns center of mass
+//#INLINE
+com:
+	local.com = self.origin
+
+	// offset is in meters
+	if(self.COM_OFFSET)
+	{
+		local.com += self.COM_OFFSET[0] * self.forwardvector
+		local.com += self.COM_OFFSET[1] * self.leftvector
+		local.com += self.COM_OFFSET[2] * self.upvector
+	}
+	
+	self.p_com = local.com
+end
+
+//#INLINE
+update local.timestep:
+	//local.timestep = level.FTIME
+	
+	local.accel = self.accel
+	local.aaccel = self.aaccel
+	
+	self.p_fixed = level.time <= self.p_fix_time
+	
+	self.accel = (0 0 0)
+	self.aaccel = (0 0 0)
+	
+	self.p_accel = local.accel
+	self.p_aaccel = local.aaccel
+
+	waitthread com
+	
+	// load factors ('g forces')
+	local.ac = local.accel + (0 0 $world.GRAVITY)
+	self.p_vload = local.ac * self.upvector * (1.0 / $world.GRAVITY)		// vertical g
+	self.p_lload = local.ac * self.leftvector * (1.0 / $world.GRAVITY)		// lateral g
+	self.p_fload = local.ac * self.forwardvector * (1.0 / $world.GRAVITY)	// forward/backward g
+	
+	local.delta = self.w_velocity * local.timestep + 0.5 * local.accel * (1.0 / level.SL_UNITSCALE) * local.timestep * local.timestep
+	
+	// disregard tiny velocities / displacements
+	// this should trim useless network traffic and prevent any sliding on the ground
+	if (local.delta * local.delta > level.PH_MINVEL_SQ * local.timestep)
+	{
+		// update origin
+		self.origin += local.delta
+	}
+
+	// physical velocity in m/s
+	self.p_velocity += local.accel * local.timestep
+
+	// actual world velocity in game units
+	self.w_velocity = self.p_velocity * (1.0 / level.SL_UNITSCALE)
+	
+	local.abs_rotation = self.p_avelocity * local.timestep + 0.5 * local.aaccel * local.timestep * local.timestep
+	
+	// dissect to local csys
+	local.local_rotation = (0 0 0)
+	local.local_rotation[0] = local.abs_rotation * self.forwardvector
+	local.local_rotation[1] = local.abs_rotation * self.leftvector
+	local.local_rotation[2] = local.abs_rotation * self.upvector
+	
+	// make quat
+	waitthread global/skylimit/math.scr::axistoquat local.local_rotation self.p_working_quat
+	waitthread global/skylimit/math.scr::quatmult self.p_quat self.p_working_quat self.p_quat
+
+	// normalize quat
+	waitthread global/skylimit/math.scr::quatnormalize self.p_quat
+
+	local.new_angles = waitthread global/skylimit/math.scr::quattoangles self.p_quat local.new_angles
+	
+	local.delta_angles = waitthread global/skylimit/math.scr::getanglesdiff local.new_angles self.angles
+	
+	// disregard tiny rotations
+	// this should trim useless network traffic and prevent any sliding on the ground
+	if(local.delta_angles * local.delta_angles > level.PH_MINROT_SQ * local.timestep)
+	{
+		// update angles
+		self.angles = local.new_angles
+	}
+	
+	self.p_avelocity += local.aaccel * local.timestep
+	
+	/*
+	if(level.dbg_nextprint == NIL || level.time > level.dbg_nextprint)
+	{
+		// R = V^2 / a
+		local.p_accel = local.accel - local.accel * self.normalvel * self.normalvel
+		
+		// accel in horizontal
+		local.flataccel = local.p_accel - local.p_accel * $world.upvector * $world.upvector
+		
+		// turn radius in horizontal
+		local.flatvel = self.p_velocity - self.p_velocity * $world.upvector * $world.upvector
+		local.R = local.flatvel * local.flatvel / vector_length local.flataccel
+		// forward load factor
+		local.t_load = local.accel * self.normalvel / $world.GRAVITY
+		
+		println "turn radius: " local.R " m, v: " self.p_vload " g, f: " local.t_load " g"
+		level.dbg_nextprint = level.time + 0.5
+	}
+	*/
+end
+
+// administer an impulse
+// ivec is impulse vector (direction of force)
+// poa is point of application (can be anywhere along the line of action)
+//#INLINE
+impulse local.ivec local.poa:
+
+	if( !self.p_fixed && local.ivec != NIL)
+	{
+		local.mvec = local.ivec * (1.0 / self.MASS)
+	
+		if(local.mvec * local.mvec >= level.PH_MAXIMPULSE * level.PH_MAXIMPULSE)
+		{
+			println "ERROR: MAXIMPULSE EXCEEDED!" //local.mvec	
+		}
+		else
+		{
+			self.accel += local.mvec
+			
+			if(local.poa != NIL && local.mvec * local.mvec >= level.PH_MINIMPULSE * level.PH_MINIMPULSE)
+			{
+				local.arm = (local.poa - self.p_com) //* (level.SL_UNITCONV_UNITS_to_METERS_NORMAL_SCALE / self.SCALE)
+				local.moment = vector_cross local.arm local.ivec
+				self.aaccel += local.moment * (1.0 / self.INERTIA)
+			}
+		}
+	}
+end
+
+// impulse with poa specified in game units (i/o meters)
+//#INLINE
+guimpulse local.ivec local.wpoa:
+	if( !self.p_fixed)
+	{
+		local.poa = self.origin + (local.wpoa - self.origin) * level.PH_UNITSCALE
+		waitthread impulse local.ivec local.poa
+	}
+end
+
+//#INLINE
+aimpulse local.ivec:
+	if(local.ivec != NIL && !self.p_fixed)
+	{
+		self.aaccel += local.ivec * (1.0 / self.INERTIA)
+	}
+end
+
+// administer an impulse and disregard all other impulses applied and to be applied this frame
+//#INLINE
+fixed_impulse local.ivec local.poa local.fix_time:
+	self.accel = (0 0 0)
+	self.aaccel = (0 0 0)
+	
+	waitthread impulse local.ivec local.poa
+	
+	self.p_fixed = game.true
+	self.p_fix_time = level.time + local.fix_time
+end

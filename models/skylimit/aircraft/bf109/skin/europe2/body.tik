@@ -1,0 +1,19 @@
+TIKI
+
+$include models/skylimit/aircraft/bf109/includes/body.tik
+
+setup
+{
+	path models/skylimit/aircraft/bf109/skel
+	
+	surface all shader bf109_europe
+	
+	skelmodel prop_spinner.skd
+	surface spinner shader bf109_trop_prop
+}
+
+/*QUAKED skylimit_bf109_europe2 (0.0 0.0 0.0) (-65 -40 0) (65 40 120)
+Bf109G-10 Europe
+Gruppe Commander
+Model and skin by jv_map
+*/

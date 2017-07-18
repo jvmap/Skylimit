@@ -1,0 +1,32 @@
+TIKI
+setup
+{
+	scale 0.52
+   	path models/vehicles/higgins
+   	
+   	skelmodel soldiergroup1.skd
+   	
+	skelmodel soldiergroup2.skd
+   	
+	skelmodel soldiergroup3.skd
+   	surface gasmask shader skyhiggins_m5bag
+	surface haversack shader skyhiggins_usequip
+	surface head shader skyhiggins_slick
+	surface helmet shader skyhiggins_us-helmet_private
+	surface jacket shader skyhiggins_hbt_jacket
+	
+/*
+	skelmodel coxswain.skd
+   	surface pants shader ranger_pants
+	surface jacket2 shader us_top
+	surface hand shader handsnew
+	surface vest shader lifevest
+	surface head shader slick
+	surface helmet shader us-helmet_private
+*/
+}
+
+animations
+{
+   	idle higginsdoor.skc
+}

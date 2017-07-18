@@ -1,0 +1,6 @@
+setup
+{
+	scale 0.58
+}
+
+$define skelpath models/skylimit/aircraft/p47/skel

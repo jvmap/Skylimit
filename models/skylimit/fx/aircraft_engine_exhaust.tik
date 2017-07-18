@@ -1,0 +1,58 @@
+TIKI
+setup
+{
+	scale 1.0
+	path models/fx/dummy
+	skelmodel dummy3.skd
+}
+
+init
+{
+	server
+	{
+		classname effectentity
+		notsolid
+		rendereffects +dontdraw
+	}
+	client
+	{
+		originemitter greysmoke
+		(
+			model vsssource.spr
+			alpha 0.6
+			color 0.60 0.60 0.60
+			scale 2.0 //16.0 //0.2
+			life 1.5 //3.0 //4.00
+			spawnrate 20.0 //14.0 //18.0
+			scalerate 0.2 //0.0 //1.20
+			//randvel crandom 40.0 crandom 40.0 crandom 40.0
+			randvel crandom 40 crandom 40.0 crandom 40.0
+			offset crandom 30 crandom 30 random 30
+			fade
+			fadein 0.5
+			randomroll
+			startoff
+		)
+	}
+}
+
+animations
+{
+	idle dummy3.skc
+	
+	on dummy3.skc
+	{
+		client
+		{
+			enter emitteron greysmoke	
+		}	
+	}
+	
+	off dummy3.skc
+	{
+		client
+		{
+			enter emitteroff greysmoke	
+		}	
+	}
+}

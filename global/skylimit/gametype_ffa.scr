@@ -1,0 +1,6 @@
+// TDM gametype support
+// by jv_map
+
+// can always respawn
+canrespawn:
+end game.true

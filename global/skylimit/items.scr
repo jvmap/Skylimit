@@ -1,0 +1,72 @@
+// by jv_map
+
+init_map:
+	level.ITEMS = "bomb_small"::"bomb_big"::"anti_tank"::"boost"::"bomb_internal"::"torpedo"
+	
+	for(local.i = 1; local.i <= level.ITEMS.size; local.i++)
+	{
+		local.l = spawn listener
+		local.l.type = level.ITEMS[local.i]
+		local.l.script = "global/skylimit/items/" + local.l.type + ".scr"
+		local.l waitthread local.l.script::specs
+		
+		level.SL_item[local.l.type] = local.l
+	}
+end
+
+init_plane local.inventory:
+	for(local.i = 1; local.i <= level.ITEMS.size; local.i++)
+	{
+		local.type = level.ITEMS[local.i]
+		
+		if(local.inventory[local.type] != NIL)
+		{
+			self.item_amount[local.type] = local.inventory[local.type]
+		}
+		else
+		{
+			self.item_amount[local.type] = 0
+		}
+	}
+	
+	self.max_item_id = level.ITEMS.size
+end
+
+init_plane_option:
+	for(local.i = 1; local.i <= level.ITEMS.size; local.i++)
+	{
+		self.inventory[level.ITEMS[local.i]] = 0
+	}
+end
+
+additem local.type local.amount:
+	self.item_amount[local.type] += local.amount
+end
+
+// self is plane
+attachtoplane local.type local.ent:
+	local.ent waitthread ("global/skylimit/items/" + local.type + ".scr")::attachtoplane local.ent
+end
+
+// self is plane
+// not currently used
+powerup_stopwatch local.duration:
+	if(self.pilotcontrol && self.pilot.isplayer)
+	{
+		self.pilot stopwatch local.duration
+		
+		local.pilot = self.pilot
+		
+		local.time_done = level.time + local.duration
+		
+		while(self.pilotcontrol && self.pilot == local.pilot && level.time < local.time_done)
+		{
+			waitframe
+		}
+		
+		if(local.pilot)
+		{
+			local.pilot stopwatch 0
+		}
+	}
+end

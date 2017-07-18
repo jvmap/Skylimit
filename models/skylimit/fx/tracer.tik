@@ -1,0 +1,16 @@
+// tracer round
+
+TIKI
+setup
+{
+	scale 4.0
+	path models/skylimit/fx/tracer
+	skelmodel tracer.skd
+	surface front shader sl_tracer_front
+	surface side shader sl_tracer_side
+}
+
+animations
+{
+	idle tracer.skc
+}

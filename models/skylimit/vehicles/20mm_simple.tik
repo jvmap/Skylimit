@@ -1,0 +1,32 @@
+TIKI
+setup
+{
+	scale 0.53 // is in 16 units per foot and model is in cm's
+	path models/statweapons/20mmflak
+	skelmodel 20mmflak.skd
+	surface 20mmflak1 shader skylimit_20mmflak	
+	surface 20mmflak2 shader skylimit_20mmflak	
+	surface 20mmflak3 shader skylimit_20mmflak	
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+	}
+}
+
+animations
+{
+	// made idle anim 60degrees
+	// as setting a diff anim causes lag somehow :S
+	
+	//idle		20mmflak_60degrees.skc
+	
+	idle     	20mmflak.skc
+	60degrees	20mmflak_60degrees.skc
+	30degrees	20mmflak_30degrees.skc
+	00degrees	20mmflak_00degrees.skc
+}

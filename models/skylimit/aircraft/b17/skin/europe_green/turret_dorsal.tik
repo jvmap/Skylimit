@@ -1,0 +1,9 @@
+// B-17 dorsal (top) turret
+
+TIKI
+setup
+{
+	surface all shader b17_body
+}
+
+$include models/skylimit/aircraft/b17/includes/turret_dorsal.tik

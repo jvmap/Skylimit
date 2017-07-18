@@ -1,0 +1,18 @@
+// ISA approximation
+// by jv_map
+
+// returns temperature, density and pressure at height h (in m, above AVG_GROUNDLVL)
+getstate local.h:
+	local.temperature = $world.TEMPERATURE + level.SL_TEMPERATURE_GRADIENT * local.h
+	
+	// acceptable approximation, ~20% error @ 12 km (36000 ft)
+	local.degree = -int ($world.GRAVITY / (level.SL_R_AIR * level.SL_TEMPERATURE_GRADIENT) + 1.0)
+	
+	local.density = $world.DENSITY * (waitthread global/skylimit/math.scr::powint (local.temperature / $world.TEMPERATURE) local.degree)
+	local.pressure = level.SL_R_AIR * local.density * local.temperature
+	
+	// speed of sound
+	local.factor = waitthread global/skylimit/math.scr::sqrt1 (local.temperature / $world.TEMPERATURE)
+	local.soundspeed = level.SL_SOUNDSPEED * local.factor
+
+end local.temperature::local.density::local.pressure::local.soundspeed

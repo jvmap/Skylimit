@@ -1,0 +1,106 @@
+TIKI
+setup
+{
+	scale 1.0
+	path models/fx/dummy
+	skelmodel dummy3.skd
+}
+
+init
+{
+	server
+	{
+		classname effectentity
+		notsolid
+		rendereffects +dontdraw
+	}
+	client
+	{
+		originemitter fire1
+		(
+			spawnrate 10.00
+			model explosed2.spr
+			alpha 1.00 //0.50
+			color 0.50 0.50 1.00
+			varycolor
+			life 0.8 //2.00
+			scalerate 0.50
+			radius 10.00
+			velocity 30.00
+			accel 0.00 0.00 190.00
+			friction 2.00
+			offsetalongaxis crandom -2 crandom -2 crandom -2
+			angles 0 0 crandom -30
+			avelocity 0 0 crandom -20
+			scalemin 1.50 //0.50
+			scalemax 2.00
+			fade
+			avelocity 10.0 10.0 10.0
+			startoff
+		)
+
+		originemitter fire2
+		(
+			spawnrate 10.00
+			model sharpflame.spr
+			color 0.50 1.00 1.00
+			varycolor
+			scale 5.00
+			life 0.8 // 2.00
+			scalerate 0.50
+			velocity 23.00
+			accel 0.00 0.00 300.00
+			friction 1.00
+			offsetalongaxis 0 crandom -20 range 7 -4
+			angles 0 0 56
+			avelocity 0 0 45
+			fade
+			avelocity 10.0 10.0 10.0
+			startoff
+		)
+		
+		originemitter firesmoke
+		(
+			model vsssource.spr
+			alpha 0.95
+			color 0.01 0.01 0.01
+			scale 4.0
+			life 4.00
+			spawnrate 8.0 //12.00
+			scalerate 0.20
+			//velocity 2.00
+			accel -8.00 16.00 -4.0
+			//randvel crandom 200.0 crandom 200.0 crandom 200.0
+			randvel crandom 200.0 crandom 200.0 range 1200.0 1250.0
+			offset crandom 40 crandom 40 0.0
+			fade
+			fadedelay 3.0
+			fadein 1.0
+			randomroll
+			startoff
+		)
+	}
+}
+
+animations
+{
+    idle dummy3.skc
+	start dummy3.skc
+	{
+		client
+		{
+			enter emitteron fire1
+			enter emitteron fire2
+			enter emitteron firesmoke
+		}
+	}
+	stop dummy3.skc
+	{
+		client
+		{
+	    	enter emitteroff fire1
+	    	enter emitteroff fire2
+	    	enter emitteroff firesmoke
+		}
+	}
+}

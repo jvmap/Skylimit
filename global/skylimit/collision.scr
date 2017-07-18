@@ -1,0 +1,313 @@
+// collision handler
+// handles collisions of aircraft with other aircraft and ground / sea vehicles.
+// by jv_map
+
+// coordinates in normal scale units
+set_collision_sphere local.offset local.radius:
+	self.col_radius = local.radius * $world.SL_SCALE
+	self.col_offset = local.offset * $world.SL_SCALE
+end
+
+takecollision:
+	if (self.col_radius == NIL || self.col_offset == NIL)
+	{
+		println "ERROR[collision::takecollision]: Entity " self.entnum " (" self.model ") tried to take collision but has no collision sphere definition!"
+		end
+	}
+	
+	if !(self.isphysicsobject)
+	{
+		// init speed @ zero
+		self.p_velocity = (0 0 0)
+		self.p_avelocity = (0 0 0)
+	}
+	
+	level.COL_ENTS = waitthread global/skylimit/common.scr::addtoarray level.COL_ENTS self
+end
+
+// main collision loop as called from main
+collision:
+	local.dt = 0.10
+	
+	while(1)
+	{
+		waitthread cleanup_collision_array
+		
+		// some preprocessing
+		waitthread precalc_collision level.COL_ENTS
+		
+		// check each object against every other object, once
+		for(local.i = 1; local.i <= level.COL_ENTS.size; local.i++)
+		{
+			for(local.j = local.i + 1; local.j <= level.COL_ENTS.size; local.j++)
+			{
+				waitthread check_mutual_collision level.COL_ENTS[local.i] level.COL_ENTS[local.j] local.dt
+			}
+		}
+		
+		wait local.dt
+	}
+end
+
+//#INLINE
+precalc_collision local.ents:
+	for(local.i = 1; local.i <= local.ents.size; local.i++)
+	{
+		local.ent = local.ents[local.i]
+		
+		// oriented sphere offset
+		local.ent.col_ooffset = local.ent.col_offset[0] * local.ent.forwardvector + local.ent.col_offset[1] * local.ent.leftvector + local.ent.col_offset[2] * local.ent.upvector
+		
+		// local velocity
+		local.ent.col_offset_vel = vector_cross local.ent.p_avelocity local.ent.col_ooffset
+	}
+end
+
+// array must be tidier! :|
+// too bad the vacuum cleaner blew up :(
+//#INLINE
+cleanup_collision_array:
+	local.j = 0
+	for(local.i = 1; local.i <= level.COL_ENTS.size; local.i++)
+	{
+		local.e = level.COL_ENTS[local.i]
+		
+		if(local.e)
+		{
+			local.j++
+			local.phew_much_better_array[local.j] = local.e
+		}
+	}
+	level.COL_ENTS = local.phew_much_better_array
+end
+
+//#INLINE
+check_mutual_collision local.entA local.entB local.dt:
+	
+	local.vrel = (local.entB.p_velocity - local.entA.p_velocity) * (1.0 / level.SL_UNITSCALE) + local.entB.col_offset_vel - local.entA.col_offset_vel // in game units/s
+	
+	// check if B is sneakily closing in on A
+	if(local.vrel * local.vrel > 0.0)
+	{
+		// check if A and B's spheres are currently intersecting
+		local.offset = local.entB.origin + local.entB.col_ooffset - local.entA.origin - local.entA.col_ooffset
+		local.offset2 = local.offset * local.offset
+		
+		local.total_radius = local.entA.col_radius + local.entB.col_radius
+		local.total_radius_sq = local.total_radius * local.total_radius
+		
+		// actually |vrel| but too costly to do the sqrt here
+		local.checkvel = local.vrel * local.vrel
+		
+		// still need a conservative bound (checkvel may not be smaller than |vrel|)
+		if(local.checkvel < 1.0)
+		{
+			local.checkvel = 1.0
+		}
+		
+		local.max_radius_sq = 2.0 * local.checkvel * local.dt + local.total_radius_sq
+		
+		if(local.offset2 <= local.total_radius_sq)
+		{
+			// don't even have to check for a collision as we have one already
+			waitthread resolve_collision local.entA local.entB local.dt local.vrel local.offset
+		}
+		else if(local.offset2 <= local.max_radius_sq)
+		{
+			waitthread spherical_collision local.entA local.entB local.dt local.offset local.offset2 local.vrel local.total_radius_sq
+		}
+	}
+end
+
+spherical_collision local.entA local.entB local.dt local.offset local.offset2 local.vrel local.total_radius_sq:
+	
+	local.elasticity = level.SL_COLLISION_ELASTICITY
+	
+	/*
+	
+	// Rsa, Rsb are sphere offsets if needed
+	
+	Vrel = Vb - Va - Wa x (B - A)
+	Vsa = Vrel + Wb x Rsb - Wa x Rsa
+	vec = (B - A) + (Vrel + Wb x Rsb - Wa x Rsa)t
+	vec * vec = |B - A|^2 + 2 * (B - A) * (Vrel + WbxRsb - WaxRsa) * t + t^2 * |Vrel + WbxRsb - WaxRsa|^2 = (ra + rb)^2
+	
+	==> |Vrel + WbxRsb - WaxRsa|^2 * t^2 + 2 * (B-A) * (Vrel + WbxRsb - WaxRsa) * t + |B - A|^2 - (ra + rb)^2 = 0
+	
+		D = b^2 - 4 * a * c  = 4 * ( (B-A) * (Vrel + WbxRsb - WaxRsa) )^2 - 4 * |Vrel + WbxRsb - WaxRsa|^2 * ( |B - A|^2 - (ra + rb)^2)
+	
+		t = -b/2a +- 1/2a * sqrt(D)
+		
+		t = -(B-A) * (Vrel + WbxRsb - WaxRsa) / |Vrel + WbxRsb - WaxRsa|^2 +- 2 / |Vrel + WbxRsb - WaxRsa|^2 * sqrt( ( (B-A) * (Vrel + WbxRsb - WaxRsa) )^2 - |Vrel + WbxRsb - WaxRsa|^2 * ( |B - A|^2 - (ra + rb)^2))
+		
+	// if Rsa, Rsb = ( 0 0 0) :
+	
+		vec = (B - A) + Vrel*t
+		vec * vec = |B-A|^2 + 2 (B-A) * Vrel * t + |Vrel|^2 * t^2 = (ra + rb)^2
+		
+		==> |Vrel|^2 * t^2 + 2 (B-A)*Vrel * t + |B-A|^2 - (ra + rb)^2 = 0
+		
+		D = b^2 - 4 * a * c = 4 ((B-A)*Vrel)^2 - 4 * |Vrel|^2 * (|B-A|^2 - (ra + rb)^2)
+		
+	
+		|Vrel|^2 * t^2 + 2 * (B-A) * (Vrel) * t + |B - A|^2 + (ra - rb)^2 = 0
+		D = b^2 - 4 * a * c  = 4 * ( (B-A) * (Vrel) )^2 - 4 * |Vrel|^2 * ( |B - A|^2 - (ra + rb)^2)
+		t = -(B-A) * (Vrel) / |Vrel|^2 +- 2 / |Vrel|^2 * sqrt( ( (B-A) * (Vrel) )^2 - |Vrel|^2 * ( |B - A|^2 - (ra + rb)^2))
+	*/
+
+	local.vrel2 = local.vrel * local.vrel
+	
+	//println "offset: " (vector_length local.offset) " vrel: " (vector_length local.vrel) " offset2: " local.offset2 " sqr2: " local.total_radius_sq " offsetvrel: " (local.offset * local.vrel)
+
+	local.offsetvrel = local.offset * local.vrel
+
+	// determinant / 4
+	local.d = local.offsetvrel * local.offsetvrel - local.vrel2 * (local.offset2 - local.total_radius_sq)
+
+	local.houston_we_have_a_solution = game.false
+
+	if(local.d < 0.0)
+	{
+		// no solutions
+		// don't have to do anything :)
+		//println "d < 0 (" local.d ")"
+	}
+	else if(local.d == 0.0)
+	{
+		// duplicate root
+		local.t = -1.0 * local.offset * local.vrel / local.vrel2
+		local.houston_we_have_a_solution = game.true
+		//println "d == 0"
+	}
+	else
+	{
+		// 2 roots
+		local.sqrtd = waitthread global/skylimit/math.scr::sqrt local.d
+		
+		//local.t1 = -(local.offsetvrel + 2.0 * local.sqrtd) / local.vrel2
+		//local.t2 = -(local.offsetvrel - 2.0 * local.sqrtd) / local.vrel2
+		local.t1 = -(local.offsetvrel + local.sqrtd) / local.vrel2
+		local.t2 = -(local.offsetvrel - local.sqrtd) / local.vrel2
+		
+		// pick the smallest root greater than zero
+		// this corresponds to the ingoing collision
+		// the other root is the outgoing collision
+		
+		if(local.t1 > 0.0)
+		{
+			local.t = local.t1
+			local.houston_we_have_a_solution = game.true
+		}
+		else if(local.t2 > 0.0)
+		{
+			local.t = local.t2
+			local.houston_we_have_a_solution = game.true
+		}
+		else
+		{
+			// no roots greater than zero
+			// don't have to do anything :)
+			//println "no solutions greater than zero: " local.t1 ", " local.t2
+		}
+	}
+
+	//println "have a solution: " local.houston_we_have_a_solution " , " local.t " (" local.t1 ", " local.t2 ")"
+
+	if(local.houston_we_have_a_solution)
+	{
+		// solution must be in time interval
+		if(0.0 <= local.t && local.t <= local.dt)
+		{
+			// boing!
+			
+			// determine normal and then solve collision
+			// normal can be found by simply substituting t in the time-dependent offset vector
+			// vec = (B - A) + Vrel*t
+			
+			local.unscaled_normal = local.offset + local.vrel * local.t
+			waitthread resolve_collision local.entA local.entB local.dt local.vrel local.unscaled_normal
+		}
+	}
+end
+
+resolve_collision local.entA local.entB local.dt local.vrel local.unscaled_normal:
+	// normalize normal and introduce a force
+	local.normal = vector_normalize local.unscaled_normal
+	local.normalvel = local.normal * local.vrel * level.SL_UNITSCALE
+	
+	// only apply forces if A and B are getting closer
+	if(local.normalvel < 0.0)
+	{
+		if(local.entA.isphysicsobject)
+		{
+			if(local.entB.isphysicsobject)
+			{
+				local.impulse = -(1.0 + level.SL_COLLISION_ELASTICITY) * local.normalvel / ((local.entA.MASS + local.entB.MASS) / (local.entA.MASS * local.entB.MASS))
+			}
+			else
+			{
+				local.impulse = -(1.0 + level.SL_COLLISION_ELASTICITY) * local.normalvel * local.entA.MASS
+			}
+		}
+		else
+		{
+			local.impulse = -(1.0 + level.SL_COLLISION_ELASTICITY) * local.normalvel * local.entB.MASS
+		}
+		
+		// normal points from A to B
+		
+		// points of application
+		local.poaA = local.entA.origin + local.entA.col_ooffset + local.normal * local.entA.col_radius
+		local.poaB = local.entB.origin + local.entB.col_ooffset - local.normal * local.entB.col_radius
+		
+		// apply the forces
+		if(local.entA.isphysicsobject)
+		{
+			local.forceA = local.impulse / local.entA.timestep
+			local.entA thread global/skylimit/physics.scr::fixed_impulse ( -local.forceA * local.normal) local.poaA local.dt
+		}
+		
+		if(local.entB.isphysicsobject)
+		{
+			local.forceB = local.impulse / local.entB.timestep
+			local.entB thread global/skylimit/physics.scr::fixed_impulse ( local.forceB * local.normal) local.poaB local.dt
+		}
+		
+		local.entA playsound aircraft_collide
+		
+		// do some damage
+		local.entA waitthread collision_damage local.impulse local.entB
+		local.entB waitthread collision_damage local.impulse local.entA
+	}
+end
+
+collision_damage local.impulse local.colliding_ent:
+	if(self.isplane)
+	{
+		local.dmg = local.impulse * level.SL_COLLISION_DAMAGE
+		
+		// kills himself unless colliding_ent is of the other team
+		if( !level.teambased || self.dmteam != local.colliding_ent.dmteam)
+		{
+			if(local.colliding_ent.isplane)
+			{
+				local.inflictor = local.colliding_ent.archived_pilot
+			}
+			else
+			{
+				local.inflictor = local.colliding_ent
+			}
+			
+			local.inflictor_team = local.colliding_ent.dmteam
+			local.inflictor_owner = local.colliding_ent
+		}
+		else
+		{
+			local.inflictor = self.archived_pilot
+			local.inflictor_team = self.dmteam
+			local.inflictor_owner = self
+		}
+		
+		waitthread global/skylimit/damage.scr::dodamage local.dmg level.MODM_KAMIKAZE local.inflictor local.inflictor_team local.inflictor_owner
+	}
+end

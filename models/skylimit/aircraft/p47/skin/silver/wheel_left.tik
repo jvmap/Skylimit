@@ -1,0 +1,8 @@
+TIKI
+
+setup
+{
+	surface all shader p47
+}
+
+$include models/skylimit/aircraft/p47/includes/wheel_left.tik

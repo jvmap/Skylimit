@@ -1,0 +1,11 @@
+// blackout/redout for skylimit
+// by jv_map
+
+menu "skylimit_fade" 640 480 NONE 1
+bgcolor 0 0 0 1
+fgcolor 1 1 1 1
+align right bottom
+virtualres 1
+
+
+end.

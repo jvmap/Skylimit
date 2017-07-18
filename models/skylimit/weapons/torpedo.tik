@@ -1,0 +1,69 @@
+// a torpedo :) rrrrrrrrrrrrrrrrrrr
+// rrrrrrrrrrrrrrrrrrrrr :|
+// boom
+
+TIKI
+setup
+{
+	scale 0.52			// Set default scale to 16/30.5 since world is in 16 units per foot and model is in cm's
+	path models/skylimit/weapons/torpedo
+	skelmodel torpedo.skd
+	
+	surface nose	shader torpedonose
+	surface tail	shader torpedotail
+	surface tip		shader torpedo_tip
+	surface body	shader torpedobody
+	surface prop	shader torpedoprop
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+	}
+	client
+	{
+		//tagemitter nose wake
+		originemitter wake
+		(
+			spawnrate 8.0 //4
+			model sl_wake.spr
+			alpha 0.80
+			color 1.00 1.00 1.00
+			scale 6.0
+			life 3.0
+			scalerate 0.003
+			angles 90 random 360 crandom 15
+			//emitterangles 90.0 0.0 0.0
+			avelocity 0 crandom -10 0
+			fadein 2.0
+			fade
+			startoff
+			//offset 0 0 40
+		)
+	}
+}
+
+animations
+{
+	idle     torpedo.skc
+	
+	// make a nice wake
+	swim	 torpedo.skc
+	{
+		client
+		{
+			entry emitteron wake
+		}
+	}
+	
+	fly		torpedo.skc
+	{
+		client
+		{
+			entry emitteroff wake
+		}
+	}
+}

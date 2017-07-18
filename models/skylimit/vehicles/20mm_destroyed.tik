@@ -1,0 +1,47 @@
+TIKI
+setup
+{
+	scale 0.53
+	path models/statweapons/20mmflak
+	skelmodel 20mmflak_d.skd
+	surface 20mmflak1 shader skylimit_20mmflak_d	
+	surface 20mmflak2 shader skylimit_20mmflak_d	
+	surface 20mmflak3 shader skylimit_20mmflak_d	
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+	}
+	client
+	{
+		originemitter smoke
+		(
+			spawnrate 1.5
+			scale 0.2
+			model vsssource.spr
+			color 0.10 0.10 0.10
+			alpha 0.90
+			randvel 4.0 -8.0 20.0
+			scalerate 3.0
+			life 8.00
+			fade
+			randomroll
+		)
+	}
+}
+
+animations
+{
+	idle		20mmflak_d.skc
+	off			20mmflak_d.skc
+	{
+		client
+		{
+			enter emitteroff smoke	
+		}	
+	}
+}

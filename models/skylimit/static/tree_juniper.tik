@@ -1,0 +1,20 @@
+TIKI
+setup
+{
+	scale 0.52
+	path models/static/natural
+	skelmodel tree_juniper.skd
+	surface tree2a_1 shader skylimit_static_tree2a_1
+	surface tree2a_2 shader skylimit_static_tree2a_2
+	surface tree2a_3 shader skylimit_static_tree2a_3
+	surface tree2a_4 shader skylimit_static_tree2a_4
+	surface tree2asprite shader skylimit_static_tree2asprite
+}
+
+animations
+{
+	idle     tree_juniper.skc
+}
+
+/*QUAKED static_skylimit_juniper (0.5 0.0 0.5) (-16 -16 -8) (16 16 1024)
+*/

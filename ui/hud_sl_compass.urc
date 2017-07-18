@@ -1,0 +1,81 @@
+// by jv_map
+
+menu "hud_sl_cmps" 112 112 NONE 1
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align left top
+
+//==================================================
+// Compass Base
+
+resource
+Label
+{
+name "sl_compassbase"
+rect 16 16 96 96
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader skylimit/hud/radar_base
+}
+
+resource
+Label
+{
+name "sl_compassface"
+rect 16 16 96 96
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+statbar spinner 0 360
+statbar_endangles 360 0
+linkcvar sl_cmps
+statbar_shader skylimit/hud/radar_compass
+}
+
+resource
+Label
+{
+name "sl_compassaircraft"
+rect 16 16 96 96
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.50 0.50 0.50 0.00
+borderstyle "NONE"
+shader skylimit/hud/radar_ac
+}
+
+//==================================================
+// Objective Direction
+
+// removed b/c doesn't work properly w/ the new mouse input / sound system
+//resource
+//Label
+//{
+//name "sl_objarrow"
+//rect 16 16 96 96
+//fgcolor 1.00 1.00 1.00 1.00
+//bgcolor 0.00 0.00 0.00 0.00
+//borderstyle "NONE"
+//playerstat 19 // objective center
+//statbar spinner 0 3600
+//statbar_endangles -180 180
+//statbar_shader skylimit/hud/radar_blob_friendly
+}
+
+//==================================================
+// Enemy Direction
+
+resource
+Label
+{
+name "sl_enarrow"
+rect 16 16 96 96
+fgcolor 1.00 1.00 1.00 1.00
+bgcolor 0.00 0.00 0.00 0.00
+borderstyle "NONE"
+linkcvar "sl_ext_endir"
+enabledcvar "sl_ext_endir"
+statbar spinner 0 360
+statbar_endangles 0 360
+statbar_shader skylimit/hud/radar_blob_bandit
+}

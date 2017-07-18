@@ -1,0 +1,11 @@
+// common classdef for all ents
+// by jv_map
+
+init
+{
+	server
+	{
+      	classname Animate
+      	notsolid
+	}
+}

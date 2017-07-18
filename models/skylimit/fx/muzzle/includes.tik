@@ -1,0 +1,105 @@
+// muzzle flash, tracer and smoke
+// tempmodel
+
+setup
+{
+	scale 0.52
+	path models/skylimit/fx/muzzle/skel
+	skelmodel muzzle.skd
+	surface muzzle shader muzmodel
+}
+
+animations
+{
+	idle     muzzle.skc		
+	
+	fire1	muzzle.skc weight 1
+	{
+		client
+		{
+			// tracer
+			enter tagspawn origin
+			(
+				model models/skylimit/fx/tracer.tik
+				velocity $velocity$
+				alignstretch 0.2
+				life $life$
+				accel 0 0 -15.3
+				dietouch
+				scale $scale$
+				offsetalongaxis range 0.0 400.0 0.0 0.0
+				//randvelaxis 0.0 crandom 240.0 crandom 240.0
+				randvelaxis 0.0 $convergence$ 0.0
+				collision
+				bouncedecal 1 0
+				decalshader bhole_metal
+				decalradius 0.25
+				orientation random
+				fade
+			)
+			
+			// front flash
+			enter tagspawn origin
+			(
+				scale 0.8
+				offsetalongaxis 2.0 0.0 0.0
+				model muzsprite.spr
+				angles 0 0 crandom 25
+				life 0.02
+			)
+
+			// smoke
+			enter tagspawn origin
+			(
+				model vsssource.spr
+				alpha 0.5
+				color 0.7 0.7 0.7
+				scale 0.05
+				life 0.30
+				scalerate 5.00
+				velocity 400.00
+				randvel crandom 100.0 crandom 100.0 crandom 100.0
+				offset crandom 1.0 crandom 1.0 crandom 1.0
+				accel 0 0 30
+				fade
+				randomroll
+				count 2
+			)
+		}
+	}
+	
+	// no tracer
+	fire2	 muzzle.skc weight 1
+	{
+		client
+		{
+			// front flash
+			enter tagspawn origin
+			(
+				scale 0.8
+				offsetalongaxis 2.0 0.0 0.0
+				model muzsprite.spr
+				angles 0 0 crandom 25
+				life 0.02
+			)	
+			
+			// smoke
+			enter tagspawn origin
+			(
+				model vsssource.spr
+				alpha 0.5
+				color 0.5 0.5 0.5
+				scale 0.05
+				life 0.20
+				scalerate 5.00
+				velocity 400.00
+				randvel crandom 100.0 crandom 100.0 crandom 100.0
+				offset crandom 1.0 crandom 1.0 crandom 1.0
+				accel 0 0 30
+				fade
+				randomroll
+				count 2
+			)		
+		}
+	}
+}

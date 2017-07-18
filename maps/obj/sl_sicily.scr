@@ -1,0 +1,185 @@
+// Sky Limit: Sicily Invasion July 1943
+// by jv_map
+
+main:
+
+	setcvar "g_obj_alliedtext1" "Pantelleria, Italy" 
+	setcvar "g_obj_alliedtext2" "June 10th, 1943"
+	setcvar "g_obj_alliedtext3" ""
+
+	setcvar "g_obj_axistext1" "The Sky Is The Limit"
+	setcvar "g_obj_axistext2" "jv_map"
+	setcvar "g_obj_axistext3" ""
+
+	setcvar "g_scoreboardpic" "skylimit_score_sicily"
+
+	$world.GRAVITY = 9.81 // gravity acceleration per frame (m/s^2)
+	$world.DENSITY = 1.225 // kg/m^3
+	$world.TEMPERATURE = 295.0 // K (22 degC)
+	
+	$world.NORTHYAW = 30.0
+	
+	$world.SEALEVEL = -7484.0
+	$world.AVG_GROUNDLVL = $world.SEALEVEL
+	
+	$world.SL_SCALE = 0.03125
+	
+	$world.OBSTACLEHEIGHT = -7227.0
+	
+	local.mapstring = "obj dm " + (getcvar mapname)
+	
+	level.master = spawn ScriptMaster
+	
+	level.master aliascache sic_wave_crash sound/amb/Amb_Wave_01.wav soundparms 1.0 0.0 1.0 0.0 0 1000 auto loaded maps local.mapstring
+	level.master aliascache waves	sound/skylimit/waves.wav soundparms 1.0 0.0 1.0 0.0 400 600 auto loaded maps local.mapstring
+	
+	// map boundaries
+	$world.MINX = -8120.0
+	$world.MAXX = 8120.0
+	$world.MINY = -8120.0
+	$world.MAXY = 8120.0
+	$world.MAXZ = 7616.0
+	
+	$world.TEAM_NAME[allies] = "Allies"
+	$world.TEAM_NAME[axis] = "Germans"
+	
+	$world.TEAM_ADJECTIVE[allies] = "Allied"
+	$world.TEAM_ADJECTIVE[axis] = "German"
+	
+	level.FORMIDABLE_SPEED = 10.0 // m/s ~20 kts
+	
+	waitthread global/skylimit/main.scr::main
+	
+	level.dmroundlimit = 45
+	level.clockside = kills
+	
+	$world farplane_color (0.42 0.44 0.48)
+	$world farplane_cull game.false
+	$world farplane 10000.0
+
+	waitthread global/skylimit/reload_point.scr::setreloadent allies $formidable 256
+	waitthread global/skylimit/reload_point.scr::setreloadpoint axis ( -2240 -3528 0) 64
+	
+	// clouds
+	waitthread global/skylimit/clouds.scr::sunset
+end
+
+PLANETYPES_DM:
+	// v, hangar, skin
+	waitthread global/skylimit/plane_selection.scr::addoption spitfireIX1B_fighter faa
+	waitthread global/skylimit/plane_selection.scr::addoption spitfireIX1C_fighter faa
+	
+	waitthread global/skylimit/plane_selection.scr::addoption bf109G6_fighter europe1
+	waitthread global/skylimit/plane_selection.scr::addoption bf109G6_heavyfighter europe1
+	waitthread global/skylimit/plane_selection.scr::addoption fw190A5_fighter trop
+	waitthread global/skylimit/plane_selection.scr::addoption fw190A5_heavyfighter trop
+end
+
+PLANETYPES_OBJ:
+	// set the service groups (number of planes per sharable type)
+	waitthread global/skylimit/plane_selection.scr::setservicegroup allies spitfire 9
+	waitthread global/skylimit/plane_selection.scr::setservicegroup allies swordfish 9
+	
+	waitthread global/skylimit/plane_selection.scr::setservicegroup axis bf109 6
+	waitthread global/skylimit/plane_selection.scr::setservicegroup axis fw190 6
+	waitthread global/skylimit/plane_selection.scr::setservicegroup axis ju87 6
+
+	// v, hangar, skin
+	waitthread global/skylimit/plane_selection.scr::addoption spitfireIX1B_fighter faa
+	waitthread global/skylimit/plane_selection.scr::addoption spitfireIX1C_fighter faa
+	waitthread global/skylimit/plane_selection.scr::addoption spitfireIX1B_fighterbomber faa
+	waitthread global/skylimit/plane_selection.scr::addoption swordfish_bombs grey
+	
+	waitthread global/skylimit/plane_selection.scr::addoption bf109G6_fighter europe1
+	waitthread global/skylimit/plane_selection.scr::addoption bf109G6_heavyfighter europe1
+	waitthread global/skylimit/plane_selection.scr::addoption fw190A5_fighter trop
+	waitthread global/skylimit/plane_selection.scr::addoption fw190A5_heavyfighter trop
+	waitthread global/skylimit/plane_selection.scr::addoption fw190A5_torpedobomber trop
+	waitthread global/skylimit/plane_selection.scr::addoption ju87_torpedobomber trop
+end
+
+ffa:
+	$($formidable.clip) remove
+	$formidable remove
+end
+
+tdm:
+	// glue a bit
+	for(local.i = 1; local.i <= $spawnpoint_allies.size; local.i++)
+	{
+		$formidable thread global/skylimit/vehicle.scr::bindspawnpoint $spawnpoint_allies[local.i]
+	}
+	$formidable thread global/skylimit/vehicle.scr::bindintermission $tower_allies
+	$formidable thread global/skylimit/vehicle.scr::bindintermission $intermission
+	
+	$($formidable.clip) glue $formidable
+	$($formidable.clip) hide
+	
+	$formidable loopsound waves
+	
+	level.radar_active[allies] = game.true
+	
+	// setup the formidable, and let her travel
+	$formidable waitthread global/skylimit/vehicle.scr::formidable allies $formidable_path level.FORMIDABLE_SPEED
+	
+	// axis flaks
+	waitthread global/skylimit/vehicle.scr::makeflak ( -2048.0 -3264.0 -7300.0) 45 axis "skylimit/vehicles/flak88_base.tik" "skylimit/vehicles/flak88_housing.tik" "skylimit/vehicles/flak88_barrel.tik" "hinge" "Flak 88" "flak88" game.false
+	waitthread global/skylimit/vehicle.scr::makeflak ( -2048.0 -3520.0 -7300.0) 45 axis "skylimit/vehicles/flak88_base.tik" "skylimit/vehicles/flak88_housing.tik" "skylimit/vehicles/flak88_barrel.tik" "hinge" "Flak 88" "flak88" game.false
+	waitthread global/skylimit/vehicle.scr::makeflak ( -2432.0 -3456.0 -7300.0) 45 axis "skylimit/vehicles/flak88_base.tik" "skylimit/vehicles/flak88_housing.tik" "skylimit/vehicles/flak88_barrel.tik" "hinge" "Flak 88" "flak88" game.false
+	waitthread global/skylimit/vehicle.scr::makeflak ( -2656.0 -3456.0 -7300.0) 45 axis "skylimit/vehicles/flak88_base.tik" "skylimit/vehicles/flak88_housing.tik" "skylimit/vehicles/flak88_barrel.tik" "hinge" "Flak 88" "flak88" game.false
+	waitthread global/skylimit/vehicle.scr::makeflak ( -2880.0 -3456.0 -7300.0) 45 axis "skylimit/vehicles/flak88_base.tik" "skylimit/vehicles/flak88_housing.tik" "skylimit/vehicles/flak88_barrel.tik" "hinge" "Flak 88" "flak88" game.false
+end
+
+obj:
+	// turn the formidable into a (damagable) bobject
+	local.me = "maps/" + (getcvar mapname) + ".scr"
+	$formidable waitthread global/skylimit/brushobject.scr::brushobject "HMS Formidable" "British" "allies" game.true level.SL_TOTAL_HANGAR_HEALTH level.DMGB_SHIP "capital_ship" local.me sink game.false
+	
+	// glue a bit
+	for(local.i = 1; local.i <= $spawnpoint_allies.size; local.i++)
+	{
+		$formidable thread global/skylimit/vehicle.scr::bindspawnpoint $spawnpoint_allies[local.i]
+	}
+	$formidable thread global/skylimit/vehicle.scr::bindintermission $tower_allies
+	$formidable thread global/skylimit/vehicle.scr::bindintermission $intermission
+	
+	$($formidable.clip) glue $formidable
+	$($formidable.clip) hide
+	
+	$formidable loopsound waves
+	
+	level.radar_active[allies] = game.true
+	
+	// setup the formidable, and let her travel
+	$formidable waitthread global/skylimit/vehicle.scr::formidable allies $formidable_path level.FORMIDABLE_SPEED
+	
+	// axis flaks
+	waitthread global/skylimit/vehicle.scr::makeflak ( -2048.0 -3264.0 -7300.0) 45 axis "skylimit/vehicles/flak88_base.tik" "skylimit/vehicles/flak88_housing.tik" "skylimit/vehicles/flak88_barrel.tik" "hinge" "Flak 88" "flak88" game.true
+	waitthread global/skylimit/vehicle.scr::makeflak ( -2048.0 -3520.0 -7300.0) 45 axis "skylimit/vehicles/flak88_base.tik" "skylimit/vehicles/flak88_housing.tik" "skylimit/vehicles/flak88_barrel.tik" "hinge" "Flak 88" "flak88" game.true
+	waitthread global/skylimit/vehicle.scr::makeflak ( -2432.0 -3456.0 -7300.0) 45 axis "skylimit/vehicles/flak88_base.tik" "skylimit/vehicles/flak88_housing.tik" "skylimit/vehicles/flak88_barrel.tik" "hinge" "Flak 88" "flak88" game.true
+	waitthread global/skylimit/vehicle.scr::makeflak ( -2656.0 -3456.0 -7300.0) 45 axis "skylimit/vehicles/flak88_base.tik" "skylimit/vehicles/flak88_housing.tik" "skylimit/vehicles/flak88_barrel.tik" "hinge" "Flak 88" "flak88" game.true
+	waitthread global/skylimit/vehicle.scr::makeflak ( -2880.0 -3456.0 -7300.0) 45 axis "skylimit/vehicles/flak88_base.tik" "skylimit/vehicles/flak88_housing.tik" "skylimit/vehicles/flak88_barrel.tik" "hinge" "Flak 88" "flak88" game.true
+end
+
+sink:
+	// sinks it
+	level.SL_CARRIER_SUNK[allies] = game.true
+	
+	local.planes_destroyed = level.SL_SERVICEABLE_PLANES[allies]
+	
+	// remove all planes
+	for(local.i = 1; local.i <= level.SL_TEAMSERVICEGROUPS[self.dmteam].size; local.i++)
+	{
+		local.g = level.SL_TEAMSERVICEGROUPS[allies][local.i]
+		level.SL_SERVICEGROUPS[self.dmteam][local.g] = 0
+	}
+	
+	// messages to all players
+	for(local.i = 1; local.i <= $player.size; local.i++)
+	{
+		local.p = $player[local.i]
+		local.p iprint (local.planes_destroyed + " Allied aircraft have been destroyed aboard the HMS Formidable!") 1
+	}
+	
+	$formidable waitthread global/skylimit/vehicle.scr::sink
+end

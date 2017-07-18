@@ -1,0 +1,3803 @@
+// by jv_map
+
+fly local.pilot local.plane_opt local.team:
+	group.FRAMETIME = 0.05
+	group.PHYSICS = global/skylimit/physics.scr
+	group.NORMAL_TIMESTEP = 0.05
+	group.REFINE_PHYSICS_SPEED = 90.0 // m/s
+	
+	self.SCALE = $world.SL_SCALE
+	
+	group.DEFAULT_CAM_VIEWDIST = 960.0 // normal scale units
+									
+	group.MOUSECONTROL_YAWSENSITIVITY 		= 0.025 // /deg
+	group.MOUSECONTROL_PITCHSENSITIVITY		= 0.200 // /deg
+
+	// gear states
+	group.GS_DOWN 		= 0
+	group.GS_UP			= 1
+	group.GS_GOINGDOWN 	= 2
+	group.GS_GOINGUP	= 3
+	
+	group.GEARMAXSPEED = 92.6 // m/s (180 kts), max speed to have gear out
+	
+	group.SKIDDELAY = 2.0 // min time between skids (secs)
+
+	// min speed, throttle to emit smoke trail
+	group.EXHAUSTMINSPEED = 30.0 // m/s
+	group.EXHAUSTMINPOWERPCT = 0.20
+	
+	group.PROP_ANG_SPEED_MAXPOLY = 5.0 * level.PI // rad/s angvel below which to show polyprop
+	group.PROP_ANG_SPEED_MINBLUR = 4.0 * level.PI // rad/s angvel below which to show blurprop
+	
+	group.KAMIKAZE_RADIUS = 100.0
+	group.KAMIKAZE_RADIUS_WATER = 20.0
+	group.KAMIKAZE_DAMAGE = 5000.0
+	
+	group.SPAWN_COLLISION_IMMUNETIME = 5.0
+	
+	// plane explodes when health drops below this number
+	group.EXPLOSION_HEALTH = -100.0
+	
+	// plane starts to smoke below this health number
+	group.SMOKE_HEALTH = 25.0
+	
+	// distance to trace down to
+	group.GEARTRACEDIST = 200.0 * $world.SL_SCALE
+	
+	group.AEROMINSPEED = 5.0 // m/s, minimum required speed to process aerodynamics model
+	
+	group.DUSTSPEED_LO = 5.0
+	group.DUSTSPEED_HI = 15.0
+	
+	// this controls how violently an aircraft spins when shot down
+	group.CM_CRASHING = 0.20 // m/s
+	
+	// how many hp is lost per second when crashing
+	group.CRASHING_DIERATE = 5.0 // hp/s
+	
+	group.POWERUP_BOOSTRATIO = 1.0 // boost thrust to weight ratio
+	group.POWERUP_BOOSTPOWERMOD = 0.5 // throttle-up mod per second
+	
+	group.REARM_HEALRATE = 10.0 // hp/s
+	group.REARM_PRIMARYWEAPON_RATE = 0.10 // ammo capacity fraction per sec
+	
+	group.ATMO_UPDATE_DELAY = 1.0 // delay between updating air temp, density and pressure
+	
+	group.CROSSHAIR_FRIENDLY_TAN = 0.035 // ~2 degs on either side
+	
+	group.EMITTER_UPDATE_DELAY = 0.1 // update emitter state only after x seconds
+	
+	group.FIRE_BURST_TIME = 0.30 // min burst time when firing automatic weapons
+	
+	group.FLAKWARNINGTIMEOUT = 2.5 // s
+	
+	self.PLANETYPE = local.plane_opt
+	
+	self.pilot = local.pilot
+	
+	// so we can spectate our unavoidable wreck later :)
+	self.pilot.last_plane = self
+
+	// store pilot ref for kamikaze actions
+	self.archived_pilot = self.pilot
+	
+	self.model = local.plane_opt.model
+	self.targetname = "SL_plane"
+	
+	if(self.pilot)
+	{
+		self.dmteam = self.pilot.dmteam
+		self.pilot.plane = self
+		
+		// reset viewangles so we can use them in the input system
+		self.pilot.script_viewangles = (0.0 0.0 0.0)
+		self.pilot.input_last_script_viewangles = (0 0 0)
+		self.input_hor = 0.0
+		self.input_ver = 0.0
+		self.take_mouse_input = game.true
+		
+		self.add_crew = game.true
+	}
+	else
+	{
+		self.dmteam = local.team
+	}
+	
+	self.airspawn = level.SL_GAMETYPE == "ffa" || local.plane_opt.may_airspawn
+	if !(self.airspawn)
+	{
+		// check if there is a spawnpoint on ground
+		local.sp = waitthread getspawnpoint
+		
+		if(local.sp.airspawn)
+		{
+			self.airspawn = game.true
+		}
+	}
+	
+	if(level.SL_FINITE_PLANES && level.roundstart)
+	{
+		level.SL_SERVICEGROUPS[self.dmteam][local.plane_opt.servicegroup]--
+	}
+	
+	local.plane_opt.amount_inservice++
+	
+	self scale self.SCALE
+	
+	if(self.airspawn)
+	{
+		if !(local.sp)
+		{
+			// spawn randomly in air somewhere
+			local.data = waitthread getairspawnpoint
+			local.org = local.data[1]
+			local.startyaw = local.data[2]
+			local.init_vel = local.data[3]
+		}
+		else
+		{
+			local.org = local.sp.origin
+			local.startyaw = local.sp.startangle
+			local.init_vel = (angles_toforward (0 local.sp.startangle 0)) * local.sp.startspeed
+		}
+
+		self.gearstate = group.GS_UP
+		self.engine_started = game.true
+	}
+	else
+	{
+		// obviously need a spawn point :)
+		//local.sp = waitthread getspawnpoint
+		
+		if(local.sp.startangle == NIL)
+			local.startyaw = 0.0
+		else
+			local.startyaw = local.sp.startangle
+		
+		local.org = local.sp.origin
+		local.org[2] += 3.4 * 32.0 * $world.SL_SCALE - 8.0 // the -8 comes from the size of the script_origin in radiant
+		
+		if(local.sp.startvelocity)
+		{
+			local.init_vel = local.sp.startvelocity
+		}
+		else
+		{
+			local.init_vel = (0 0 0)
+		}
+		
+		self.gearstate = group.GS_DOWN
+		self.engine_started = game.false
+	}
+	
+	self.origin = local.org
+	
+	self.SL_health = 100.0
+
+	self.SL_notify_zings = bool self.pilot && self.pilot.isplayer // only actual players should hear bullets whizing by
+	
+	// attach wheels and prop(s) and init flightmodel
+	waitthread global/skylimit/flightmodel.scr::plane_assembly
+	
+	// init bombbay if we have it
+	if(self.HASBOMBBAY)
+	{
+		self.bombbay_request = 0
+		self.bombbay_state = level.BB_CLOSED
+		self.bombbay anim closed
+	}
+	
+	// add primary weapons
+	waitthread global/skylimit/weapons.scr::assembly
+	
+	// whether we are vomiting anything
+	for(local.i = 1; local.i <= self.EMITTERS.size; local.i++)
+	{
+		self.emit[self.EMITTERS[local.i]] = game.false
+	}
+	
+	self.next_emitter_update = level.time
+	
+	wait 0.002 // somehow this makes the camera movement smoother :S
+	
+	if (!self.DAMAGETYPE)
+	{
+		self.DAMAGETYPE = level.DMGB_AIRCRAFT
+	}
+	
+	// take damage
+	waitthread global/skylimit/damage.scr::takedamage self.DAMAGETYPE level.DMGSPD_AIRCRAFT
+	
+	// take collisions
+	thread takecollision
+	
+	// select first available item
+	self.selected_item_id = self.max_item_id
+	waitthread item_switch 1
+	
+	self.teamicon = spawn ("skylimit/hud/aircraft_" + self.dmteam + ".tik")
+	self.teamicon waitthread global/skylimit/flightmodel.scr::attach self auxorigin 0
+	
+	local.init_quat_cos = waitthread global/skylimit/math.scr::cos (0.5 * local.startyaw * level.PI / 180.0)
+	local.init_quat_sin = waitthread global/skylimit/math.scr::sin (0.5 * local.startyaw * level.PI / 180.0)
+	local.init_quat = local.init_quat_cos::0.0::0.0::local.init_quat_sin
+	
+	self waitthread group.PHYSICS::init local.init_quat local.init_vel
+	self notsolid
+	
+	group.cvar_lastvalue[sl_ext_spd] = 0
+	group.cvar_lastvalue[sl_ext_altm] = 0
+	group.cvar_lastvalue[sl_ext_alts] = 0
+	group.cvar_lastvalue[sl_ext_altb] = 0
+	group.cvar_lastvalue[sl_cmps] = 0
+
+	group.cvar_updatethreshold[sl_ext_spd] = 0.005
+	group.cvar_updatethreshold[sl_ext_altm] = 0.1
+	group.cvar_updatethreshold[sl_ext_alts] = 0.1
+	group.cvar_updatethreshold[sl_ext_altb] = 0.1
+	group.cvar_updatethreshold[sl_cmps] = 2.5
+
+	group.cvar_UPDATETIME = 0.25
+
+	// cam settings
+	// default view distance if not specified in equipment file
+	if !(self.CAM_VIEWDIST)
+	{
+		self.CAM_VIEWDIST = group.DEFAULT_CAM_VIEWDIST
+	}
+	
+	// isviewable means we have a .CAM_VIEWDIST variable set
+	self.isviewable = game.true
+	
+	// iscockpitviewable impliew we have a .CAM_COCKPITOFFSET vector set
+	self.iscockpitviewable = self.CAM_COCKPITOFFSET != NIL
+
+	if(self.pilot.isplayer)
+	{
+		waitthread inithud
+		
+		self.nose_cam = game.false
+		
+		self.pilot.cam_no_transition = game.true
+		self.pilot.cam_target = self
+		self.pilot.cam_mode = "chase"
+	}
+
+	if(self.airspawn)
+	{
+		self.throttlelevel = 1.0
+		self.propeller_pitch_angle = 0.20 * level.PI
+		self.engine_setting = level.ES_CRUISE
+		
+		// angular speed of propeller
+		self.prop_ang_speed = self.ENGINE_RPM[level.ES_CRUISE] / 30.0 * level.PI / self.ENGINE_GEAR_RATIO
+	}
+	else
+	{
+		self.throttlelevel = 0.0
+		self.propeller_pitch_angle = 0.5 * level.PI
+		self.engine_setting = level.ES_TAXI
+		self.prop_ang_speed = 0.0 // angular speed of propeller
+	}
+	
+	self.rollmod = 0.0
+	self.tailpitchlevel = 0.0
+	self.groundsteerlevel = 0.0
+	self.normal_groundsteerlevel = 0.0
+	self.ruddermod = 0.0
+	self.rudderspeed = 0.0
+	self.prop_angle = 0.0 // prop rotation angle
+	
+	self.lastskidtime = level.time
+	self.nextrearmtime = level.time
+	self.next_atmo_update_time = 0.0
+	self.last_attack_time = 0.0
+	
+	self.groundsteer_sin = 0.0
+	self.groundsteer_cos = 1.0
+	
+	self.engine_sound_volume = 0.0
+	self.engine_sound_pitch = 0.0
+	self.engine_sound_playing = game.false
+	self.engine_carburetor_factor = 1.0
+	
+	self.spawntime = level.time
+	
+	self.instrument_altitude = 0.0
+	
+	self.lastviewvec = self.forwardvector
+	
+	// some useful flags
+	self.destroyed = game.false
+	self.crashing = game.false
+
+	// whether smoke etc has been attached
+	self.crashing_handled = game.false
+
+	// means of death
+	self.MOD_NULL		= -1	// not death
+	self.MOD_CRASH		= 0 	// crash into terrain
+	self.MOD_EXPLODE	= 1		// explode
+	self.MOD_SPLASH		= 2		// splash in water
+	self.MOD_SUICIDE	= 3		// pilot killed himself, left server or switched teams
+	self.MOD_DESERTER	= 4		// outside map
+	
+	self.means_of_death = self.MOD_NULL
+	
+	// whether this plane is being controlled by a pilot
+	self.pilotcontrol 	= bool self.pilot
+	
+	// some flags
+	if(self.airspawn)
+	{
+		self.nearground 	= game.false
+		self.mlwasonground 	= game.false
+		self.mrwasonground 	= game.false
+	}
+	else
+	{
+		self.nearground 	= game.true
+		self.mlwasonground 	= game.true
+		self.mrwasonground 	= game.true
+	}
+
+	self.blurpropvisible = game.false
+	
+	self.WINGCHORD = self.WINGAREA / self.WINGSPAN
+	self.ASPECTRATIO = self.WINGSPAN / self.WINGCHORD
+	
+	self.p_pitch = 0.0
+	self.p_roll	 = 0.0
+	
+	self.timestep = group.FRAMETIME
+	
+	self.isplane = game.true
+	
+	// place prop shafts at random angle
+	for(local.i = 1; local.i <= self.props.size; local.i++)
+	{
+		self.props[local.i].polymodel.angles = (0 0 (randomfloat 360.0))
+	}
+	
+	if(self.props.size >= 1)
+	{
+		// grab prop data
+		waitthread init_prop
+	}
+	
+	// need this info at start of simulation
+	waitthread traceground game.true
+
+	// frame counter
+	local.f = 0
+
+	self.speed = vector_length self.p_velocity
+	if(self.speed == 0.0)
+	{
+		self.normalvel = (1 0 0) // placeholder
+	}
+	else
+	{
+		self.normalvel = self.p_velocity * (1.0 / self.speed)
+	}
+
+	while(self && !self.destroyed)
+	{
+		if(local.f > level.SL_MAXINT)
+		{
+			local.f = 0	
+		}
+		local.f++
+	
+		// update inertia as mass is not constant
+		// (I know.. not very nice :$)
+		self.INERTIA = 1.0 / 12.0 * self.MASS * self.LENGTH * self.LENGTH
+	
+		// check if we still have a pilot
+		self.pilotcontrol = self.pilotcontrol && self.pilot
+		
+		// stash usercommands
+		if(self.pilotcontrol)
+		{
+			self.ucmd = self.pilot.SL_ucmd
+		}
+		else
+		{
+			self.ucmd = NULL
+		}
+	
+		// update temperature, density, pressure
+		if(level.time >= self.next_atmo_update_time)
+		{
+			local.atmostate = waitthread global/skylimit/atmosphere.scr::getstate (self.instrument_altitude * level.SL_UNITSCALE)
+			self.air_temperature = local.atmostate[1]
+			self.air_density = local.atmostate[2]
+			self.air_pressure = local.atmostate[3]
+			self.air_soundspeed = local.atmostate[4]
+			
+			self.next_atmo_update_time = level.time + group.ATMO_UPDATE_DELAY
+		}
+		
+		local.lastpos = self.origin
+		
+		local.curtime = 0.0
+
+		// pure calcs
+		while(self && !self.destroyed && local.curtime < group.FRAMETIME)
+		{
+			// variable timestep
+			if(self.speed < group.REFINE_PHYSICS_SPEED)
+			{
+				local.ts = group.NORMAL_TIMESTEP
+			}
+			else if(self.speed < 2.0 * group.REFINE_PHYSICS_SPEED)
+			{
+				local.ts = group.NORMAL_TIMESTEP / 2.0
+			}
+			else
+			{
+				local.ts = group.NORMAL_TIMESTEP / 5.0
+			}
+			self.timestep = local.ts
+			
+			// get surface info
+			waitthread traceground
+			
+			// convenient info for AI
+			self.p_pitch = -1.0 * (waitthread global/skylimit/math.scr::rerangeangle self.angles[0]) // up is positive
+			self.p_roll = waitthread global/skylimit/math.scr::rerangeangle self.angles[2] // right is positive
+			
+			// process entire flightmodel
+			self.speed = vector_length self.p_velocity
+
+			if(self.speed > group.AEROMINSPEED)
+			{					
+				// dynamic pressure
+				self.qinf = 0.5 * self.air_density * self.speed * self.speed
+			
+				self.mach = self.speed / self.air_soundspeed
+				
+				if(self.mach < level.SL_COMP_MACH)
+				{
+					// compressibility correction
+					// approximation based on Prandtl-Glauert rule
+					self.compressibility_correction_fact = 0.15 / (1.0 - self.mach) + 0.85
+				}
+				else
+				{
+					self.compressibility_correction_fact = 0.15 / (1.0 - level.SL_COMP_MACH) + 0.85
+				}
+				
+				// lift should act perpendicular to the incoming airflow
+				// this is not a unit vector (but it is almost) when flying with some sideslip
+				self.liftdirection = vector_cross self.normalvel self.leftvector
+				
+				self.normalvel = self.p_velocity * (1.0 / self.speed)
+				
+				// approximation, should be sufficiently accurate
+				self.aoa = -1.0 * self.normalvel * self.upvector
+				
+				// lift, drag and pitch moments
+				// also handles gear drag
+				waitthread fm_wings
+				
+				// tailplane steering and stabilizing forces
+				waitthread fm_tailplane
+				
+				// forces acting on the fuselage
+				waitthread fm_fuselage
+				
+				if(self.crashing)
+				{
+					// (wild) spinning moments
+					waitthread fm_crash
+				}
+			}
+			else
+			{
+				self.aoa = 0.0
+				self.mach = 0.0
+				self.stalling 	= game.false
+			}
+			
+			if(self.props.size >= 1)
+			{
+				// thrust (always has timestep from previous frame
+				// but that doesn't matter much)
+				waitthread fm_engine
+				waitthread fm_prop self.timestep
+			}
+			
+			// gravity
+			waitthread global/skylimit/physics.scr::impulse ( -$world.GRAVITY * self.MASS * $world.upvector)
+
+			// ground interaction
+			// can only land safely if alive
+			if(self.nearground && self.gearstate == group.GS_DOWN)
+			{
+				// forward friction coefficient
+				local.mu = waitthread getgroundfrictioncoefficient_model2 ((self.p_velocity - self.ground_velocity) * self.groundfwdvec / self.GROUNDFRICTIONYIELDSPEED_FORWARD)
+				self.groundfriction_fwd = local.mu * self.ROLLINGRESISTANCE
+				
+				local.fwd = abs ((self.p_velocity - self.ground_velocity) * self.groundfwdvec)
+				local.lf = (self.p_velocity - self.ground_velocity) * self.groundlfvec
+				
+				if(local.fwd == 0.0)
+				{
+					local.slip_angle = 0.5 * level.PI	
+				}
+				else
+				{
+					local.slip_angle = waitthread global/skylimit/math.scr::arctan (local.lf / local.fwd)
+				}
+				
+				local.slip_speed = abs ((self.p_velocity - self.ground_velocity) * self.groundlfvec)
+				
+				local.mu = waitthread getgroundfrictioncoefficient_model2 (local.slip_angle / self.GROUNDFRICTIONYIELDSLIPANGLE * 2.0 / level.PI)
+				self.groundfriction_lf = self.GROUNDFRICTIONLATERAL * local.mu
+				local.mu = waitthread getgroundfrictioncoefficient_model2 (local.slip_speed / self.GROUNDFRICTIONYIELDSPEED_LATERAL)
+				self.groundfriction_lf = self.groundfriction_lf * local.mu
+				
+				waitthread fm_maingear -1
+				waitthread fm_maingear 1
+				waitthread fm_tailgear
+				
+				if(self.GROUNDSTABILIZER)
+				{
+					waitthread fm_stabilizegear
+				}
+				
+				// additional damping
+				waitthread fm_geardamping
+			}
+			
+			waitthread global/skylimit/physics.scr::update self.timestep
+			
+			local.curtime += self.timestep
+			wait self.timestep
+		}
+		
+		if (!self)
+		{
+			break
+		}
+		
+		// check if we're below sea level...
+		if(self.origin[2] < $world.SEALEVEL)
+		{
+			println "plane " self.entnum " died >> below sea level"
+			self.destroyed = game.true
+			self.nodrop = game.true // don't drop items
+			self.means_of_death = self.MOD_SPLASH
+		}
+		else if(self.origin[2] > $world.MAXZ)
+		{
+			println "plane " self.entnum " died >> into orbit"
+			self.destroyed = game.true
+			self.nodrop = game.true // don't drop items
+			self.means_of_death = self.MOD_DESERTER
+		}
+		else if(self.origin[0] < $world.MINX || self.origin[0] > $world.MAXX || self.origin[1] < $world.MINY || self.origin[1] > $world.MAXY)
+		{
+			println "plane " self.entnum " died >> out of map"
+			self.destroyed = game.true
+			self.nodrop = game.true // don't drop items
+			self.means_of_death = self.MOD_DESERTER
+		}
+		else
+		{
+			// check if our flight path was possible
+			local.offset = (0 0 16) * $world.SL_SCALE
+			
+			local.trace_start = local.lastpos + local.offset
+			local.trace_end = self.origin + local.offset
+			
+			if(local.trace_end[2] < $world.OBSTACLEHEIGHT)
+			{
+				// could add a full box trace here, but it seems slower
+				local.hit = trace local.trace_start local.trace_end 0
+				if (local.hit != self.origin + local.offset)
+				{
+					// apparently flew into terrain
+					println "plane " self.entnum " died >> flew into terrain"
+					self.destroyed = game.true
+					self.nodrop = game.true // don't drop items
+					self.means_of_death = self.MOD_CRASH
+				}
+			}
+		}
+		
+		// state updates
+		waitthread damage
+		waitthread checkalive
+		
+		// check if we still have a pilot
+		self.pilotcontrol = self.pilotcontrol && self.pilot
+		
+		// this is the altitude that is displayed on the altimeter
+		self.instrument_altitude = self.origin[2] - $world.AVG_GROUNDLVL
+		
+		self.onground = self.nearground && self.gearstate == group.GS_DOWN && (self.gearpos[ -1][2] <= self.localgroundlevel[ -1] || self.gearpos[1][2] <= self.localgroundlevel[1])
+		
+		// flight controls
+		waitthread ctrl_roll
+		waitthread ctrl_tailpitchlvl
+		waitthread ctrl_steer
+		waitthread ctrl_rudder
+		
+		waitthread update_primary_weapons
+		waitthread ctrl_weapswitch_secondary
+		
+		waitthread ctrl_fire_primary
+		waitthread ctrl_fire_secondary
+		waitthread ctrl_bombbay
+		
+		if(self.props.size >= 1)
+		{
+			waitthread ctrl_prop
+			waitthread ctrl_throttle
+		}
+			
+		if(self.hasretractablegear)
+		{
+			waitthread ctrl_gear
+		}
+		
+		// wheel dust emitters
+		waitthread wheelsfx -1 self.wheel_left.sfx
+		waitthread wheelsfx 1 self.wheel_right.sfx
+		waitthread wheelsfx 0 self.wheel_center.sfx
+	
+		// update general emitters
+		waitthread emitters
+	
+		// determine height and ground normal
+		if(self.pilotcontrol && self.pilot.isplayer)
+		{				
+			// end of map alarm
+			waitthread end_of_map
+			
+			// rearm/reheal
+			waitthread rearm
+			
+			// update crosshair
+			waitthread updatecrosshair
+			
+			// update pilot's cam position and viewangles
+			waitthread updatecamera
+			
+			// update compass more often than other meters
+			waitthread updatecompass
+			
+			// update hud lights immediately
+			waitthread updatehudlights
+			
+			// update cockpit meters
+			waitthread updatehud
+	
+			waitthread updatemouseinput
+		}
+	}
+	
+	if(self)
+	{
+		/*
+		// means of death values
+		self.MOD_NULL		= -1	// not death
+		self.MOD_CRASH		= 0		// crash into terrain
+		self.MOD_EXPLODE	= 1		// explode
+		self.MOD_SPLASH		= 2		// splash in water
+		self.MOD_SUICIDE	= 3		// pilot killed himself, left server or switched teams
+		self.MOD_DESERTER	= 4		// outside map
+		*/
+		
+		// make sure pilot is dead
+		if(self.pilot)
+		{
+			waitthread killpilot self.pilot level.MODM_NULL
+		}
+		
+		if(self.means_of_death == self.MOD_NULL)
+		{	
+			// plane should not have died :S
+			println "Error: Plane has no means of death!?"
+		}
+		else if(self.means_of_death == self.MOD_SUICIDE)
+		{
+			// plane should just be removed from map	
+			// do nothing
+		}
+		else
+		{
+			waitthread explode
+		}
+		
+		waitthread remove_plane
+	}
+	
+	local.plane_opt.amount_inservice--
+	
+	if(level.roundstart)
+	{
+		local.plane_opt.deaths++
+	}
+end
+
+// grab prop data
+init_prop:
+	local.min  = self.PROPELLER_PITCH_MIN
+	local.max  = self.PROPELLER_PITCH_MAX
+
+	if(local.min >= 0.0)
+	{
+		local.zero = local.min
+	}
+	else
+	{
+		local.zero = 0.0
+	}
+	
+	// propeller settings
+	self.PROPELLER_PITCH_RANGE[level.ES_CRUISE] 	= local.zero::local.max
+	self.PROPELLER_PITCH_RANGE[level.ES_TAKEOFF] 	= local.zero::local.max
+	self.PROPELLER_PITCH_RANGE[level.ES_CLIMB] 		= local.zero::local.max
+	self.PROPELLER_PITCH_RANGE[level.ES_TAXI] 		= local.zero::local.max
+	self.PROPELLER_PITCH[level.ES_REVERSE] 			= local.min
+	self.PROPELLER_PITCH[level.ES_FEATHER]			= local.max
+end
+
+//#INLINE
+updatemouseinput:
+	if(self.take_mouse_input)
+	{
+		self.input_hor = self.pilot.viewangles_deltas[1] * group.MOUSECONTROL_YAWSENSITIVITY
+		self.input_ver = -self.pilot.viewangles_deltas[0] * group.MOUSECONTROL_PITCHSENSITIVITY
+	}
+	else
+	{
+		self.input_hor = 0.0
+		self.input_ver = 0.0
+	}
+end
+
+// simplified wing model
+// no longer uses finite strip approximation,
+// because it made the plane realistic but very hard to fly
+//#INLINE
+fm_wings:
+	
+	// lift slope of an infinite (span) wing
+	local.a0 = 2.0 * level.PI
+	
+	// lift slope
+	local.a = local.a0 / (1.0 + local.a0 / (level.PI * self.ASPECTRATIO * self.OSWALD_FACTOR))
+
+	// ailerons are effective even when stalling
+	local.c_roll = self.C_ROLL * self.rollmod * (1.0 - self.mach)
+
+	// simplified
+	local.roll_moment = 0.25 * local.c_roll * local.a * self.qinf * self.WINGAREA * self.WINGSPAN
+
+	self.cd = self.CD0
+
+	// roll damper
+	local.roll_damping = 0.06125 * self.p_avelocity * self.normalvel * local.a * self.air_density * self.speed * self.WINGAREA * self.WINGSPAN * self.WINGSPAN
+	waitthread global/skylimit/physics.scr::aimpulse ( (local.roll_moment - local.roll_damping) * self.normalvel)
+	
+	// effective AOA
+	local.aoa = self.aoa - self.ZEROLIFTANGLE
+						
+	// lift coefficient
+	//self.cl = local.a * local.aoa / (1.0 + (waitthread global/skylimit/math.scr::powint (local.aoa / self.MAXAOA) self.STALL_SEVERITY) / (self.STALL_SEVERITY - 1))
+	
+	if(abs local.aoa <= self.MAXAOA)
+	{
+		// nice and easy :)
+		self.cl = local.a * local.aoa
+	}
+	else if(local.aoa > self.MAXAOA)
+	{
+		// somewhat more complicated
+		local.x = (local.aoa - self.MAXAOA) / self.STALLMARGIN
+		self.cl = local.a * self.MAXAOA / (1.0 + local.x * local.x)
+	}
+	else // local.aoa < -self.MAXAOA
+	{
+		// somewhat more complicated
+		local.x = (local.aoa + self.MAXAOA) / self.STALLMARGIN
+		self.cl = -local.a * self.MAXAOA / (1.0 + local.x * local.x)
+	}
+
+	// removed compressibility correction from lift to reduce instability problems
+	// and to keep flightmodel simpler
+	self.lift = self.cl * self.qinf * self.WINGAREA
+	
+	// put lift in center of mass
+	// this eliminates the short period and phugoid eigenmotions for more convenient flying :)
+	waitthread global/skylimit/physics.scr::impulse (self.lift * self.liftdirection)
+	
+	// induced drag
+	self.cd += self.cl * self.cl / level.PI / self.ASPECTRATIO / self.OSWALD_FACTOR
+	
+	// effect of dihedral (slip-induced roll)
+	local.sideslip_velocity = self.p_velocity * self.leftvector
+	local.roll_moment = local.a * self.DIHEDRAL * 0.25 * self.air_density * (abs local.sideslip_velocity) * local.sideslip_velocity * self.WINGAREA * self.WINGSPAN
+	
+	waitthread global/skylimit/physics.scr::aimpulse ( local.roll_moment * self.normalvel)
+	
+	// assume cl invariant
+	// yaw induced roll
+	local.diff_vel = 3.0 / 8.0 * self.WINGSPAN * self.p_avelocity * self.liftdirection
+	local.roll_moment = 0.5 * self.cl * self.air_density * self.WINGAREA * self.speed * local.diff_vel * self.WINGSPAN
+	waitthread global/skylimit/physics.scr::aimpulse ( -1.0 * local.roll_moment * self.normalvel)
+	
+	// stabilize when stalling
+	if(local.aoa > self.MAXAOA)
+	{
+		self.cd += self.CDSTALL
+		self.cm = (local.aoa - self.MAXAOA) * self.STALLSLOPE
+		local.stalling = game.true
+	}
+	else if(local.aoa < -self.MAXAOA)
+	{
+		self.cd += self.CDSTALL
+		self.cm = (local.aoa + self.MAXAOA) * self.STALLSLOPE
+		local.stalling = game.true
+	}
+	else
+	{
+		self.cm = 0.0
+		local.stalling = game.false
+	}
+	
+	self.stalling = local.stalling
+	
+	waitthread global/skylimit/physics.scr::aimpulse (self.leftvector * self.qinf * self.cm * self.WINGAREA * self.WINGCHORD)
+	
+	// air brake
+	if(self.pilotcontrol)
+	{
+		// made brake linear w/ speed so we have better braking at low speeds
+		// in reality this could simulate a viscous effect (for brakes with tiny holes in them)
+		// or a reduced brake deflection due to backpressure (or even shocks) at high speed
+		// most aircraft had no brakes at all
+		// but I don't want to require a 5 min. approach for every landing
+		self.cd += self.ucmd[BRAKE] * self.CDBRAKE * group.AEROMINSPEED / self.speed
+	}
+	
+	if(self.gearstate != group.GS_UP)
+	{
+		self.cd += self.CDGEAR
+	}
+	
+	// compressibility is accounted for here
+	// makes it pretty hard (but not impossible) to breach sound barrier :P
+	self.drag = self.cd * self.qinf * self.WINGAREA * self.compressibility_correction_fact
+	
+	// model drag in center of mass (no adverse yaw when rolling)
+	waitthread global/skylimit/physics.scr::impulse (self.drag * self.normalvel * -1.0)
+	
+	// used by tailplane
+	self.trim_angle = self.upvector * $world.upvector * $world.GRAVITY * self.MASS / (self.qinf * self.WINGAREA * local.a ) + self.ZEROLIFTANGLE
+end
+
+//#INLINE
+fm_tailplane:
+	// tailplane
+	// tail pitch up (nose down) is positive
+
+	if(self.tailpitchlevel >= 0.0)
+	{
+		local.pitch_angle = self.tailpitchlevel * self.TAILMAXPITCH
+	}
+	else
+	{
+		local.pitch_angle = -self.tailpitchlevel * self.TAILMINPITCH
+	}
+
+	local.pitch_angle = local.pitch_angle * (1.0 - self.mach)
+
+	// additional aoa due to pitching motion (pitch damper)
+	local.avel_aoa = -1.0 * self.p_avelocity * self.leftvector * self.TAILARM / self.speed
+	
+	// auto-trim, set zerolift angle to required aoa (for horizontal flight)
+	local.htailzeroliftangle = self.trim_angle
+	local.htailzeroliftangle = waitthread cap local.htailzeroliftangle self.HTAILTRIMMIN self.HTAILTRIMMAX
+	
+	local.htailaoa = self.aoa + local.avel_aoa - local.htailzeroliftangle
+	
+	// cap at stall angle
+	local.pitch_angle = waitthread cap local.pitch_angle -self.MAXAOA self.MAXAOA
+	
+	local.htailcl = (local.htailaoa + local.pitch_angle) * self.HTAILLIFTSLOPE
+	local.htailforce = local.htailcl * self.qinf * self.HTAILWINGAREA * (self.normalvel * self.forwardvector)
+	
+	// additional aoa due to yawing motion (yaw damper)
+	local.avel_aoa = -1.0 * self.p_avelocity * self.upvector * self.TAILARM / self.speed
+	
+	local.vtailaoa = self.normalvel * self.leftvector + local.avel_aoa
+	local.vtailzeroliftangle = self.VTAILZEROLIFTANGLE - self.ruddermod * self.RUDDERDEFLECTION * (1.0 - self.mach)
+	
+	local.vtailcl = (local.vtailaoa - local.vtailzeroliftangle) * self.VTAILLIFTSLOPE
+	local.vtailforce = -1.0 * local.vtailcl * self.qinf * self.VTAILWINGAREA
+	
+	waitthread global/skylimit/physics.scr::impulse (local.htailforce * self.liftdirection + local.vtailforce * self.leftvector) (self.origin - self.forwardvector * self.TAILARM)
+end
+
+//#INLINE
+fm_fuselage:
+	// slip response
+	local.aoa = self.normalvel * self.leftvector
+	local.sidelift = local.aoa * self.FUSELAGE_VLIFTSLOPE * self.qinf * self.FUSELAGE_VAREA
+	
+	waitthread global/skylimit/physics.scr::impulse (local.sidelift * self.leftvector * -1.0)
+	
+	local.sidespeed = self.p_velocity * self.leftvector
+	local.sidedrag = self.FUSELAGE_VCD0 * 0.5 * self.air_density * local.sidespeed * local.sidespeed * self.FUSELAGE_VAREA
+	
+	waitthread global/skylimit/physics.scr::impulse (local.sidedrag * self.normalvel * -1.0)
+end
+
+// makes plane spiral eratically
+//#INLINE
+fm_crash:
+	local.moment = self.cm_crashing * self.air_density * self.speed * self.speed * self.WINGAREA * self.WINGSPAN
+	local.damping = 1.0 * self.p_avelocity * self.air_density * self.speed * self.WINGAREA * self.WINGSPAN * self.WINGSPAN
+	
+	waitthread global/skylimit/physics.scr::aimpulse (local.moment - local.damping)
+end
+
+//#INLINE
+fm_prop local.timestep:
+	// kinda realistic propeller simulation :)
+	// center of pressure of each blade is located @ 3/8 d from the spin center
+	
+	// only take into account velocity components normal to propeller disk (forwardvector is normal)
+	// otherwise we would get asymmetric thrust
+	local.Vinf = self.p_velocity * self.forwardvector
+	
+	// speed @ 0.75 * 0.5b
+	local.bladespeed = self.prop_ang_speed * 3.0 / 8.0 * self.PROPELLER_DIAMETER
+	
+	local.liftslope = 2.0 * level.PI
+	
+	if(local.bladespeed > 0.0)
+	{
+		local.incidence = waitthread global/skylimit/math.scr::arctan (local.Vinf / local.bladespeed)
+	}
+	else
+	{
+		local.incidence = 0.5 * level.PI
+	}
+	
+	if(self.engine_setting == level.ES_REVERSE)
+	{
+		// pick max negative pitch (without stalling)
+		local.desired_pitch_angle = self.PROPELLER_CL_MIN / local.liftslope + local.incidence
+		local.desired_pitch_angle = waitthread cap local.desired_pitch_angle ( -0.5 * level.PI) (0.5 * level.PI)
+	}
+	else if(self.engine_setting == level.ES_FEATHER)
+	{
+		local.desired_pitch_angle = self.PROPELLER_PITCH[level.ES_FEATHER]
+	}
+	else
+	{
+		local.prop_pitch_min = self.PROPELLER_PITCH_RANGE[self.engine_setting][1]
+		local.prop_pitch_max = self.PROPELLER_PITCH_RANGE[self.engine_setting][2]
+		local.desired_angvel = self.ENGINE_RPM[self.engine_setting] / self.ENGINE_GEAR_RATIO / 60.0 * 2.0 * level.PI
+		local.desired_pitch_angle = self.PROPELLER_GOVERNOR_AGGRESSIVENESS * (self.prop_ang_speed - local.desired_angvel) / local.desired_angvel
+		
+		// to prevent propeller stall
+		local.min_pitch = self.PROPELLER_CL_MIN / local.liftslope + local.incidence
+		
+		if(local.min_pitch < local.prop_pitch_min)
+		{
+			local.min_pitch = local.prop_pitch_min
+		}
+		
+		local.max_pitch = self.PROPELLER_CL_MAX / local.liftslope + local.incidence
+		
+		if(local.max_pitch > local.prop_pitch_max)
+		{
+			local.max_pitch = local.prop_pitch_max
+		}
+		
+		local.desired_pitch_angle = waitthread cap local.desired_pitch_angle local.min_pitch local.max_pitch
+	}
+	
+	local.pitch_speed = self.PROPELLER_GOVERNOR_SPEED
+	
+	local.pitch_angle_delta = local.desired_pitch_angle - self.propeller_pitch_angle
+	local.pitch_angle_delta = waitthread cap local.pitch_angle_delta ( -local.pitch_speed * local.timestep) (local.pitch_speed * local.timestep)
+	self.propeller_pitch_angle += local.pitch_angle_delta
+	
+	local.aoa = self.propeller_pitch_angle - local.incidence
+	
+	local.CL = local.aoa * local.liftslope
+	
+	if(local.CL > self.PROPELLER_CL_MAX)
+	{
+		local.CL = 0.0
+		local.CD = self.PROPELLER_CD0 + self.PROPELLER_CDSTALL
+	}
+	else if(local.CL < self.PROPELLER_CL_MIN)
+	{
+		local.CL = 0.0
+		local.CD = self.PROPELLER_CD0 + self.PROPELLER_CDSTALL
+	}
+	else
+	{
+		local.CD = self.PROPELLER_CD0 + 4.0 * self.PROPELLER_BLADE_AREA * local.CL * local.CL / level.PI / self.PROPELLER_DIAMETER / self.PROPELLER_DIAMETER
+	}
+	
+	// speed @ blade tips
+	local.tipspeed = 4.0 / 3.0 * local.bladespeed
+
+	// sqrt (propvel^2 + bladespeed^2) ( = magnitude of relative wind)
+	local.totalspeed = vector_length (local.Vinf local.bladespeed 0)
+	// not the tip mach number but who cares :P
+	local.mach = 1.33 * local.totalspeed / self.air_soundspeed
+	
+	if(local.mach < level.SL_PROP_COMP_MACH)
+	{
+		// cheap compressibility correction based on tip mach number
+		local.comp_correction = 0.15 / (1.0 - local.mach) + 0.85
+	}
+	else
+	{
+		local.comp_correction = 0.15 / (1.0 - level.SL_PROP_COMP_MACH) + 0.85
+	}
+	
+	// sneakily only apply comp_correction to CD to cheaply model wave drag
+	local.CD = local.CD * local.comp_correction
+
+	local.mass_flow = self.air_density * self.PROPELLER_BLADE_AREA * self.PROPELLER_NUMBLADES * local.totalspeed
+	
+	// drag moment on propeller blades
+	local.dragmoment = 3.0 / 16.0 * self.PROPELLER_DIAMETER * local.mass_flow * (local.CD * local.bladespeed + local.CL * local.Vinf)
+	
+	local.thrust = 0.5 * local.mass_flow * (local.CL * local.bladespeed - local.CD * local.Vinf)
+
+	if(self.engine_servo_engaged)
+	{
+		if(self.prop_ang_speed <= 0.0)
+		{
+			local.servo_torque = self.ENGINE_SERVO_MAXTORQUE
+		}
+		else
+		{
+			local.servo_torque = self.ENGINE_SERVO_POWER / self.prop_ang_speed
+			local.servo_torque = waitthread cap local.servo_torque 0.0 self.ENGINE_SERVO_MAXTORQUE
+		}
+	}
+	else
+	{
+		local.servo_torque = 0.0
+	}
+	
+	// calc thrust for this rpm (the old rpm actually)
+	local.shaft_torque = self.engine_torque + local.servo_torque - local.dragmoment
+		
+	self.prop_ang_accel = local.shaft_torque / self.PROPELLER_INERTIA
+	self.prop_ang_speed += self.prop_ang_accel * local.timestep
+
+	// can also brake on propeller only with some effort
+	waitthread global/skylimit/physics.scr::impulse (self.forwardvector * local.thrust)
+	
+	if(self.powerup_boost)
+	{
+		waitthread global/skylimit/physics.scr::impulse (self.forwardvector * group.POWERUP_BOOSTRATIO * self.MASS * $world.GRAVITY * self.powerup_boost_fraction)
+	}
+end
+
+//#INLINE
+fm_engine:
+	local.revsec = self.prop_ang_speed / 2.0 / level.PI * self.ENGINE_GEAR_RATIO 
+	
+	// LIMIT_RPM is RPM at which manifold pressure can just be maintained (max power point)
+	// OVERREV_RPM is rpm at which the engine is fully braking (should be slightly higher than MAX_RPM - LIMIT_RPM
+	
+	local.rated_revsec = self.ENGINE_LIMIT_RPM * self.throttlelevel / 60.0
+	local.overrev = local.revsec - local.rated_revsec
+	
+	// manifold factor
+	if(self.throttlelevel <= 0.0 || local.revsec * 60.0 < self.ENGINE_MIN_RPM)
+	{
+		local.manifold_factor = 0.0
+	}
+	else if(local.overrev < 0.0)
+	{
+		local.manifold_factor = 1.0
+	}
+	else
+	{
+		local.manifold_factor = local.rated_revsec / local.revsec
+	}
+	
+	if(self.ENGINE_SUPERCHARGER_CLUTCHED)
+	{
+		// charge ratio is independent of rpm and can be set to any desired ratio < max_ratio
+		local.charge_ratio = level.SL_ISA_RHO0 / self.air_density
+		local.charge_ratio = waitthread cap local.charge_ratio 1.0 self.ENGINE_SUPERCHARGER_MAX_DENSITY_RATIO
+	}
+	else
+	{
+		// charge ratio depends on speed setting and rpm
+		local.desired_supercharger_setting = (level.SL_ISA_RHO0 / self.air_density - 1.0) * local.rated_revsec / local.revsec
+		
+		// pick an optimal supercharger setting
+		// select the first setting that is lower than desired
+		for(local.i = self.ENGINE_SUPERCHARGER_RATIOS.size; local.i >= 1; local.i--)
+		{
+			local.candidate_setting = self.ENGINE_SUPERCHARGER_RATIOS[local.i] - 1.0
+			if(local.i == 1 || local.candidate_setting <= local.desired_supercharger_setting)
+			{
+				local.supercharger_setting = local.candidate_setting
+			}
+		}
+		
+		if(local.revsec < local.rated_revsec)
+		{
+			local.charge_ratio = 1.0 + local.revsec / local.rated_revsec * local.supercharger_setting
+		}
+		else
+		{
+			local.charge_ratio = 1.0 + local.supercharger_setting
+		}
+	}
+	
+	local.density_ratio = self.air_density / level.SL_ISA_RHO0 * local.charge_ratio
+	
+	local.torque = local.manifold_factor * local.density_ratio * 60.0 / self.ENGINE_LIMIT_RPM / 2.0 / level.PI * (self.ENGINE_RATED_POWER + self.ENGINE_MECH_FRICTION_MOMENT * self.ENGINE_LIMIT_RPM / 30.0 * level.PI)
+	
+	if(self.ENGINE_CARBURETOR)
+	{
+		self.engine_carburetor_factor = (self.p_vload - self.ENGINE_CARBURETOR_MIN_G) / (1.0 - self.ENGINE_CARBURETOR_MIN_G)
+		self.engine_carburetor_factor = waitthread cap self.engine_carburetor_factor 0.0 1.0
+	}
+	else
+	{
+		// direct fuel injection
+		self.engine_carburetor_factor = 1.0
+	}
+	
+	// mechanical friction
+	local.mu = waitthread getgroundfrictioncoefficient_model2 (self.prop_ang_speed / self.ENGINE_MECH_FRICTION_MOMENT_YIELDSPEED)
+	local.frictionmoment = local.mu * self.ENGINE_MECH_FRICTION_MOMENT
+	
+	// apply torque to propshaft
+	self.engine_torque = (local.torque * self.engine_carburetor_factor - local.frictionmoment) * self.ENGINE_GEAR_RATIO
+end
+
+max local.val1 local.val2:
+	if(local.val1 > local.val2)
+	{
+		end local.val1
+	}
+end local.val2
+
+min local.val1 local.val2:
+	if(local.val1 < local.val2)
+	{
+		end local.val1
+	}
+end local.val1
+
+getgroundfrictioncoefficient_model2	local.speed_ratio:
+end ((1.0 - 1.0 / (1.0 + abs local.speed_ratio) / (1.0 + abs local.speed_ratio)) * (2 * (local.speed_ratio >= 0.0) - 1))
+
+//#INLINE
+fm_maingear local.side:
+	// side = -1 (left) or +1 (right)
+	if(self.gearpos[local.side][2] < self.localgroundlevel[local.side])
+	{	
+		if ( !self.wasonground[local.side] && !self.ground_dynamic)
+		{
+			if(level.time > self.lastskidtime + group.SKIDDELAY && self.gearstate == group.GS_DOWN)
+			{
+				self playsound aircraft_skid
+				self.lastskidtime = level.time
+				
+				if(self.speed > group.DUSTSPEED_HI)
+				{
+					// make a skid beam
+					thread sfx_postskidbeam local.side 0.5 2
+				}
+			}
+		}
+		self.wasonground[local.side] = 1
+		
+		local.R = (self.gearpos[local.side] - self.origin) * level.PH_UNITSCALE
+		local.RN = local.R * self.groundnormal
+		
+		local.num = (self.p_velocity - self.ground_velocity) * self.groundnormal - $world.GRAVITY * ($world.upvector * self.groundnormal) * self.timestep + self.groundnormal * (vector_cross (self.p_avelocity - self.ground_avelocity) local.R)
+		local.den = 1.0 / self.MASS + 1.0 / self.INERTIA * (local.R * local.R - local.RN * local.RN)
+
+		// shock
+		// (merely to get rid of the integration errors by using an energy method)
+		local.maxforce = local.num / local.den * (self.SHOCKDAMPING - 2.0) / self.timestep
+		if(local.maxforce < self.MASS * $world.GRAVITY)
+		{
+			local.maxforce = self.MASS * $world.GRAVITY	
+		}
+		
+		// spring
+		local.force = (self.localgroundlevel[local.side] - self.gearpos[local.side][2]) * level.SL_UNITSCALE * self.GEARSTIFFNESS
+		
+		// damper
+		local.localspeed = self.p_velocity - self.ground_velocity + vector_cross (self.p_avelocity - self.ground_avelocity) ((self.gearpos[local.side] - self.origin) * level.PH_UNITSCALE)
+		local.force -= self.GEARDAMPING * self.MASS * (local.localspeed * $world.upvector)
+		
+		if(local.force > local.maxforce)
+		{
+			local.force = local.maxforce
+		}
+		
+		// ground drag and wheel brakes
+		if ( self.speed - self.ground_velocity * self.groundfwdvec != 0.0)
+		{
+			// forward/backward drag
+			local.fwddragmult = 1.0
+			if(self.pilotcontrol)
+			{
+				local.fwddragmult += self.ucmd[BRAKE] * self.GROUNDBRAKEMULTIPLIER
+			}
+			
+			local.fwddrag = -self.groundfriction_fwd * local.fwddragmult * local.force * self.groundfwdvec
+
+			// lateral drag
+			local.lfdrag = -self.groundfriction_lf * local.force * self.groundlfvec
+		}
+		else
+		{
+			local.fwddrag = (0 0 0)
+			local.lfdrag = (0 0 0)
+		}
+		
+		waitthread global/skylimit/physics.scr::guimpulse (local.force * self.groundnormal + local.fwddrag + local.lfdrag) self.gearpos[local.side]
+	}
+	else
+	{
+		self.wasonground[local.side] = 0
+	}
+end
+
+//#INLINE
+fm_tailgear:
+	if(self.tgearpos[2] < self.localgroundlevel[0])
+	{
+		// spring
+		local.tgearforce = (self.localgroundlevel[0] - self.tgearpos[2]) * level.SL_UNITSCALE * self.GEARSTIFFNESS
+		
+		// damper
+		local.localspeed = self.p_velocity - self.ground_velocity + vector_cross (self.p_avelocity - self.ground_avelocity) ((self.tgearpos - self.origin) * level.PH_UNITSCALE)
+		local.tgearforce -= self.GEARDAMPING * self.MASS * (local.localspeed * $world.upvector)
+		
+		// shock
+		// (energy method to get rid of integration errors)
+		local.R = (self.tgearpos - self.origin) * level.PH_UNITSCALE
+		local.RN = local.R * self.groundnormal
+		
+		local.num = (self.p_velocity - self.ground_velocity) * self.groundnormal - $world.GRAVITY * ($world.upvector * self.groundnormal) * self.timestep + self.groundnormal * (vector_cross (self.p_avelocity - self.ground_avelocity) local.R)
+		local.den = 1.0 / self.MASS + 1.0 / self.INERTIA * (local.R * local.R - local.RN * local.RN)
+		
+		local.maxforce = local.num / local.den * (self.SHOCKDAMPING - 2.0) / self.timestep
+		
+		if(local.maxforce < self.MASS * $world.GRAVITY)
+		{
+			local.maxforce = self.MASS * $world.GRAVITY	
+		}
+		
+		if(local.tgearforce > local.maxforce)
+		{
+			local.tgearforce = local.maxforce
+		}
+	
+		if (self.speed - self.ground_velocity * self.groundfwdvec != 0.0)
+		{
+			local.groundvel = local.localspeed - local.localspeed * self.groundnormal * self.groundnormal
+			
+			local.sin = self.groundsteer_sin
+			local.cos = self.groundsteer_cos
+			
+			local.wheelfwdvec = local.cos * self.groundfwdvec + local.sin * self.groundlfvec
+			local.wheellfvec = -local.sin * self.groundfwdvec + local.cos * self.groundlfvec
+			
+			local.mu = waitthread getgroundfrictioncoefficient_model2 (local.groundvel * local.wheelfwdvec / self.GROUNDFRICTIONYIELDSPEED_FORWARD)
+			local.mu = local.mu * self.ROLLINGRESISTANCE
+			local.wheelfwddrag = -local.mu * local.wheelfwdvec * local.tgearforce
+		
+			local.fwd = abs (local.groundvel * local.wheelfwdvec)
+			local.lf = local.groundvel * local.wheellfvec
+			
+			if(local.fwd == 0.0)
+			{
+				local.slip_angle = 0.5 * level.PI	
+			}
+			else
+			{
+				local.slip_angle = waitthread global/skylimit/math.scr::arctan (local.lf / local.fwd)
+			}
+			
+			local.slip_speed = abs (local.groundvel * local.wheellfvec)
+			
+			local.mu = waitthread getgroundfrictioncoefficient_model2 (local.slip_angle / self.GROUNDFRICTIONYIELDSLIPANGLE * 2.0 / level.PI)
+			local.mu = self.GROUNDFRICTIONLATERAL * local.mu
+			local.mu2 = waitthread getgroundfrictioncoefficient_model2 (local.slip_speed / self.GROUNDFRICTIONYIELDSPEED_LATERAL)
+			local.mu = local.mu * local.mu2
+			
+			local.wheellfdrag = -local.mu * local.wheellfvec * local.tgearforce
+			
+			// may be used to 'artificially' improve steering
+			// but shifting back center of gravity is preferred
+			if(self.TAILGEARFORCEBIAS)
+			{
+				local.wheellfdrag = local.wheellfdrag * self.TAILGEARFORCEBIAS
+			}
+		}
+		else
+		{
+			local.wheelfwddrag = (0 0 0)
+			local.wheellfdrag = (0 0 0)
+		}
+		waitthread global/skylimit/physics.scr::guimpulse (local.tgearforce * self.groundnormal + local.wheelfwddrag + local.wheellfdrag) self.tgearpos
+	}
+end
+
+//#INLINE
+fm_stabilizegear:
+	if(self.gearpos[ -1][2] <= self.localgroundlevel[ -1] || self.gearpos[1][2] <= self.localgroundlevel[1])
+	{
+		waitthread global/skylimit/physics.scr::aimpulse (self.GROUNDSTABILIZER * ( (self.upvector - self.upvector * self.groundnormal * self.groundnormal) * self.leftvector) * (self.forwardvector - self.forwardvector * self.groundnormal * self.groundnormal))
+	}
+end
+
+//#INLINE
+fm_geardamping:
+	// simple additional gear damping
+	waitthread global/skylimit/physics.scr::aimpulse ( -1.0 * self.p_avelocity * self.INERTIA * self.GEAR_OVERDAMPING)
+end
+
+//#INLINE
+ctrl_roll:
+	// allow more gentle rolls
+	if(self.pilotcontrol)
+	{
+		local.mod = self.ucmd[ROLL_RIGHT] - self.ucmd[ROLL_LEFT]
+	}
+	else
+	{
+		local.mod = 0
+	}
+	
+	if(local.mod == 0)
+	{
+		self.rollmod = self.rollmod * self.ROLLFALLOFF
+	}
+	else
+	{
+		self.rollmod += local.mod * self.ROLLMOD
+		self.rollmod = waitthread cap self.rollmod -1.0 1.0
+	}
+end
+
+//#INLINE
+ctrl_tailpitchlvl:
+
+	local.mod = (self.TAILPITCHMOD + self.TAILPITCHFALLOFF)
+	
+	local.INF = 2.0
+	local.EPS = 1.0 / local.INF
+	
+	if(self.tailpitchlevel > local.EPS)
+	{
+		local.falloff = self.TAILPITCHFALLOFF
+	}
+	else if(self.tailpitchlevel < -local.EPS)
+	{
+		local.falloff = -self.TAILPITCHFALLOFF
+	}
+	else
+	{
+		local.falloff = self.tailpitchlevel * local.INF * self.TAILPITCHFALLOFF * (1.0 + self.mach)
+	}
+
+	if(self.pilotcontrol)
+	{ 
+		local.tpmod = self.ucmd[PITCH_DOWN] - self.ucmd[PITCH_UP]
+	}
+	else
+	{
+		local.tpmod = 0
+	}
+	
+	local.tpmod -= self.input_ver
+	local.tpmod = waitthread cap local.tpmod -1.0 1.0
+	
+	self.tailpitchlevel += (local.tpmod * local.mod - local.falloff) * group.FRAMETIME
+	self.tailpitchlevel = waitthread cap self.tailpitchlevel -1.0 1.0
+end
+
+//#INLINE
+ctrl_steer:		
+	if(self.pilotcontrol)
+	{
+		// recentering
+		local.fact = (1.0 - abs (self.GROUNDSTEERRECENTERINGSPEED * group.FRAMETIME * (self.p_velocity - self.ground_velocity) * self.forwardvector)) //self.groundfwdvec)
+		if(local.fact > 0.0)
+		{
+			self.normal_groundsteerlevel = local.fact * self.normal_groundsteerlevel
+		}
+		else
+		{
+			self.normal_groundsteerlevel = 0.0
+		}
+		
+		self.normal_groundsteerlevel += -self.input_hor * self.GROUNDSTEER_SENSITIVITY
+		self.normal_groundsteerlevel = waitthread cap self.normal_groundsteerlevel -1.0 1.0
+		
+		self.groundsteerlevel = self.normal_groundsteerlevel * self.GROUNDSTEERMAX
+		
+		// calc this here so we don't have to do it every phyframe
+		self.groundsteer_sin = waitthread global/skylimit/math.scr::sin self.groundsteerlevel
+		self.groundsteer_cos = waitthread global/skylimit/math.scr::cos self.groundsteerlevel
+	}
+	else
+	{
+		self.groundsteerlevel = 0.0
+		self.normal_groundsteerlevel = 0.0
+		self.groundsteer_sin = 0.0
+		self.groundsteer_cos = 1.0
+	}
+end
+
+// prop/rpm setting
+//#INLINE
+ctrl_prop:
+	if(self.throttlelevel <= 0.0)
+	{
+		// feather
+		self.engine_setting = level.ES_FEATHER
+	}
+	else if(self.onground)
+	{
+		if(self.pilotcontrol && self.ucmd[THRUST_REVERSE])
+		{
+			// reverse
+			self.engine_setting = level.ES_REVERSE
+		}
+		else if( (self.throttlelevel <= self.THROTTLE_IDLE || (self.throttlelevel <= self.ENGINE_THROTTLE_TAXI && self.ucmd[BRAKE])) && (self.p_velocity - self.ground_velocity) * self.forwardvector >= self.PROPELLER_REVERSE_THRUST_SPEED)
+		{
+			// landing brake setting
+			self.engine_setting = level.ES_REVERSE
+		}
+		else if(self.throttlelevel <= self.ENGINE_THROTTLE_TAXI)
+		{
+			// taxi setting
+			self.engine_setting = level.ES_TAXI
+		}
+		else
+		{
+			// takeoff setting
+			self.engine_setting = level.ES_TAKEOFF
+		}
+	}
+	else
+	{
+		if(self.throttlelevel >= 1.0 && self.speed < self.ENGINE_CLIMBSPEED)
+		{
+			// climb setting
+			self.engine_setting = level.ES_CLIMB
+		}
+		else
+		{
+			// cruise setting
+			self.engine_setting = level.ES_CRUISE
+		}
+	}
+end
+
+//#INLINE
+ctrl_throttle:
+	if(self.pilotcontrol)
+	{	
+		if(self.powerup_boost)
+		{
+			self.engine_servo_engaged = !self.engine_started
+			self.has_released_idle_throttle = game.false
+			self.throttlelevel += group.POWERUP_BOOSTPOWERMOD * group.FRAMETIME
+			
+			if(self.throttlelevel > 1.0)
+			{
+				self.throttlelevel = 1.0
+			}
+		}
+		else
+		{
+			local.delta = self.ucmd[THROTTLE_UP] - self.ucmd[THROTTLE_DN]
+			
+			if(self.engine_started)
+			{
+				self.engine_servo_engaged = self.engine_servo_engaged && local.delta == 1
+			}
+			else
+			{
+				self.engine_servo_engaged = self.throttlelevel <= self.THROTTLE_IDLE && local.delta == 1
+			}
+			
+			local.engine_cutoff = local.delta == -1 && self.has_released_idle_throttle && self.throttlelevel == self.THROTTLE_IDLE
+			
+			if(self.engine_servo_engaged)
+			{
+				self.throttlelevel = self.THROTTLE_IDLE
+			}
+			else if(local.engine_cutoff || !self.engine_started)
+			{
+				self.throttlelevel = 0.0
+			}
+			else if(self.throttlelevel > self.THROTTLE_IDLE || (self.throttlelevel == self.THROTTLE_IDLE && self.has_released_idle_throttle))
+			{
+				if(local.delta == 1)
+				{
+					self.throttlelevel += self.POWERMODUP * group.FRAMETIME
+				}
+				else if(local.delta == -1)
+				{
+					self.throttlelevel -= self.POWERMODDN * group.FRAMETIME
+				}
+				self.throttlelevel = waitthread cap self.throttlelevel self.THROTTLE_IDLE 1.0
+			}
+			self.has_released_idle_throttle = self.throttlelevel == self.THROTTLE_IDLE && local.delta == 0
+		}
+	}
+	else
+	{
+		self.throttlelevel = 0.0
+		self.engine_servo_engaged = game.false
+		self.has_released_idle_throttle = game.false
+	}
+	
+	if(self.engine_started)
+	{
+		// engine sound
+		local.rpm_fact = self.prop_ang_speed * 60.0 / 2.0 / level.PI / self.ENGINE_LIMIT_RPM
+		local.throttle_fact = level.SL_SND_ENGINE_PITCH_IDLE + self.throttlelevel  * (level.SL_SND_ENGINE_PITCH_FULLPOWER - level.SL_SND_ENGINE_PITCH_IDLE)
+		
+		local.alias = "aircraft_engine" + self.ENGINE_SOUND
+		local.pitch = local.throttle_fact
+		local.volume = level.SL_SND_ENGINE_VOLUME
+		local.mindist = level.SL_SND_ENGINE_MINDIST
+		local.maxdist = level.SL_SND_ENGINE_MAXDIST
+		
+		local.dv = local.volume - self.engine_sound_volume
+		local.dp = local.pitch - self.engine_sound_pitch
+		
+		local.e = local.dv * local.dv + local.dp * local.dp
+		
+		if( !self.engine_sound_playing || local.e > level.SL_SND_LOOPSOUNDERROR)
+		{
+			self loopsound local.alias local.volume local.mindist local.maxdist local.pitch
+			
+			self.engine_sound_volume = local.volume
+			self.engine_sound_pitch = local.pitch
+			self.engine_sound_playing = game.true
+		}
+		
+		// propeller sound
+		local.pitch = local.rpm_fact * (1.0 + self.mach)
+		
+		if(local.pitch >= level.SL_SND_PROP_MINPITCH)
+		{
+			local.alias = "aircraft_prop"
+			local.volume = level.SL_SND_PROP_VOLUME * (local.pitch - level.SL_SND_PROP_MINPITCH) / (1.0 - level.SL_SND_PROP_MINPITCH)
+			local.mindist = level.SL_SND_PROP_MINDIST
+			local.maxdist = level.SL_SND_PROP_MAXDIST
+			waitthread global/skylimit/sound.scr::loopsound local.alias local.volume local.pitch local.mindist local.maxdist
+		}
+		else
+		{
+			waitthread global/skylimit/sound.scr::stoploopsound
+		}
+	}
+	else
+	{
+		self stoploopsound
+		self.engine_sound_volume = 0.0
+		self.engine_sound_pitch = 0.0
+		self.engine_sound_playing = game.false
+		waitthread global/skylimit/sound.scr::stoploopsound
+	}
+	
+	local.engine_was_started = self.engine_started
+	self.engine_started = self.throttlelevel > 0.0 && self.prop_ang_speed * self.ENGINE_GEAR_RATIO > self.ENGINE_MIN_RPM / 30.0 * level.PI && ( !self.ENGINE_CARBURETOR || self.engine_carburetor_factor > level.EPS)
+	
+	if ( !local.engine_was_started && self.engine_started)
+	{
+		self playsound aircraft_engine_start
+	}
+	else if(local.engine_was_started && !self.engine_started)
+	{
+		// play cutoff sound
+		self playsound aircraft_engine_cutoff
+	}
+
+	if(self.engine_servo_engaged)
+	{
+		self.props[1].simplemodel loopsound aircraft_engine_servo
+	}
+	else
+	{
+		self.props[1].simplemodel stoploopsound
+	}
+
+	if(self.pilotcontrol && self.pilot.isplayer)
+	{
+		if(self.engine_servo_engaged)
+		{
+			if(self.props.size == 1)
+			{
+				local.throttlestring = "-2" // servo active
+			}
+			else
+			{
+				local.throttlestring = "-3" // servos active
+			}
+		}
+		else if(self.powerup_boost)
+		{
+			local.throttlestring = "-4" // boost
+		}
+		else if(self.throttlelevel < self.THROTTLE_IDLE)
+		{
+			local.throttlestring = "-1" // fuel cutoff
+		}
+		else if(self.throttlelevel == self.THROTTLE_IDLE)
+		{
+			local.throttlestring = "0"
+		}
+		else
+		{
+			local.throttlestring = (int (self.throttlelevel * 100.0)) + " '/."
+		}
+		
+		// update hud
+		waitthread updatecvarstring sl_thrtl local.throttlestring
+		waitthread updatecvarstring sl_es level.ES_INDICATOR[self.engine_setting]
+	}
+	
+	if(self.onground && (self.p_velocity - self.ground_velocity) * self.groundfwdvec > 0.5)
+	{
+		self.wheel_left.sfx loopsound aircraft_taxi
+		self.taxi_sound_playing = game.true
+	}
+	else
+	{
+		self.wheel_left.sfx stoploopsound
+		if(self.taxi_sound_playing)
+		{
+			self.taxi_sound_playing = game.false
+			self.wheel_left.sfx playsound aircraft_taxi_halt
+		}
+	}
+	
+	// update prop
+	if(self.prop_ang_speed < group.PROP_ANG_SPEED_MAXPOLY)
+	{
+		// show the poly prop
+		for(local.i = 1; local.i <= self.props.size; local.i++)
+		{
+			self.props[local.i].polymodel show
+		}
+			
+		if(self.prop_ang_speed > level.EPS)
+		{
+			for(local.i = 1; local.i <= self.props.size; local.i++)
+			{
+				self.props[local.i].polymodel.angles += (0 0 1) * self.prop_ang_speed * group.FRAMETIME * (180.0 / level.PI)
+			}
+		}
+	}
+	else
+	{
+		// hide the poly prop
+		for(local.i = 1; local.i <= self.props.size; local.i++)
+		{
+			self.props[local.i].polymodel hide
+		}
+	}
+	if(self.prop_ang_speed > group.PROP_ANG_SPEED_MINBLUR)
+	{
+		// show the simple prop
+		if !(self.blurpropvisible)
+		{
+			for(local.i = 1; local.i <= self.props.size; local.i++)
+			{
+				self.props[local.i].simplemodel surface all "-nodraw"
+			}
+			
+			self.blurpropvisible = game.true
+		}
+	}
+	else
+	{
+		// hide the simple prop
+		if (self.blurpropvisible)
+		{
+			for(local.i = 1; local.i <= self.props.size; local.i++)
+			{
+				self.props[local.i].simplemodel surface all "+nodraw"
+			}
+			
+			self.blurpropvisible = game.false
+		}
+	}
+	
+	// update exhaust trails
+	if (self.throttlelevel > group.EXHAUSTMINPOWERPCT && self.speed > group.EXHAUSTMINSPEED)
+	{
+		if !(self.engine_exhausting)
+		{
+			self.engine_exhausting = game.true
+			for(local.i = 1; local.i <= self.props.size; local.i++)
+			{
+				if(self.props[local.i].sfx_exhaust)
+				{
+					self.props[local.i].sfx_exhaust anim on
+				}
+			}
+		}
+	}
+	else
+	{
+		if (self.engine_exhausting)
+		{
+			self.engine_exhausting = game.false
+			for(local.i = 1; local.i <= self.props.size; local.i++)
+			{
+				if(self.props[local.i].sfx_exhaust)
+				{
+					self.props[local.i].sfx_exhaust anim off
+				}
+			}
+		}
+	}
+end
+
+//#INLINE
+ctrl_rudder:
+	if(self.ruddermod >= self.RUDDERRECENTERINGSPEED * group.FRAMETIME)
+	{
+		self.ruddermod -= self.RUDDERRECENTERINGSPEED * group.FRAMETIME
+	}
+	else if(self.ruddermod <= self.RUDDERRECENTERINGSPEED * group.FRAMETIME)
+	{
+		self.ruddermod += self.RUDDERRECENTERINGSPEED * group.FRAMETIME
+	}
+	else
+	{
+		self.ruddermod = 0.0
+	}
+	
+	self.ruddermod += self.input_hor * self.RUDDERDEFLECTIONSPEED * group.FRAMETIME
+	self.ruddermod = waitthread cap self.ruddermod -1.0 1.0
+end
+
+//#INLINE
+ctrl_weapswitch_secondary:
+	if(self.pilotcontrol)
+	{
+		if(self.ucmd[ITEM_NEXT] && self.lastframeswitch != 1)
+		{
+			waitthread item_switch 1
+		}
+		else if(self.ucmd[ITEM_PREV] && self.lastframeswitch != -1)
+		{
+			waitthread item_switch -1
+		}
+		
+		self.lastframeswitch = self.ucmd[ITEM_NEXT] - self.ucmd[ITEM_PREV]
+	}
+end
+
+//#INLINE
+ctrl_fire_primary:
+	if(self.pilotcontrol && level.time - self.spawntime >= 1.0)
+	{	
+		if(self.ucmd[ATTACK_PRIMARY] && !self.lastframefireheld)
+		{
+			self.last_attack_time = level.time
+		}
+		
+		if(self.ucmd[ATTACK_PRIMARY] || level.time - self.last_attack_time <= group.FIRE_BURST_TIME)
+		{
+			for(local.i = 1; local.i <= self.weapon_primary_list.size; local.i++)
+			{
+				local.w = self.weapon_primary_list[local.i]
+				
+				if(local.w.selected)
+				{
+					if(local.w.bulletjam > local.w.jamlimit)
+					{
+						// weapon is jammed, update hud as necessary
+						if !(local.w.jammed)
+						{
+							local.w.jammed = game.true
+							
+							if(self.pilot.isplayer)
+							{
+								waitthread updatecvarstring local.w.hud_cvar local.w.hud_shader_jammed
+							}
+							
+							self playsound weapon_jam // notify
+						}
+					}
+					else if( !local.w.jammed && local.w.readytofire && local.w.rounds_per_gun > 0)
+					{
+						if( !local.w.semiauto || !self.lastframefireheld )
+						{		
+							thread local.w.handler::fire local.w
+							
+							local.w.rounds_per_gun--
+							
+							local.w.bulletjam += 1.0
+							
+							self.weapon_loopsound[local.w.sound_channel] = local.w.soundset
+							self.weapon_sustain_time[local.w.sound_channel] = level.time + local.w.firedelay
+							
+							if(self.pilot.isplayer)
+							{
+								// update ammobar if necessary
+								waitthread hud_update_ammobar local.w
+							}
+						}
+					}
+				}
+			}
+		}
+		self.lastframefireheld = self.ucmd[ATTACK_PRIMARY]
+	}
+end
+
+//#INLINE
+ctrl_fire_secondary:
+	if(self.pilotcontrol)
+	{
+		if(self.item_amount[self.selected_item.type] >= 1 && self.ucmd[ATTACK_SECONDARY])
+		{
+			if ( !(self.selected_item.semiauto || self.maiden_shot_secondary || self.selected_item.powerup) || !self.lastframesecondaryfireheld)
+			{
+				if(self.selected_item.variable_firedelay && self.selected_item.external)
+				{
+					local.firedelay = self.selected_item.firedelay / self.item_loadout[self.selected_item.type].size
+				}
+				else
+				{
+					local.firedelay = self.selected_item.firedelay
+				}
+				
+				if ((self.selected_item.powerup && !self.powerup_active) || (!self.selected_item.powerup && (self.item_last_fired_time[self.selected_item.type] == NIL || level.time - self.item_last_fired_time[self.selected_item.type] >= local.firedelay)))
+				{
+					if(self.selected_item.external)
+					{
+						local.ent = self.item_loadout[self.selected_item.type][1]
+						thread self.selected_item.script::fire self.selected_item local.ent
+					}
+					else
+					{
+						thread self.selected_item.script::fire self.selected_item
+					}
+					
+					self.item_last_fired_time[self.selected_item.type] = level.time
+					
+					if (self.selected_item.soundset && !self.secondary_weapon_sound_playing)
+					{
+						// loopsound handler
+						thread ctrl_fire_secondary_sound
+					}
+					
+					if(self.selected_item.bulletcount == NIL)
+					{
+						self.item_amount[self.selected_item.type]--
+					}
+					else
+					{
+						self.item_amount[self.selected_item.type] -= self.selected_item.bulletcount
+						
+						if(self.item_amount[self.selected_item.type] < 0)
+						{
+							self.item_amount[self.selected_item.type] = 0
+						}
+					}
+					
+					self.maiden_shot_secondary = game.false
+					
+					if(self.selected_item.expendable)
+					{
+						self.item_loadout[self.selected_item.type][1] = NULL
+					}
+					
+					if(self.selected_item.external)
+					{
+						waitthread global/skylimit/common.scr::arrayshiftdown self.item_loadout[self.selected_item.type]
+					}
+					
+					// switch weapon if out of ammo
+					if(self.item_amount[self.selected_item.type] <= 0)
+					{
+						waitthread item_switch 1
+					}
+					else
+					{
+						// update ammo info
+						waitthread update_hud_item
+					}
+				}
+			}
+		}
+		self.lastframesecondaryfireheld = self.ucmd[ATTACK_SECONDARY]
+	}
+end
+
+// play loopsound as long as SECONDARY fire is held
+ctrl_fire_secondary_sound:
+	self.secondary_weapon_sound_playing = game.true
+	self.secondary_weapon_sound_ent loopsound (self.selected_item.soundset + "_fire_loop") 4
+
+	local.item = self.selected_item
+	
+	while(self && local.item == self.selected_item && level.time - self.item_last_fired_time[local.item.type] <= local.item.firedelay)
+	{
+		waitframe
+	}
+	
+	if(self)
+	{
+		self.secondary_weapon_sound_ent stoploopsound
+		self.secondary_weapon_sound_ent playsound (local.item.soundset + "_fire_echo")
+		self.secondary_weapon_sound_playing = game.false
+	}
+end
+
+//#INLINE
+update_primary_weapons:
+				
+	// update sounds
+	for(local.i = 1; local.i <= level.SL_SND_WEAPONSOUND_CHANNELS; local.i++)
+	{
+		if(self.weapon_loopsound[local.i] && self.weapon_currentsound[local.i] != self.weapon_loopsound[local.i] && level.time < self.weapon_sustain_time[local.i])
+		{
+			// oi switch
+			self.weaponsound_ent[local.i] loopsound (self.weapon_loopsound[local.i] + "_fire_loop")
+			self.weapon_currentsound[local.i] = self.weapon_loopsound[local.i]
+		}
+		else if(self.weapon_currentsound[local.i] && level.time > self.weapon_sustain_time[local.i])
+		{
+			// oi shut up
+			self.weaponsound_ent[local.i] stoploopsound
+			self.weaponsound_ent[local.i] playsound (self.weapon_currentsound[local.i] + "_fire_echo")
+			self.weapon_currentsound[local.i] = NULL
+		}
+	}
+
+	if (self.pilotcontrol)
+	{
+		if(self.take_mouse_input)
+		{
+			local.vangles = (0.0 0.0 0.0)
+		}
+		else
+		{
+			local.vangles = self.pilot.script_viewangles
+		}
+	
+		local.something_has_changed = game.false
+	
+		local.snd_channel = 1
+	
+		for(local.i = 1; local.i <= self.weapon_primary_list.size; local.i++)
+		{
+			local.w = self.weapon_primary_list[local.i]
+			
+			if(local.w.yawmin <= local.w.yawmax)
+			{
+				local.inside_interval = local.vangles[1] > local.w.yawmin && local.vangles[1] <= local.w.yawmax
+			}
+			else
+			{
+				// for rearward facing weaponry
+				local.inside_interval = local.vangles[1] > local.w.yawmin || local.vangles[1] <= local.w.yawmax
+			}
+			
+			local.select = local.inside_interval && (local.vangles[0] >= local.w.pitchmin && local.vangles[0] <= local.w.pitchmax)
+			
+			if(local.select != local.w.selected)
+			{
+				local.something_has_changed = game.true
+			}
+			
+			if(local.select)
+			{
+				local.w.sound_channel = local.snd_channel
+				local.snd_channel++
+			}
+			
+			local.w.selected = local.select
+			
+			// update jam
+			local.w.bulletjam -= local.w.jamdecay * group.FRAMETIME
+			if(local.w.bulletjam <= 0.0)
+			{
+				if(local.w.jammed)
+				{
+					local.w.jammed = game.false
+					
+					if(self.pilot.isplayer)
+					{
+						if(local.w.selected)
+						{
+							waitthread updatecvarstring local.w.hud_cvar local.w.hud_shader
+						}
+						self playsound weapon_jam // notify
+					}
+				}
+				
+				local.w.bulletjam = 0.0
+			}
+			
+			// update gun/turret angles
+			if(local.w.selected && local.w.flexible && local.w.rounds_per_gun > 0 && (local.w.update_angles_time == NIL || level.time >= local.w.update_angles_time))
+			{
+				waitthread local.w.handler::updateangles local.w local.vangles
+				local.w.update_angles_time = level.time + local.w.angles_update_delay
+			}
+		}
+		
+		// update hud
+		if(local.something_has_changed && self.pilot.isplayer)
+		{
+			local.BLANK_SHADER = sl_inone
+			local.BLANK_SHADER_TILE = sl_inonet
+			local.MAX_SHADERS = 6
+			
+			for(local.i = 1; local.i <= local.MAX_SHADERS / 2; local.i++)
+			{
+				// clear big shaders
+				local.bshader[local.i] = local.BLANK_SHADER
+			}
+			for(local.i = 1; local.i <= local.MAX_SHADERS; local.i++)
+			{
+				// clear small shaders
+				local.sshader[local.i] = local.BLANK_SHADER
+				local.ammo_shader[local.i] = local.BLANK_SHADER_TILE
+				local.weap_str[local.i] = ""
+			}
+			
+			// fill shaders, big weaps
+			local.j = 0
+			for(local.i = 1; local.i <= self.weapon_primary_list.size; local.i++)
+			{
+				local.w = self.weapon_primary_list[local.i]
+				
+				if(local.w.hud_bigpic && local.w.selected)
+				{
+					local.j++
+					local.bshader[local.j] = waitthread getweapshader local.w
+					local.w.hud_cvar = "sl_wb" + local.j
+					
+					local.ammo_id = (local.j - 1) * 2 + 1
+					local.ammo_shader[local.ammo_id] = "sl_a" + local.w.ammotype
+					local.w.hud_ammo_id = local.ammo_id
+					
+					// update ammobar
+					waitthread hud_update_ammobar local.w
+					
+					local.weap_str[local.ammo_id] = local.w.number_of_guns + "x" + local.w.calibre
+	
+					if(local.j >= local.MAX_SHADERS / 2)
+					{
+						break
+					}
+				}
+			}
+			
+			// fill shaders, small weaps
+			local.k = local.j * 2
+			for(local.i = 1; local.i <= self.weapon_primary_list.size; local.i++)
+			{
+				local.w = self.weapon_primary_list[local.i]
+				
+				if( !local.w.hud_bigpic && local.w.selected)
+				{
+					local.k++
+					local.sshader[local.k] = waitthread getweapshader local.w
+					
+					local.w.hud_cvar = "sl_ws" + local.k
+					
+					local.ammo_id = local.k
+					local.ammo_shader[local.ammo_id] = "sl_a" + local.w.ammotype
+					local.w.hud_ammo_id = local.ammo_id
+					
+					// update ammobar
+					waitthread hud_update_ammobar local.w
+					
+					local.weap_str[local.ammo_id] = local.w.number_of_guns + "x" + local.w.calibre
+					
+					if(local.k >= local.MAX_SHADERS)
+					{
+						break
+					}
+				}
+			}
+			
+			// go n stufftext baby
+			
+			// big pics
+			for(local.i = 1; local.i <= local.MAX_SHADERS / 2; local.i++)
+			{
+				waitthread updatecvarstring ("sl_wb" + local.i) local.bshader[local.i]
+			}
+			
+			// small pics and ammo bars
+			for(local.i = 1; local.i <= local.MAX_SHADERS; local.i++)
+			{
+				waitthread updatecvarstring ("sl_ws" + local.i) local.sshader[local.i]
+				
+				// update ammo shader
+				if(self.hud_ammo_shader[local.i] != local.ammo_shader[local.i])
+				{
+					//println ("globalwidgetcommand sl_awdg" + local.i + " statbar_tileshader " + local.ammo_shader[local.i])
+					self.pilot stufftext ("globalwidgetcommand sl_awdg" + local.i + " statbar_tileshader " + local.ammo_shader[local.i])
+					self.hud_ammo_shader[local.i] = local.ammo_shader[local.i]
+				}
+				
+				// update multiplicity number
+				if(local.weap_str[local.i] == "")
+				{
+					waitthread updatecvarstring ("sl_wstr" + local.i) ("-")
+				}
+				else
+				{
+					waitthread updatecvarstring ("sl_wstr" + local.i) local.weap_str[local.i]
+				}
+			}
+		}
+	}
+end
+
+// a left-depleting bar
+//#INLINE
+hud_update_ammobar local.w:
+	local.AMMORECT_SIZEX = 110
+	local.AMMORECT_SIZEY = 30
+
+	local.FILL_UPDATE_PIX = 4 // update at this many pixels error
+	local.FILL_MIN_PIX = 8 //10 // show at least this many pixs when weapon is not fully out
+
+	local.FILL_UPDATE_DELTA = float local.FILL_UPDATE_PIX / float local.AMMORECT_SIZEX
+	local.MIN_FILL = float local.FILL_MIN_PIX / float local.AMMORECT_SIZEX
+
+	// update the ammo widget
+	// should not do this too often
+	// as the widgetcommand requires a huge packet (>500 w/eii) :/
+	local.fill = float local.w.rounds_per_gun / float local.w.ammo_capacity_rounds_per_gun
+	
+	// make sure at least a small bit of ammo bar remains visible until weap is fully out
+	if(local.fill > 0.0 && local.fill < local.MIN_FILL)
+	{
+		local.fill = local.MIN_FILL
+	}
+	
+	waitthread updatecvar ("sl_a" + local.w.hud_ammo_id) local.fill local.FILL_UPDATE_DELTA
+end
+
+getweapshader local.weap:
+	if(local.weap.jammed)
+	{
+		local.shdr = local.weap.hud_shader_jammed
+	}
+	else
+	{
+		local.shdr = local.weap.hud_shader
+	}
+end local.shdr
+
+//#INLINE
+item_switch local.updown local.cankeepcurrent:
+	local.prev = self.selected_item_id
+	local.start = self.selected_item_id
+
+	if (local.cankeepcurrent)
+	{
+		local.continue_on_loop = game.true
+	}
+	else
+	{
+		local.start += local.updown
+	}
+
+	for(local.id = local.start; game.true; local.id += local.updown)
+	{
+		if(local.id <= 0)
+		{
+			local.id = self.max_item_id
+		}
+		else if(local.id > self.max_item_id)
+		{
+			local.id = 1
+		}
+		
+		if(self.item_amount[level.ITEMS[local.id]] >= 1)
+		{
+			self.selected_item_id = local.id
+			break
+		}
+		
+		if(local.id == self.selected_item_id)
+		{
+			if(local.continue_on_loop)
+			{
+				local.continue_on_loop = game.false
+			}
+			else
+			{
+				break
+			}
+		}
+	}
+	
+	if(local.prev != self.selected_item_id)
+	{
+		// weapon has switched
+		// send weapon info to UI
+		self.maiden_shot_secondary = game.true // need to release fire button before new item can be fired
+	}
+	
+	self.has_items = self.item_amount[level.ITEMS[self.selected_item_id]] >= 1
+	self.selected_item = level.SL_item[level.ITEMS[self.selected_item_id]]
+	
+	// update hud info
+	waitthread update_hud_item
+end
+
+//#INLINE
+update_hud_item:
+	if(self.pilot && self.pilot.isplayer)
+	{
+		if(self.has_items)
+		{
+			local.shader = self.selected_item.hud_shader
+			if !(local.shader)
+			{
+				local.shader = "sl_inone"
+			}
+			self.pilot stufftext ("set sl_ishdr " + local.shader + "; set sl_inm " + self.item_amount[self.selected_item.type] + "x " + self.selected_item.name)
+		}
+		else
+		{
+			// out of items :(
+			self.pilot stufftext ("set sl_ishdr sl_inone; set sl_inm -")
+		}
+	}
+end
+
+//#INLINE
+ctrl_bombbay:
+	if(self.HASBOMBBAY)
+	{
+		if(self.bombbay_request > 0)
+		{
+			if(self.bombbay_state == level.BB_CLOSED)
+			{
+				thread open_bombbay
+			}
+		}
+		else
+		{
+			if(self.bombbay_state == level.BB_OPEN)
+			{
+				thread close_bombbay
+			}
+		}
+	}
+end
+
+open_bombbay:
+	self.bombbay_state = level.BB_OPENING
+	self.bombbay playsound bombbay_open
+	self.bombbay anim open
+	
+	wait 1.0
+	if(self)
+	{
+		self.bombbay anim opened
+		self.bombbay_state = level.BB_OPEN
+	}
+end
+
+close_bombbay:
+	self.bombbay_state = level.BB_CLOSING
+	self.bombbay playsound bombbay_close
+	self.bombbay anim close
+	
+	wait 1.0
+	if(self)
+	{
+		self.bombbay anim closed
+		self.bombbay_state = level.BB_CLOSED
+	}
+end
+
+bombbay_open_rearm:
+	self.bombbay_request++
+	wait 1.0
+	if(self && self.pilotcontrol)
+	{
+		self.bombbay_request--
+	}
+end
+
+//#INLINE
+ctrl_gear:
+	// landing gear
+	if(self.pilotcontrol && !self.onground)
+	{
+		if(self.gearstate == group.GS_DOWN)
+		{
+			if(self.ucmd[TOGGLE_GEAR] || self.speed > group.GEARMAXSPEED)
+			{
+				// raise gear
+				thread raisegear
+			}
+		}
+		else if(self.gearstate == group.GS_UP)
+		{
+			if(self.ucmd[TOGGLE_GEAR])
+			{
+				if(self.speed <= group.GEARMAXSPEED)
+				{
+					// lower gear
+					thread lowergear
+				}
+				else if(self.pilot.isplayer)
+				{
+					if(self.lastgearwarningtime == NIL || level.time - self.lastgearwarningtime >= 1.0)
+					{
+						self.pilot iprint ("Cannot lower gear above " + (int (group.GEARMAXSPEED * level.SL_UNITCONV_MPS_to_KNOTS)) + " kts!") 1
+						self.lastgearwarningtime = level.time
+					}
+				}
+			}
+		}
+		else
+		{
+			// gear is currently going up or down
+			// just wait
+		}
+	}
+end
+
+// update the emitters
+//#INLINE
+emitters:
+	if(level.time - self.next_emitter_update > 0.0)
+	{
+		self.next_emitter_update = level.time
+		
+		// whether we are vomiting anything
+		for(local.i = 1; local.i <= self.EMITTERS.size; local.i++)
+		{
+			local.should_emit = self.emit[self.EMITTERS[local.i]]
+			local.am_emitting = self.emitting[local.i]
+	
+			if(local.should_emit && !local.am_emitting)
+			{
+				local.anim = ("emitteron_" + self.EMITTERS[local.i])
+				
+				self anim local.anim
+				self.emitting[local.i] = game.true
+				
+				// can only switch one emitter state per frame
+				// introduce a slight delay so that we are more certain that the emitter is shut off
+				self.next_emitter_update = level.time + group.EMITTER_UPDATE_DELAY
+				break
+			}
+			else if( !local.should_emit && local.am_emitting)
+			{
+				local.anim = ("emitteroff_" + self.EMITTERS[local.i])
+				
+				self anim local.anim
+				self.emitting[local.i] = game.false
+				
+				// can only switch one emitter state per frame
+				// introduce a slight delay so that we are more certain that the emitter is shut off
+				self.next_emitter_update = level.time + group.EMITTER_UPDATE_DELAY
+				break
+			}
+			else
+			{
+				// yaawwwnnn...
+			}
+		}
+	}
+end
+
+//#INLINE
+wheelsfx local.wheelid local.wheellst:
+	if( !self.ground_dynamic && self.onground && self.gearpos[local.wheelid][2] < self.localgroundlevel[local.wheelid])
+	{
+		if(self.speed > group.DUSTSPEED_HI)
+		{
+			local.newdustanim = hispeed	
+		}
+		else if(self.speed > group.DUSTSPEED_LO)
+		{
+			// activate dust
+			local.newdustanim = lospeed
+		}
+		else
+		{
+			// deactivate dust
+			local.newdustanim = off
+		}
+	}
+	else
+	{
+		// deactivate dust
+		local.newdustanim = off
+	}
+	
+	if(local.wheellst.curanim != local.newdustanim)
+	{
+		local.wheellst anim local.newdustanim
+		local.wheellst.curanim = local.newdustanim	
+	}
+end
+
+getgearpos local.wheel:
+	if(local.wheel.polymodel)
+	{
+		// odd... attached model adapts scale from parent but returns unscaled tag position :/
+		//local.pos = (self gettagposition local.wheel.tag) + ((local.wheel.polymodel gettagposition local.wheel.groundtag) - local.wheel.polymodel.origin) * self.SCALE
+
+		local.vec = (local.wheel.polymodel gettagposition local.wheel.groundtag) - local.wheel.polymodel.origin
+		local.pos = (self gettagposition local.wheel.tag) + (local.vec[0] * self.forwardvector + local.vec[1] * self.leftvector + local.vec[2] * self.upvector) * self.SCALE
+	}
+	else
+	{
+		local.pos = self gettagposition local.wheel.groundtag	
+	}
+	
+end local.pos
+
+// not inline b/c it uses so many vars
+traceground local.force:
+	local.TRACE_MIN_DELAY = 0.50 	// secs
+	local.TRACE_MAX_DELAY = 10.0 // secs
+	local.TRACE_MAX_SQDIST = 100.0 * 100.0 * $world.SL_SCALE * $world.SL_SCALE
+	local.TRACE_MAX_ANGLES_SQERROR = 30.0 * 30.0 // squared error (deg^2)
+
+	if(local.force)
+	{
+		local.dotrace = game.true
+		
+		// used by camera
+		self.tracing_ground = game.true
+	}
+	else
+	{
+		if(self.gearstate == group.GS_DOWN)
+		{
+			self.tracing_ground = game.true
+			
+			local.delay = level.time - self.last_groundtrace_time
+			
+			if(local.delay >= local.TRACE_MIN_DELAY)
+			{
+				if(local.delay > local.TRACE_MAX_DELAY)
+				{
+					local.dotrace = game.true
+				}
+				else
+				{
+					local.vec = self.origin - self.last_groundtrace_pos
+					local.sqdist = local.vec * local.vec
+				
+					if(local.sqdist > local.TRACE_MAX_SQDIST)
+					{
+						local.dotrace = game.true
+					}
+					else
+					{
+						local.anglesdiff = waitthread global/skylimit/math.scr::getanglesdiff self.last_groundtrace_angles self.angles
+						
+						local.sqerror = local.anglesdiff * local.anglesdiff
+						
+						local.dotrace = local.sqerror > local.TRACE_MAX_ANGLES_SQERROR
+					}
+				}
+			}
+			else
+			{
+				local.dotrace = game.false
+			}
+		}
+		else
+		{
+			local.dotrace = game.false
+			self.tracing_ground = game.false
+		}
+	}
+	
+	// update gear positions
+	self.gearpos[ -1] = waitthread getgearpos self.wheel_left
+	self.gearpos[1] = waitthread getgearpos self.wheel_right
+	self.gearpos[0] = waitthread getgearpos self.wheel_center
+	
+	// tgearpos currently is an alias for gearpos[0]
+	// should be phased out..
+	self.tgearpos = self.gearpos[0]
+
+	local.TRACESTARTOFFSET = (0 0 64.0) * $world.SL_SCALE
+	
+	local.have_dyn_col = game.false
+
+	// always trace against dynobjects (even if dotrace is 0)
+	if(level.DYN_ENTS.size >= 1)
+	{
+		// verify for all gears
+		local.dyn_results[ -1] 	= waitthread global/skylimit/dynobject.scr::trace (self.gearpos[ -1] + local.TRACESTARTOFFSET) (self.gearpos[ -1] - (0 0 group.GEARTRACEDIST))
+		local.dyn_results[0] 	= waitthread global/skylimit/dynobject.scr::trace (self.gearpos[0] + local.TRACESTARTOFFSET) (self.gearpos[0] - (0 0 group.GEARTRACEDIST))
+		local.dyn_results[1] 	= waitthread global/skylimit/dynobject.scr::trace (self.gearpos[1] + local.TRACESTARTOFFSET) (self.gearpos[1] - (0 0 group.GEARTRACEDIST))
+		
+		if(local.dyn_results[ -1][1] || local.dyn_results[0][1] || local.dyn_results[1][1])
+		{
+			// for now, just assume there is not a non-dyn object closer than a dyn object
+			local.have_dyn_col = game.true
+			
+			self.localgroundlevel[ -1] = local.dyn_results[ -1][2][2]
+			self.localgroundlevel[0] = local.dyn_results[0][2][2]
+			self.localgroundlevel[1] = local.dyn_results[1][2][2]
+			
+			self.last_groundtrace_time = level.time
+			
+			// pick an 'arbitrary' groundnormal
+			for(local.i = -1; local.i <= 1; local.i++)
+			{
+				if(local.dyn_results[local.i][1])
+				{
+					self.groundnormal = local.dyn_results[local.i][3]
+					self.ground_plane_refpoint = local.dyn_results[local.i][2]
+					self.ground_ent = local.dyn_results[local.i][4]
+					self.ground_velocity = self.ground_ent.p_velocity + vector_cross self.ground_ent.p_avelocity ((self.ground_plane_refpoint - self.ground_ent.origin) * level.SL_UNITSCALE)
+					self.ground_avelocity = self.ground_ent.p_avelocity
+					break
+				}
+			}
+			
+			self.nearground = game.true
+			
+			self.groundfwdvec 	= vector_normalize (self.forwardvector - self.forwardvector * self.groundnormal * self.groundnormal)
+			self.groundlfvec 	= vector_normalize (self.leftvector - self.leftvector * self.groundnormal * self.groundnormal)
+			
+			self.last_groundtrace_time = level.time
+			self.last_groundtrace_pos = self.origin
+			self.last_groundtrace_angles = self.angles
+			self.last_groundtrace_levels = (self.localgroundlevel[ -1] self.localgroundlevel[0] self.localgroundlevel[1])
+		}
+	}
+
+	self.ground_dynamic = local.have_dyn_col
+	
+	if (!local.have_dyn_col)
+	{
+		self.ground_velocity = (0 0 0)
+		self.ground_avelocity = (0 0 0)
+		
+		if(local.dotrace)
+		{
+			// put sealevel ground levels slightly below the sea surface
+			// this way we will still get proper splashes if we crash
+			// and the normals shouldn't be f*cked
+	
+			local.SEALEVELOFFSET = -3.0
+			
+			local.t_start = self.gearpos[ -1] + local.TRACESTARTOFFSET
+			local.t_end = self.gearpos[ -1] - (0 0 group.GEARTRACEDIST)
+			
+			if(local.t_end[2] < $world.OBSTACLEHEIGHT)
+			{
+				if(local.t_end[2] < $world.SEALEVEL)
+				{
+					local.hitpos[ -1] = local.t_end
+					local.hitpos[ -1][2] = $world.SEALEVEL + local.SEALEVELOFFSET
+				}
+				else
+				{
+					local.hitpos[ -1] = trace local.t_start local.t_end 0
+				}
+			}
+			else
+			{
+				local.hitpos[ -1] = local.t_end
+			}
+			
+			self.localgroundlevel[ -1] = local.hitpos[ -1][2]
+			if(self.localgroundlevel[ -1] == self.gearpos[ -1][2] - group.GEARTRACEDIST)
+			{
+				// trace didn't hit anything
+				self.localgroundlevel[ -1] = $world.SEALEVEL
+				self.localgroundlevel[0] = $world.SEALEVEL
+				self.localgroundlevel[1] = $world.SEALEVEL
+				self.groundnormal = $world.upvector
+				
+				self.nearground = game.false
+			}
+			else
+			{
+				// hit something, determine local heights and surface normal
+				// just assume the traces hit
+				local.t_end1 = (self.gearpos[1] - (0 0 group.GEARTRACEDIST))
+				if(local.t_end1[2] < $world.SEALEVEL)
+				{
+					local.hitpos[1] = local.t_end1
+					local.hitpos[1][2] = $world.SEALEVEL + local.SEALEVELOFFSET
+				}
+				else
+				{
+					local.hitpos[1] = trace (self.gearpos[1] + local.TRACESTARTOFFSET) local.t_end1 0
+				}
+				
+				local.t_end2 = (self.tgearpos - (0 0 group.GEARTRACEDIST))
+				if(local.t_end2[2] < $world.SEALEVEL)
+				{
+					local.hitpos[0] = local.t_end2
+					local.hitpos[0][2] = $world.SEALEVEL + local.SEALEVELOFFSET
+				}
+				else
+				{
+					local.hitpos[0] = trace (self.tgearpos + local.TRACESTARTOFFSET) local.t_end2 0
+				}
+				
+				self.localgroundlevel[1] = local.hitpos[1][2]
+				self.localgroundlevel[0] = local.hitpos[0][2]
+				
+				local.normalmult = 1 - 2 * self.HASNOSEWHEEL
+				
+				self.groundnormal = vector_cross (local.hitpos[1] - local.hitpos[0]) (local.hitpos[ -1] - local.hitpos[0])
+				self.groundnormal = self.groundnormal * local.normalmult
+				self.groundnormal = vector_normalize self.groundnormal
+				
+				self.ground_plane_refpoint = local.hitpos[ -1]
+				
+				self.nearground = game.true
+			}
+			
+			self.last_groundtrace_time = level.time
+			self.last_groundtrace_pos = self.origin
+			self.last_groundtrace_angles = self.angles
+			self.last_groundtrace_levels = (self.localgroundlevel[ -1] self.localgroundlevel[0] self.localgroundlevel[1])
+		}
+		else
+		{
+			if(self.nearground && self.groundnormal * $world.upvector < 1.0)
+			{
+				// update groundlevels according to groundnormal
+				local.vec = self.origin - self.last_groundtrace_pos
+				local.vec -= local.vec * self.groundnormal * self.groundnormal
+				
+				for(local.i = -1; local.i <= 1; local.i++)
+				{
+					self.localgroundlevel[local.i] = self.last_groundtrace_levels[local.i + 1] + local.vec[2]
+				}
+			}
+		}
+		
+		if(self.nearground)
+		{
+			// groundvecs depends on yaw only
+			local.s_in = waitthread global/skylimit/math.scr::sin (self.angles[1] / 180.0 * level.PI)
+			local.c_os = waitthread global/skylimit/math.scr::cos (self.angles[1] / 180.0 * level.PI)
+			
+			// this won't work correctly on a slope :(
+			self.groundfwdvec = (local.c_os local.s_in 0.0)
+			self.groundlfvec  = ( -local.s_in local.c_os 0.0)
+		}
+	}
+end
+
+//#INLINE
+end_of_map:
+	local.MSG_DELAY = 4.0
+	local.MARGIN = 1000.0 / level.SL_UNITSCALE // in m
+	
+	if(self.lastwarntime == NIL || level.time - self.lastwarntime > local.MSG_DELAY)
+	{
+		if(self.origin[0] < $world.MINX + local.MARGIN || self.origin[0] > $world.MAXX - local.MARGIN || self.origin[1] < $world.MINY + local.MARGIN || self.origin[1] > $world.MAXY - local.MARGIN)
+		{
+			// check if moving outward
+			if(self.normalvel[0] * self.origin[0] + self.normalvel[1] * self.origin[1] > 0.0)
+			{
+				self.pilot iprint "Warning! You are leaving the area! Return to the battle immediately!" 1
+				self.lastwarntime = level.time
+			}
+		}
+		
+		if(self.origin[2] > $world.MAXZ - local.MARGIN)
+		{
+			if(self.normalvel[2] > 0.0)
+			{
+				self.pilot iprint "Warning! Plane not certified for orbit. Try at own risk." 1
+				self.lastwarntime = level.time
+			}
+		}
+	}
+end
+
+//#INLINE
+rearm:
+	// may also do quick reloads for dm matches
+	if(self.at_reloadpoint || level.DM_RELOAD)
+	{
+		local.icon = 1
+		
+		if(self.at_healpoint)
+		{
+			local.icon++
+			
+			// heal
+			if(self.SL_health < 100.0)
+			{
+				self.SL_health += group.REARM_HEALRATE * group.FRAMETIME
+				if(self.SL_health > 100.0)
+				{
+					self.SL_health = 100.0
+				}
+			}
+		}
+		
+		// hmm not very nice
+		local.full_reload = self.at_healpoint
+		
+		if(self.pilot.isplayer)
+		{
+			// show rearm/heal icon
+			waitthread updatecvarstring sl_rearm local.icon
+		}
+		
+		// reload primary weapons
+		// cannot reload hot-barreled weapon
+		if ( !self.ucmd[ATTACK_PRIMARY])
+		{
+			for(local.i = 1; local.i <= self.weapon_primary_list.size; local.i++)
+			{
+				local.w = self.weapon_primary_list[local.i]
+				
+				if ( !local.w.jammed && local.w.rounds_per_gun < local.w.ammo_capacity_rounds_per_gun)
+				{
+					local.rounds = int (group.REARM_PRIMARYWEAPON_RATE * local.w.ammo_capacity_rounds_per_gun * group.FRAMETIME)
+					if(local.rounds < 1)
+					{
+						local.rounds = 1
+					}
+					
+					local.w.rounds_per_gun += local.rounds
+					if(local.w.rounds_per_gun > local.w.ammo_capacity_rounds_per_gun)
+					{
+						local.w.rounds_per_gun = local.w.ammo_capacity_rounds_per_gun
+					}
+					
+					if(self.pilot.isplayer && local.w.selected)
+					{
+						waitthread hud_update_ammobar local.w
+					}
+				}
+			}
+		}
+		
+		// upgrade inventory and expendable stores
+		if(level.time >= self.nextrearmtime)
+		{
+			for(local.itemid = 1; local.itemid <= level.ITEMS.size; local.itemid++)
+			{
+				local.item = level.SL_item[level.ITEMS[local.itemid]]
+				
+				if(self.item_last_fired_time[local.item.type] != NIL && level.time - self.item_last_fired_time[local.item.type] < local.item.cooldowntime)
+				{
+					// cannot reload hot-barreled weapon, let it cool down first
+					continue
+				}
+				
+				local.items_wasted = self.total_inventory[local.item.type] - self.item_amount[local.item.type]
+				
+				if(local.items_wasted > 0 && ( !local.item.need_full_reload || local.full_reload) )
+				{						
+					if(local.item.expendable)
+					{				
+						// expendable items always reload one by one (no rearm_count)
+						local.partial_reload = local.items_wasted % local.item.ammo
+						
+						if(local.partial_reload == 0)
+						{
+							// determine which spot to attach new weapon to
+							local.payload = self.total_payload[local.item.type][local.items_wasted / local.item.ammo]
+							
+							// attach_loadout increases item_amount
+							local.wm = waitthread global/skylimit/flightmodel.scr::attach_loadout local.payload
+							
+							// update item_loadout list:
+							// shift all entries forward
+							// then add new item in front
+							waitthread global/skylimit/common.scr::arrayshiftup self.item_loadout[local.item.type]
+							
+							self.item_loadout[local.item.type][1] = local.wm
+							
+							self.nextrearmtime = level.time + local.item.rearm_time
+						}
+						else
+						{
+							self.item_amount[local.item.type] += local.partial_reload
+							self.nextrearmtime = level.time + local.item.rearm_time * local.partial_reload / local.item.ammo
+						}
+					}
+					else
+					{
+						if(local.item.rearm_count)
+						{
+							local.count = local.item.rearm_count
+						}
+						else
+						{
+							local.count = 1
+						}
+						
+						local.actual_rearms = waitthread cap local.count 1 local.items_wasted 
+						
+						self.item_amount[local.item.type] += local.actual_rearms
+						self.nextrearmtime = level.time + local.item.rearm_time * local.actual_rearms / local.count
+						
+						if(local.item.internal)
+						{
+							self.MASS += local.actual_rearms * local.item.mass
+						}
+					}
+					
+					if(local.item.internal && local.full_reload)
+					{
+						thread bombbay_open_rearm
+					}
+					
+					self playsound aircraft_rearm
+					
+					// update hud -> activate item if we had none selected
+					waitthread item_switch 1 game.true
+					break
+				}
+			}
+		}
+	}
+	else
+	{
+		// not at reloadpoint
+		if(self.pilot.isplayer)
+		{
+			// hide rearm/heal icon
+			waitthread updatecvarstring sl_rearm 0
+		}
+	}
+end
+
+//#INLINE
+updatecrosshair:
+	if(self.nose_cam)
+	{
+		local.crosshair = 1
+	}
+	else
+	{
+		local.crosshair = 2
+	}
+	
+	local.shader = "sl_X" + local.crosshair
+	
+	if(level.teambased)
+	{
+		// check if we're aiming at a friendly
+		for(local.i = 1; local.i <= $SL_plane.size; local.i++)
+		{
+			local.p = $SL_plane[local.i]
+			
+			if ( !local.p.crashing && local.p != self)
+			{
+				local.vec = local.p.origin - self.pilot.SL_camera.origin
+					
+				local.fwd = local.vec * self.pilot.SL_camera.ref_frame.forwardvector
+				local.lf = local.vec * self.pilot.SL_camera.ref_frame.leftvector
+				local.up = local.vec * self.pilot.SL_camera.ref_frame.upvector
+					
+				if(local.fwd > 0.0 && ( !local.nearest_dist || local.fwd < local.nearest_dist))
+				{
+					local.tan1 = local.lf / local.fwd
+					local.tan2 = local.up / local.fwd
+					
+					if(abs local.tan1 <= group.CROSSHAIR_FRIENDLY_TAN && abs local.tan2 <= group.CROSSHAIR_FRIENDLY_TAN)
+					{
+						local.nearest_dist = local.fwd
+						local.nearest_plane = local.p
+					}
+				}
+			}
+		}
+		
+		if(local.nearest_plane && local.nearest_plane.dmteam == self.dmteam)
+		{
+			local.shader += "f"
+		}
+	}
+	
+	waitthread updatecvarstring "sl_X" local.shader
+end
+
+//#INLINE
+updatecamera:
+	if(self.ucmd[TOGGLE_NOSE_CAM])
+	{
+		if !(self.lastframe_toggled_nose_cam)
+		{
+			self.nose_cam = !self.nose_cam
+			self.lastframe_toggled_nose_cam = game.true
+		}
+	}
+	else
+	{
+		self.lastframe_toggled_nose_cam = game.false
+	}
+	
+	if(self.nose_cam)
+	{
+		self.pilot.cam_mode = "nose"
+		self.viewvec = self.forwardvector
+		
+		if !(self.take_mouse_input)
+		{
+			self.take_mouse_input = game.true
+		}
+	}
+	else if(self.ucmd[CAM_FREE])
+	{
+		self.pilot.cam_mode = "chase_free"
+		self.take_mouse_input = game.false
+		self.viewvec = self.pilot.SL_camera.ref_frame.forwardvector
+	}
+	else
+	{
+		self.pilot.cam_mode = "chase"
+		self.viewvec = self.forwardvector
+		
+		if !(self.take_mouse_input)
+		{
+			self.take_mouse_input = game.true
+		}
+	}
+	
+	// whether or not to reverse the cam (so we can look backwards)
+	self.pilot.cam_reverse = self.onground && (self.p_velocity - self.ground_velocity) * self.forwardvector < -0.5 + (self.engine_setting == level.ES_REVERSE) * 1.0
+end
+
+inithud:
+	self.pilot stufftext "set sl_ext_spd 0"
+	self.pilot stufftext "set sl_ext_altm 0"
+	self.pilot stufftext "set sl_ext_alts 0"
+	self.pilot stufftext "set sl_ext_altb 0"
+end
+
+// compass
+//#INLINE
+updatecompass:
+	local.myyaw = waitthread global/skylimit/math.scr::rerange360 self.angles[1]
+	
+	local.compass_angle = local.myyaw - $world.NORTHYAW
+	
+	// make clockwise
+	local.compass_angle = 360.0 - local.compass_angle
+	
+	// get pitch in [-180,180] domain
+	local.pitch = waitthread global/skylimit/math.scr::rerangeangle self.angles[0]
+	// if outside [-90,90] we need to add 180 do compass yaw (flying upside down)
+	if(local.pitch < -90.0 || local.pitch > 90.0)
+	{
+		local.compass_angle += 180.0
+	}
+	
+	local.compass_angle = waitthread global/skylimit/math.scr::rerange360 local.compass_angle
+	
+	waitthread updatecvar "sl_cmps" (float local.compass_angle)
+end
+
+//#INLINE
+updatelight local.cvar local.enabled local.on:
+	
+	if(local.enabled)
+	{
+		local.str = local.on
+	}
+	else
+	{
+		local.str = "-1"
+	}
+	
+	waitthread updatecvarstring local.cvar local.str
+end
+
+// update cockpit / warning lights
+//#INLINE
+updatehudlights:
+	// flak! :|
+	waitthread updatelight "sl_ltflk" game.true (self.flak_acquired && level.time - self.flak_last_time_acquired <= group.FLAKWARNINGTIMEOUT)
+	
+	// brake
+	waitthread updatelight "sl_ltbrk" game.true self.ucmd[BRAKE]
+	
+	// servo
+	waitthread updatelight "sl_ltsrv" game.true self.engine_servo_engaged
+	
+	// reverse
+	waitthread updatelight "sl_ltrev" game.true (self.engine_setting == level.ES_REVERSE)
+	
+	// gear
+	waitthread updatelight "sl_ltgr" self.hasretractablegear (self.gearstate == group.GS_DOWN)
+end
+
+//#INLINE
+updatehud:
+	// speedometer, shows equivalent airspeed
+	local.equivalence_factor = waitthread global/skylimit/math.scr::sqrt1 (self.air_density / level.SL_ISA_RHO0)
+	local.spd = self.p_velocity * self.forwardvector * level.SL_UNITCONV_MPS_to_KNOTS * local.equivalence_factor
+	
+	if(local.spd <= 40.0)
+	{
+		// taxi region
+		local.minspd = 0.0
+		local.maxspd = 40.0
+		local.minangle = 0.0
+		local.maxangle = 19.5
+	}
+	else if(local.spd <= 140.0)
+	{
+		// landing / approach region
+		local.minspd = 40.0
+		local.maxspd = 140.0
+		local.minangle = 19.5
+		local.maxangle = 170.2
+	}
+	else
+	{
+		local.minspd = 140.0
+		local.maxspd = 380.0
+		local.minangle = 170.2
+		local.maxangle = 336.4
+	}
+	
+	local.angle = local.minangle + (local.spd - local.minspd) / (local.maxspd - local.minspd) * (local.maxangle - local.minangle)
+	local.fraction = local.angle / 360.0
+	waitthread updatecvar "sl_ext_spd" local.fraction
+
+	// altimeter
+	local.alt = self.instrument_altitude * level.SL_UNITSCALE * level.SL_UNITCONV_M_to_FEET
+	local.microneedle = local.alt / 10000.0
+	
+	while(local.alt > 10000.0)
+	{
+		local.alt -= 10000.0
+	}
+	
+	local.smallneedle = local.alt / 1000.0
+	
+	while(local.alt > 1000.0)
+	{
+		local.alt -= 1000.0
+	}
+	local.bigneedle = local.alt / 100.0
+	
+	waitthread updatecvar "sl_ext_altm" (float local.microneedle)
+	waitthread updatecvar "sl_ext_alts" (float local.smallneedle)
+	waitthread updatecvar "sl_ext_altb" (float local.bigneedle)
+end
+
+//#INLINE
+updatecvar local.cvar local.value local.forcethreshold:
+	if(local.forcethreshold != NIL)
+		local.th = local.forcethreshold
+	else
+		local.th = group.cvar_updatethreshold[local.cvar]
+
+	if(group.cvar_lastupdatetime[local.cvar] == NIL || level.time - group.cvar_lastupdatetime[local.cvar] >= group.cvar_UPDATETIME)
+	{
+		if( group.cvar_lastvalue[local.cvar] == NIL || abs (local.value - group.cvar_lastvalue[local.cvar]) > local.th)
+		{
+			self.pilot stufftext ("set " + local.cvar + " " + local.value)
+			group.cvar_lastvalue[local.cvar] = local.value
+			group.cvar_lastupdatetime[local.cvar] = level.time
+		}
+	}
+end
+
+//#INLINE
+updatecvarstring local.cvar local.value:
+	if(group.cvar_lastvalue[local.cvar] != local.value)
+	{
+		self.pilot stufftext ("set " + local.cvar + " " + local.value)
+		group.cvar_lastvalue[local.cvar] = local.value
+	}
+end
+
+//#INLINE
+damage:
+	// check for damage
+	if(self.damagecueue > 0.0)
+	{
+		local.knock = vector_length self.damageknockback
+		
+		local.armor_mult = 1.0
+		
+		if(self.HASFRONTALPROTECTION && local.knock > 0.0)
+		{
+			local.direction = (1.0 / local.knock) * self.damageknockback
+			local.fwddot = local.direction * self.forwardvector // -1 for frontal hit
+			
+			if(local.fwddot < 0.0)
+			{
+				local.armor_mult = 1.0 - local.fwddot
+			}
+		}
+		
+		self.SL_health -= self.damagecueue / self.ARMOR / local.armor_mult
+		
+		if(self.last_means_of_damage & level.MODM_BULLET_MG || self.last_means_of_damage & level.MODM_BULLET_ANTITANK )
+		{
+			// spawn some damage sfx
+			// spawn slightly in advance so it doesn't look like we're hit behind the plane
+			local.LEADTIME = 0.10
+			
+			local.exp = spawn skylimit/fx/aircraft_damage.tik origin (self.lastdamagelocation + self.w_velocity * local.LEADTIME)
+			
+			local.exp anim start
+			local.exp commanddelay 1.0 remove
+		}
+		
+		// stash
+		self.last_administered_means_of_damage = self.last_means_of_damage
+		self.last_means_of_damage = level.MODM_NULL
+		
+		self.damagecueue = 0.0
+		
+		if(local.knock > level.SL_DAMAGE_FORCE_MAX)
+		{
+			self.damageknockback = self.damageknockback * (level.SL_DAMAGE_FORCE_MAX / local.knock)
+		}
+		
+		if(local.knock > 0.0)
+		{
+			// swing swing baby
+			waitthread global/skylimit/physics.scr::guimpulse self.damageknockback self.lastdamagelocation
+			self.damageknockback = (0.0 0.0 0.0)
+		}
+	}
+	
+	if(self.SL_health <= 0.0)
+	{
+		self.killer = self.lastdamageinflictor
+		self.killer_team = self.lastdamageinflictor_team
+		
+		self.crashing = game.true
+		self.SL_health -= group.CRASHING_DIERATE * group.FRAMETIME
+		self.killed = game.true
+		
+		self.lastdamageinflictor = self
+		self.lastdamageinflictor_team = self.dmteam
+	}
+	else
+	{
+		if(self.pilot && self.pilot.isplayer && isAlive self.pilot)
+		{
+			self.pilot healthonly (self.SL_health * self.pilot.max_health / 100.0)
+		}
+	}
+end
+
+//#INLINE
+checkalive:
+	// disable unnecessary things if we don't have a pilot
+	if !(self.pilot)
+	{
+		self.SL_notify_zings = game.false
+		
+		if(self.teamicon)
+		{
+			self.teamicon remove
+		}
+	}
+
+	// remove plane if pilot leaves, suicides or switches team
+	if(self.pilot)
+	{
+		if(self.pilot.isplayer)
+		{
+			if(self.pilot.dmteam != self.dmteam)
+			{
+				// pilot switched teams
+				// remove plane
+				self.destroyed = game.true
+				self.means_of_death = self.MOD_SUICIDE	
+			}
+			
+			if !(isAlive self.pilot)
+			{
+				// pilot killed himself
+				// crash
+				self.crashing = game.true
+				
+				if(self.pilot)
+				{
+					self.pilot stoploopsound
+					self.pilot.killed = game.true
+				}
+				
+				self.pilot = NULL
+			}
+		}
+	}
+	else if !(self.destroyed || self.crashing)
+	{
+		// pilot left server
+		// just remove the plane
+		self.destroyed = game.true
+		self.means_of_death = self.MOD_SUICIDE
+	}
+	
+	if (self.destroyed)
+	{
+		// kill pilot
+		// pilot always kills himself this way
+		waitthread killpilot self.pilot level.MODM_KAMIKAZE
+		self.pilot = NULL
+	}
+	else
+	{
+		// kill pilot and attach crashing smoke and fire if we're crashing
+		if(self.crashing)
+		{
+			waitthread killpilot self.killer self.last_administered_means_of_damage
+			self.pilot = NULL
+			
+			if (!self.crashing_handled)
+			{
+				waitthread handle_crashing
+			}
+		}
+		
+		// explode plane if health drops below EXPLOSION_HEALTH
+		if(self.SL_health < group.EXPLOSION_HEALTH)
+		{
+			waitthread killpilot self.pilot level.MODM_EXPLOSION
+			self.pilot = NULL
+			self.destroyed = game.true
+			self.means_of_death = self.MOD_EXPLODE
+		}
+	}
+	
+	if (!self.destroyed)
+	{
+		if(self.crashing)
+		{
+			if(self.smoking)
+			{
+				waitthread unhandle_smoking
+			}
+		}
+		else
+		{
+			if(self.SL_health < group.SMOKE_HEALTH)
+			{
+				if(!self.smoking)
+				{
+					waitthread handle_smoking
+				}
+			}
+			else
+			{
+				if(self.smoking)
+				{
+					// w00t, have been repaired :D
+					waitthread unhandle_smoking
+				}
+			}
+		}
+	}
+end
+
+// kills pilot if we still have one
+//#INLINE
+killpilot local.dmger local.means_of_death:
+
+	if !(self.items_dropped)
+	{
+		waitthread itemdrop
+	}
+
+	if(self.pilot)
+	{
+		if(self.pilot.isplayer)
+		{
+			if(isAlive self.pilot && self.pilot.dmteam == self.dmteam)
+			{
+				if( !local.dmger || !local.dmger.isplayer)
+				{
+					local.dmger = $world
+				}
+			
+				if(level.teambased && local.dmger.dmteam == self.pilot.dmteam && !bool (getcvar g_teamdamage))
+				{
+					local.dmger = self.pilot
+				}
+				
+				self.pilot stoploopsound // stops stall alarm if it's playing
+				
+				if(local.means_of_death&level.MODM_BULLET_MG || local.means_of_death&level.MODM_BULLET_ANTITANK)
+					local.mod = 18 // shot by
+				else if (local.means_of_death&level.MODM_BOMB || local.means_of_death&level.MODM_EXPLOSION)
+					local.mod = 9 // blown away by
+				else if (local.means_of_death&level.MODM_KAMIKAZE)
+					local.mod = 7 // cratered
+				else if (local.means_of_death&level.MODM_SHRAPNEL)
+					local.mod = 13 // shrapnel teeth
+				else if (local.means_of_death&level.MODM_ROCKET)
+					local.mod = 15 // rocket kisser
+				else
+					local.mod = 0 // died
+					
+				self.pilot takedamage
+				self.pilot damage local.dmger self.pilot.health local.dmger (0 0 0) (0 0 0) (0 0 0) 0 0 local.mod -1
+				
+				// suicidal punishment
+				if(level.roundstart && level.teambased && level.SL_FINITE_PLANES && local.dmger == self.pilot)
+				{
+					// immediately punish suicidal crashes
+					self.pilot.suspended = game.true
+					self.pilot.raise_suspension_time = level.time + level.SL_SUSPENSION_TIME
+					self.pilot.court_martial = game.false // did not friendly fire
+				}
+			}
+		}
+		else
+		{
+			// messages for downing a bot
+			if(local.dmger && local.dmger.isplayer)
+			{
+				if(level.teambased && self.dmteam == self.killer_team)
+				{
+					self.killer iprint ("Careful! You destroyed one of our valuable " + self.CLASS + "s") 1
+				}
+				else
+				{
+					self.killer iprint ("You destroyed an enemy " + self.CLASS) 1
+				}
+			}
+		}
+		self.pilot.killed = game.true
+	}
+end
+
+//#INLINE
+handle_smoking:
+	self.props[self.unlucky_engine_number].sfx_smoke anim on
+	self.smoking = game.true
+end
+
+//#INLINE
+unhandle_smoking:
+	self.props[self.unlucky_engine_number].sfx_smoke anim off
+	self.smoking = game.false
+end
+
+//#INLINE
+handle_crashing:
+	self.props[self.unlucky_engine_number].sfx_fire model "skylimit/fx/aircraft_fire.tik"
+	self.props[self.unlucky_engine_number].sfx_fire anim start
+
+	self.cm_crashing = waitthread global/skylimit/common.scr::randomvectoroffset group.CM_CRASHING group.CM_CRASHING group.CM_CRASHING
+	
+	self.crashing_handled = game.true
+end
+
+itemdrop:
+	if !(self.nodrop || self.onground)
+	{
+		thread global/skylimit/chute.scr::healthchute
+	}
+	
+	// remove medkit dropped by players
+	thread removemedkit
+	
+	self.items_dropped = game.true
+end
+
+removemedkit:
+	wait 0.5
+	removeclass Health
+end
+
+remove_plane:
+	// remove wheel listeners
+	for(local.i = 1; local.i <= self.wheels.size; local.i++)
+	{
+		local.w = self.wheels[local.i]
+		if(local.w)
+		{
+			local.w remove
+		}
+	}
+	
+	// remove prop listeners
+	for(local.i = 1; local.i <= self.props.size; local.i++)
+	{
+		local.p = self.props[local.i] 
+		if(local.p)
+		{
+			local.p remove
+		}
+	}
+	
+	// remove misc listeners
+	// this waits a while as some scripts may still need the info
+	// it is not essential to remove them immediately anyway
+	for(local.i = 1; local.i <= self.remove_on_death_list.size; local.i++)
+	{
+		if(self.remove_on_death_list[local.i])
+		{
+			self.remove_on_death_list[local.i] commanddelay 10.0 remove
+		}
+	}
+	
+	self remove
+end
+
+// looks silly but is inline :)
+cap local.val local.min local.max:
+end ( local.val + ( local.val < local.min) * ( local.min - local.val) + ( local.val > local.max) * ( local.max - local.val))
+
+lowergear:
+	self.gearstate = group.GS_GOINGDOWN
+	
+	if(self.RETRACT_GEAR_ONE_BY_ONE)
+	{
+		for(local.i = 1; self && local.i <= self.retractablewheels.size; local.i++)
+		{
+			self.retractablewheels[local.i].polymodel anim lower
+			self playsound aircraft_gear_down
+			wait 2.0
+			
+			if(self)
+			{
+				self.retractablewheels[local.i].polymodel anim down
+			}
+		}
+	}
+	else
+	{
+		for(local.i = 1; local.i <= self.retractablewheels.size; local.i++)
+		{
+			self.retractablewheels[local.i].polymodel anim lower
+		}
+		
+		self playsound aircraft_gear_down
+		wait 2.0
+		
+		if(self)
+		{
+			for(local.i = 1; local.i <= self.retractablewheels.size; local.i++)
+			{
+				self.retractablewheels[local.i].polymodel anim down
+			}
+		}
+	}
+	
+	if(self)
+	{
+		self.gearstate = group.GS_DOWN
+	}
+end
+
+raisegear:
+	self.gearstate = group.GS_GOINGUP
+	
+	if(self.RETRACT_GEAR_ONE_BY_ONE)
+	{
+		for(local.i = 1; self && local.i <= self.retractablewheels.size; local.i++)
+		{
+			self.retractablewheels[local.i].polymodel anim retract
+			self playsound aircraft_gear_up
+			wait 2.0
+			
+			if(self)
+			{
+				self.retractablewheels[local.i].polymodel anim retracted
+			}
+		}
+	}
+	else
+	{
+		for(local.i = 1; local.i <= self.retractablewheels.size; local.i++)
+		{
+			self.retractablewheels[local.i].polymodel anim retract
+		}
+			
+		self playsound aircraft_gear_up
+		wait 2.0
+		
+		if(self)
+		{
+			for(local.i = 1; local.i <= self.retractablewheels.size; local.i++)
+			{
+				self.retractablewheels[local.i].polymodel anim retracted
+			}
+		}
+	}
+	
+	if(self)
+	{
+		self.gearstate = group.GS_UP
+	}
+end
+
+explode:
+	// means of death
+	/*
+	self.MOD_NULL		= -1	// not death
+	self.MOD_CRASH		= 0 	// crash into terrain
+	self.MOD_EXPLODE	= 1		// explode
+	self.MOD_SPLASH		= 2		// splash in water
+	self.MOD_SUICIDE	= 3		// pilot killed himself, left server or switched teams
+	self.MOD_DESERTER	= 4		// outside map
+	*/
+
+	local.kami_means_of_death = level.MODM_EXPLOSION
+
+	if(self.means_of_death == self.MOD_CRASH)
+	{
+		local.model = skylimit/fx/aircraft_explosion.tik
+		local.pos = (self.origin - self.w_velocity * group.FRAMETIME)
+		local.angles = (0 0 0)
+		
+		local.radius = group.KAMIKAZE_RADIUS
+	}
+	else if(self.means_of_death == self.MOD_EXPLODE || self.means_of_death == self.MOD_DESERTER)
+	{
+		local.model = skylimit/fx/aircraft_air_explosion.tik
+		local.pos = self.origin
+		local.angles = vector_toangles self.p_velocity
+		
+		local.radius = group.KAMIKAZE_RADIUS
+	}
+	else if(self.means_of_death == self.MOD_SPLASH)
+	{
+		local.model = skylimit/fx/aircraft_water_splash.tik
+		local.pos = self.origin
+		local.pos[2] = $world.SEALEVEL + 0.1
+		local.angles = ( -90 0 0)
+		
+		local.kami_means_of_death = level.MODM_TORPEDO
+		
+		local.radius = group.KAMIKAZE_RADIUS_WATER
+	}
+
+	if(self.killed)
+	{
+		// killer does damage
+		local.inflictor = self.killer
+		local.team = self.killer_team
+	}
+	else
+	{
+		// last pilot does damage
+		local.inflictor = self.archived_pilot
+		local.kami_means_of_death = level.MODM_KAMIKAZE
+		local.team = self.dmteam
+	}
+
+	// kamikaze external stores
+	local.total_kami_boom = group.KAMIKAZE_DAMAGE
+	for(local.i = 1; local.i <= level.ITEMS.size; local.i++)
+	{
+		local.itemname = level.ITEMS[local.i]
+		local.item = level.SL_item[local.itemname]
+		if(self.item_amount[local.itemname] >= 1 && local.item.kamikazable)
+		{
+			local.total_kami_boom += local.item.damage_center
+		}
+	}
+	
+	// kamikaze :D
+	waitthread global/skylimit/damage.scr::radiusdamage self.origin local.radius local.total_kami_boom 0.0 local.kami_means_of_death local.inflictor local.team self game.false game.false
+
+	local.explo = spawn EffectEntity model local.model
+	local.explo origin local.pos
+	local.explo angles local.angles
+	local.explo anim start
+	local.explo commanddelay 4.0 remove
+	self hide
+end
+
+// returns origin, yaw, velocity
+// pick a random point in air somewhere
+getairspawnpoint:
+
+	local.MARGIN = 2000.0
+	local.SPEED = 80.0
+	
+	// keep close together altitude-wise
+	local.ALTITUDE_SPREAD = 2000.0 / level.SL_UNITSCALE
+	
+	local.xmin = $world.MINX + local.MARGIN
+	local.xmax = $world.MAXX - local.MARGIN
+	local.ymin = $world.MINY + local.MARGIN
+	local.ymax = $world.MAXY - local.MARGIN
+	local.zavg = 0.5 * ($world.MAXZ + $world.SEALEVEL)
+	local.zmin = local.zavg - 0.5 * local.ALTITUDE_SPREAD
+	local.zmax = local.zavg + 0.5 * local.ALTITUDE_SPREAD
+
+	local.xf = randomfloat 1.0
+	local.yf = randomfloat 1.0
+	local.zf = randomfloat 1.0
+	
+	local.x = local.xmin + (local.xmax - local.xmin) * local.xf
+	local.y = local.ymin + (local.ymax - local.ymin) * local.yf
+	local.z = local.zmin + (local.zmax - local.zmin) * local.zf
+	
+	local.org = (local.x local.y local.z)
+	
+	if(local.org == (0 0 0))
+	{
+		local.yaw = 0.0
+		local.vel = local.SPEED * (1 0 0)
+	}
+	else
+	{
+		local.yaw = (vector_toangles ( -1.0 * local.org))[1] // towards center
+		local.vel = -1.0 * (vector_normalize local.org) * local.SPEED
+	}
+end local.org::local.yaw::local.vel
+
+getspawnpoint:
+	local.MINSPAWNCLEARANCE = 10.0 // minimum seperation between planes at takeoff, in m
+	local.MINSPAWNSQCLEARANCE = local.MINSPAWNCLEARANCE * local.MINSPAWNCLEARANCE / (level.SL_UNITSCALE * level.SL_UNITSCALE)
+	
+	// hold tight
+	while(level.SL_findingspawnpoint)
+	{
+		wait 0.001
+	}
+
+	level.SL_findingspawnpoint = game.true
+	
+	local.spawnpoint = NULL
+	for(local.i = 1; game.true; local.i++)
+	{
+		local.sp = level.SL_spawnpoints[self.dmteam][local.i]
+		
+		if (waitthread isspawncleared local.sp local.MINSPAWNSQCLEARANCE)
+		{
+			local.sp.inuse = game.true
+			thread reservespawn local.sp local.MINSPAWNSQCLEARANCE
+			local.spawnpoint = local.sp
+			break
+		}
+		else if(local.i == level.SL_spawnpoints[self.dmteam].size)
+		{
+			// just take last spawnpoint if none are clear (and pray)
+			// do not reserve
+			local.spawnpoint = local.sp
+			break
+		}
+	}
+	
+	level.SL_findingspawnpoint = game.false
+end local.spawnpoint
+
+isspawncleared local.sp local.MINSQRANGE:
+	if (local.sp.inuse)
+	{
+		local.result = game.false	
+	}
+	else
+	{
+		// can spawn here unless a hazardous situation is detected
+		local.result = game.true
+		
+		local.spfwdvec = angles_toforward (0 local.sp.startangle 0)
+		
+		// check if there are any other planes dangerously nearby
+		for(local.i = 1; local.i <= $SL_plane.size; local.i++)
+		{
+			local.p = $SL_plane[local.i]
+			
+			if(local.p != self)
+			{
+				local.vec = local.sp.origin - local.p.origin
+				local.sqdist = local.vec * local.vec
+				
+				if(local.sqdist < local.MINSQRANGE)
+				{
+					// spawnpoint is invalid
+					local.result = game.false
+					break
+				}
+				else
+				{
+					// spawnpoint is valid
+					local.result = game.true
+					break
+				}
+			}
+		}
+	}
+end local.result
+
+// this should safe some calc time on isspawncleared method
+reservespawn local.sp local.MINSQRANGE:
+	// spawnpoint will be in use at least a few secs after spawn
+	wait 4.0
+	
+	// now wait for self to leave
+	if(self)
+	{
+		while (self)
+		{
+			local.vec = self.origin - local.sp.origin
+			local.sqdist = local.vec * local.vec
+			if(local.sqdist > local.MINSQRANGE)
+			{
+				break
+			}
+			
+			wait 1.0
+		}
+	}
+	local.sp.inuse = game.false
+end
+
+// spawns a fancy skid beam when landing
+sfx_postskidbeam local.side local.delay local.numsegments:
+	for(local.i = 1; local.i <= local.numsegments && self; local.i++)
+	{
+		if(self.gearpos[local.side][2] <= self.localgroundlevel[local.side])
+		{
+			local.startpos = self.gearpos[local.side] + (0 0 0.1)
+			wait local.delay
+			if(self && self.gearpos[local.side][2] <= self.localgroundlevel[local.side])
+			{
+				local.endpos = self.gearpos[local.side] + (0 0 0.1)
+				local.b = spawn func_beam origin local.startpos endpoint local.endpos maxoffset 0 numsegments 6 tileshader skylimit_skid scale 0.25 alpha 1.0 endalpha 0.5
+				local.b doActivate
+				local.b commanddelay 120.0 remove
+			}
+		}
+		else
+		{
+			wait local.delay
+		}
+	}
+end
+
+remove_on_death local.object:
+	self.remove_on_death_list = waitthread global/skylimit/common.scr::addtoarray self.remove_on_death_list local.object
+end
+
+takecollision:
+	wait group.SPAWN_COLLISION_IMMUNETIME
+	
+	if(self)
+	{
+		waitthread global/skylimit/collision.scr::takecollision 0.0
+	}
+end

@@ -1,0 +1,181 @@
+// damagable runway for obj use.
+// by jv_map
+
+// preprocess
+init_runways local.team:
+
+	level.SL_RUNWAY_REPAIRS[local.team] = game.false
+	level.SL_RUNWAY_REPAIR_TIME[local.team] = 0.0
+
+	local.runways = $("runway_" + local.team)
+
+	// calc forwardvector
+	for(local.i = 1; local.i <= local.runways.size; local.i++)
+	{
+		local.rw = local.runways[local.i]
+		
+		if (local.rw.direction == NIL)
+		{
+			println "ERROR[runway::init_runways]: $runway_" local.team " radnum: " local.rw.radnum " has no #direction key!"
+			local.rw.direction = 0.0
+		}
+		
+		if (local.rw.length == NIL)
+		{
+			println "ERROR[runway::init_runways]: $runway_" local.team " radnum: " local.rw.radnum " has no #length key!"
+			local.rw.length = 1000.0 / level.SL_UNITSCALE // 1km
+		}
+		
+		if (local.rw.width == NIL)
+		{
+			println "ERROR[runway::init_runways]: $runway_" local.team " radnum: " local.rw.radnum " has no #width key!"
+			local.rw.length = 30.0 / level.SL_UNITSCALE // 30m
+		}
+		
+		local.rw.vector = angles_toforward (0.0 local.rw.direction 0.0)
+		local.rw.base = local.rw.origin - (0 0 8) // size of script_origin
+		local.rw.team = local.team
+		
+		if (!local.rw.nationality)
+		{
+			local.rw.nationality = $world.TEAM_ADJECTIVE[local.rw.team]
+		}
+	}
+
+	thread repair local.team
+end
+
+// repair serially
+repair local.team:
+	local.tgn = "runway_crater_" + local.team
+	
+	while(game.true)
+	{
+		if($(local.tgn))
+		{		
+			local.c = $(local.tgn)[1]
+			
+			// shovel this crater
+			// runway is now under repair
+			level.SL_RUNWAY_REPAIRS[local.team] = game.true
+			
+			local.repair_time = local.c.dmg * level.SL_OBJ_RUNWAY_REPAIR_TIME
+			
+			local.time = 0.0
+			while(local.time < local.repair_time)
+			{
+				wait 1.0
+				local.time += 1.0
+				level.SL_RUNWAY_REPAIR_TIME[local.team] -= 1.0
+				
+				if(level.SL_RUNWAY_REPAIR_TIME[local.team] < 0.0)
+				{
+					level.SL_RUNWAY_REPAIR_TIME[local.team] = 0.0
+				}
+			}
+			
+			// wee.. repaired :)
+			if(local.c)
+			{
+				local.c targetname ""
+				local.c remove
+			}
+		}
+		else
+		{
+			level.SL_RUNWAY_REPAIRS[local.team] = game.false
+			level.SL_RUNWAY_REPAIR_TIME[local.team] = 0.0
+			waitframe
+		}
+	}
+end
+
+// check if any runway hit by a bomb
+checkdamage local.hitpos local.dmg local.sfx_scale local.inflictor local.inflictor_team:
+
+	local.hit = game.false
+
+	if(level.roundstart && level.SL_GAMETYPE == "obj")
+	{
+		local.hit = waitthread checkdamage_team allies local.hitpos local.dmg local.sfx_scale local.inflictor local.inflictor_team
+		
+		if !(local.hit)
+		{
+			local.hit = waitthread checkdamage_team axis local.hitpos local.dmg local.sfx_scale local.inflictor local.inflictor_team
+		}
+	}
+	
+end local.hit
+
+checkdamage_team local.team local.hitpos local.dmg local.sfx_scale local.inflictor local.inflictor_team:
+	
+	local.hit = game.false
+	
+	if(bool (getcvar g_teamdamage) || local.inflictor_team != local.team)
+	{
+		local.runways = $("runway_" + local.team)
+		for(local.i = 1; local.i <= local.runways.size; local.i++)
+		{
+			local.rw = local.runways[local.i]
+			local.vec = local.hitpos - local.rw.base
+			local.proj = local.vec * local.rw.vector
+			if(local.proj >= 0.0 && local.proj <= local.rw.length)
+			{
+				// check side offset
+				local.side_offset = local.vec - local.proj * local.rw.vector
+				
+				// don't care about height
+				local.sq_offset = local.side_offset * local.side_offset
+				
+				if(local.sq_offset <= local.rw.width * local.rw.width)
+				{
+					// wee hit!
+					local.rw waitthread damage local.hitpos local.dmg local.sfx_scale local.inflictor local.inflictor_team
+					local.hit = game.true
+					break // can only damage 1 runway
+				}
+			}
+		}
+	}
+		
+end local.hit
+
+damage local.hitpos local.dmg local.sfx_scale local.inflictor local.inflictor_team:
+
+	local.MSG_DELAY = 6.0 // secs
+
+	// make a crater
+	local.crater_pos = local.hitpos
+	local.crater_pos[2] = self.base[2]
+	
+	local.crater = waitthread global/skylimit/sfx.scr::crater local.crater_pos local.sfx_scale game.false game.false
+
+	local.crater.dmg = local.dmg
+	local.crater targetname ("runway_crater_" + self.team) //("runway_crater" + self.entnum)
+	
+	level.SL_RUNWAY_REPAIR_TIME[self.team] += local.dmg * level.SL_OBJ_RUNWAY_REPAIR_TIME
+	
+	// message the inflictor
+	if(local.inflictor && local.inflictor.isplayer)
+	{
+		if(local.inflictor.last_runway_dmg_msg_time == NIL || level.time - local.inflictor.last_runway_dmg_msg_time >= local.MSG_DELAY)
+		{
+			if(local.inflictor_team == self.team)
+			{
+				// ops.. bombed own runway :/
+				local.inflictor iprint "Watch it! You damaged one of our runways!" 1
+				
+				// punish team damage on next respawn
+				local.inflictor.suspend_on_respawn = game.true
+				local.inflictor.court_martial = game.true // friendly-fired
+			}
+			else
+			{
+				// yay! bombed enemy runway :D
+				local.inflictor iprint ("You damaged " + (waitthread global/skylimit/string.scr::a self.nationality) + " runway!") 1
+			}
+			
+			local.inflictor.last_runway_dmg_msg_time = level.time
+		}
+	}
+end

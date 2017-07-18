@@ -1,0 +1,41 @@
+// by jv_map
+
+specs:
+	self.name = "37mm AP"
+	self.hud_shader = "sl_iat"
+
+	self.mass = 150.0
+	self.ammo = 12
+	self.firedelay = 0.60
+	self.semiauto = game.false
+	self.expendable = game.false
+	self.external = game.true
+	self.variable_firedelay = game.true
+	self.rearm_time = 0.40
+	self.spread = 0.0
+	self.cooldowntime = 2.0
+	
+	// only used for recoil
+	self.bulletmass = 0.50 // kg
+	
+	// bulletattack info
+	self.bulletvelocity = 1140.0 // m/s
+	self.bulletlife = 2.0
+	self.damage = 100.0 //50.0
+	self.means_of_damage = level.MODM_BULLET_ANTITANK
+end
+
+// self is plane
+fire local.item local.ent:
+	local.vec = (local.ent.origin - self.origin) * self.SCALE
+	local.pos = self.origin + local.vec[0] * self.forwardvector + local.vec[1] * self.leftvector + local.vec[2] * self.upvector
+
+	local.ent anim fire
+	thread global/skylimit/bulletattack.scr::firebullet local.pos self.pilot self.pilot.dmteam self local.item 1 self.forwardvector
+	
+	// recoil
+	local.time = 0.001
+	local.force = local.item.bulletmass * local.item.bulletvelocity / local.time
+	
+	waitthread global/skylimit/physics.scr::guimpulse ( -local.force * self.forwardvector) local.pos
+end

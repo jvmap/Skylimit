@@ -1,0 +1,25 @@
+// damping bomb crater
+
+TIKI
+
+setup
+{
+	path models/fx/unitsquare
+	scale 20.0
+	skelmodel unitsquare.skd
+	surface all shader sl_crater
+}
+
+init
+{
+	server
+	{
+	  	classname EffectEntity
+	  	notsolid
+	}
+}
+
+animations
+{
+	idle     unitsquare.skc
+}

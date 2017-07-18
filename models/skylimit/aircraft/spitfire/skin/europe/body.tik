@@ -1,0 +1,14 @@
+TIKI
+
+setup
+{
+	surface all shader spitfire
+	surface window shader spitfire_specular
+}
+
+$include models/skylimit/aircraft/spitfire/includes/body.tik
+
+/*QUAKED skylimit_spitfire_europe (0.0 0.0 0.0) (-65 -40 0) (65 40 120)
+Spitfire Airplane
+model and skin by Mainframe
+*/

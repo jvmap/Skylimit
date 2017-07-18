@@ -1,0 +1,30 @@
+TIKI
+
+setup
+{
+	scale 1.0
+	
+	path models/skylimit/vehicles/higgins
+	skelmodel higgins_group.skd
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+		//rendereffects +dontdraw
+		
+		surface all +nodraw
+	}	
+}
+
+animations
+{
+	idle	higgins_group.skc
+}
+
+/*QUAKED skylimit_higginsgroup (0 0 0) (32 32 0) (64 64 64)
+Formation of 8 Higgins Boats
+*/

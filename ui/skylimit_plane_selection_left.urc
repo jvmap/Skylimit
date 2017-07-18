@@ -1,0 +1,93 @@
+menu "sl_psl" 240 200 FROM_LEFT 0.15
+bgcolor 0 0 0 0
+fgcolor 1 1 1 1
+align left centery
+
+resource
+Label
+{
+	name "sl_pslt"
+	rect 40 0 200 24
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	title "Performance"
+	fadein 0.2
+	font "facfont-20"
+	textalign "left"
+}
+
+resource
+Label
+{
+	name "sl_psl1"
+	rect 40 24 200 16
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	linkcvar sl_psl1
+	fadein 0.2
+	font "verdana-14"
+	textalign "left"
+	linkstring "-" ""
+}
+
+resource
+Label
+{
+	name "sl_psl2"
+	rect 40 44 200 16
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	linkcvar sl_psl2
+	fadein 0.2
+	font "verdana-14"
+	textalign "left"
+	linkstring "-" ""
+}
+
+resource
+Label
+{
+	name "sl_psl3"
+	rect 40 64 200 16
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	linkcvar sl_psl3
+	fadein 0.2
+	font "verdana-14"
+	textalign "left"
+	linkstring "-" ""
+}
+
+resource
+Label
+{
+	name "sl_psl4"
+	rect 40 84 200 16
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	linkcvar sl_psl4
+	fadein 0.2
+	font "verdana-14"
+	textalign "left"
+	linkstring "-" ""
+}
+
+resource
+Label
+{
+	name "sl_psl5"
+	rect 40 104 200 16
+	fgcolor 1.00 1.00 1.00 1.00
+	bgcolor 0.50 0.50 0.50 0.00
+	borderstyle "NONE"
+	linkcvar sl_psl5
+	fadein 0.2
+	font "verdana-14"
+	textalign "left"
+	linkstring "-" ""
+}

@@ -1,0 +1,27 @@
+// bone extender ;)
+// by jv_map
+
+TIKI
+
+setup
+{
+	scale 100.0
+	path models/skylimit/utils/unitconnector
+	skelmodel unitconnector.skd
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+		surface all +nodraw
+	}
+}
+
+animations
+{
+	idle		idle.skc
+	reverse		reverse.skc
+}

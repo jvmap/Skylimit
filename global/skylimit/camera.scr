@@ -1,0 +1,633 @@
+// handles all camera events on a per-player basis
+// by jv_map
+
+// called when a new player enters the server
+playercam:
+	local.CAM_DELAY = 0.05 //0.025
+
+	//group.CAM_AUDIO_UPDATE_DELAY = 0.25
+
+	// will always be using a camera from now on
+	local.tgname = "pcam" + self.SL_pid
+	local.cam = spawn Camera targetname local.tgname
+	local.cam.trigger = spawn TriggerCameraUse target local.tgname
+	
+	local.cam hide
+	
+	//local.cam.trigger doUse self
+	
+	self.SL_camera = local.cam
+	//self.current_camera = self.SL_camera
+	
+	// this will hold coordinate vectors
+	self.SL_camera.ref_frame = spawn listener
+	self.SL_camera.ref_frame.forwardvector 	= self.SL_camera.forwardvector
+	self.SL_camera.ref_frame.leftvector 	= self.SL_camera.leftvector
+	self.SL_camera.ref_frame.upvector 		= self.SL_camera.upvector
+	
+	// glue player to camera so we know the sounds will be correct
+	//self glue self.SL_camera
+	
+	if !(self.cam_mode)
+		self.cam_mode = "none"
+		
+	self.cam_target = NULL
+	self.cam_angles = (0 0 0)
+	
+	local.last_cam_mode = self.cam_mode
+	local.last_cam_target = self.cam_target
+	
+	self.viewangles_release_time = 0.0
+	self.script_viewangles = (0 0 0)
+	self.last_viewangles = self.viewangles
+	
+	// no initial transition
+	self.cam_no_transition = game.true
+	
+	while(self)
+	{
+		local._switch = self.cam_mode != local.last_cam_mode || self.cam_target != local.last_cam_target
+		
+		local.last_cam_mode = self.cam_mode
+		local.last_cam_target = self.cam_target
+		
+		if(local._switch)
+		{
+			//println "cam switch from " local.last_cam_mode " to " self.cam_mode " " level.time ", no transition: " self.cam_no_transition
+			
+			if(self.cam_no_transition)
+			{
+				self.cam_no_transition = game.false
+				group.cam_transition_done_time = 0.0 // abort current transitions
+				self.SL_camera cut
+			}
+			else
+			{
+				group.cam_transition_start_position = self.SL_camera.origin
+				
+				// translation crossfade is in moving but earth-oriented reference system
+				// so that the cam does not lag behind the object we are watching when doing the transition
+				if(self.cam_target)
+				{
+					group.cam_transition_start_position -= self.cam_target.origin
+				}
+						
+				group.cam_transition_start_angles = self.cam_angles // self.SL_camera.angles
+				group.cam_transition_done_time = level.time + self.cam_transition_time
+			}
+		}
+		
+		// this is used to keep viewangles after respawn
+		self.viewangles_forced = level.time < self.viewangles_release_time
+		if(self.viewangles_forced)
+		{
+			self.script_viewangles = self.locked_viewangles
+		}
+		
+		if(self.cam_target)
+		{
+			self.cam_target.cam_lastviewtime = level.time
+		}
+		
+		waitthread self.cam_mode local._switch
+		
+		//waitframe
+		wait local.CAM_DELAY
+	}
+	
+	local.cam.trigger remove
+	local.cam remove
+end
+
+activatecamera:
+	// (re)actives camera when player (re)spawns
+	if(self.SL_camera)
+	{
+		self.SL_camera.trigger doUse self
+		//self glue self.SL_camera
+	}
+	else
+	{
+		println "tried to active non-existent camera"	
+	}
+end
+
+updatecamera local.cam_pos local.cam_angles:
+	// convert to more convenient (singly-valued) angles domain
+	local.cam_angles = waitthread camize_angles local.cam_angles
+
+	// transition if necessary
+	local.transition_time_left = group.cam_transition_done_time - level.time
+	
+	if (local.transition_time_left > 0.0)
+	{
+		local.transition_pct = 1.0 - local.transition_time_left / self.cam_transition_time
+	
+		// position interpolation
+		if(self.cam_target)
+		{
+			local.refpos = self.cam_target.origin	
+		}
+		else
+		{
+			local.refpos = (0.0 0.0 0.0)
+		}
+		
+		local.rel_cam_pos = local.cam_pos - local.refpos
+		local.cam_pos = local.refpos + local.transition_pct * local.rel_cam_pos + (1.0 - local.transition_pct) * group.cam_transition_start_position	
+		
+		if(self.cam_target && self.cam_target.isphysicsobject)
+		{
+			// this smooths things a bit when our object is moving at high velocity
+			local.cam_pos += self.cam_target.w_velocity * level.FRAMETIME * (1.0 - local.transition_pct)
+		}
+		
+		// angular interpolation
+		local.angle_diffs = waitthread global/skylimit/math.scr::getanglesdiff group.cam_transition_start_angles local.cam_angles
+		local.cam_angles = group.cam_transition_start_angles + local.transition_pct * local.angle_diffs
+	}
+	
+	self.SL_camera movetopos local.cam_pos
+	self.SL_camera turnto local.cam_angles
+	
+	//println "updatecamera set cam_angles from " self.cam_angles " to " local.cam_angles
+	self.cam_angles = local.cam_angles
+	
+	// unfortunately, due to the single (!) cut in the plane_selection menu, 
+	// local camera vectors are not usable :( (silly bug)
+	// therefore, recalculate the ref_frame here. :/
+	// this is for usage by other script elements (so we know what player is looking at)
+	self.SL_camera.ref_frame.forwardvector = angles_toforward local.cam_angles
+	self.SL_camera.ref_frame.leftvector = -1.0 * angles_toleft local.cam_angles // angles_toleft gives rightvector :rolleyes:
+	self.SL_camera.ref_frame.upvector = vector_cross self.SL_camera.ref_frame.forwardvector self.SL_camera.ref_frame.leftvector
+	
+	if !(self.viewangles_forced)
+	{
+		local.new_script_vangles = self.script_viewangles + self.viewangles - self.last_viewangles
+		
+		self.viewangles_deltas = waitthread global/skylimit/math.scr::getanglesdiff self.last_viewangles self.viewangles
+		
+		local.yawdelta = waitthread global/skylimit/math.scr::getanglediff self.viewangles[1] local.cam_angles[1]
+		
+		if(abs local.yawdelta > 5.0 || self.viewangles[0] < -30.0 || self.viewangles[0] > 30.0)
+		{
+			//println "updating vangles " level.time
+			self.viewangles = (0 local.cam_angles[1] 0)
+		}
+		self.last_viewangles = self.viewangles
+		
+		local.new_script_vangles = waitthread global/skylimit/math.scr::rerangeviewangles local.new_script_vangles
+		self.script_viewangles = local.new_script_vangles
+	}
+	
+	//println "script_viewangles: " self.script_viewangles ", cam angles: " local.cam_angles
+	
+	// sound updater
+	local.snd_pos = local.cam_pos
+	
+	if(self.cam_target && self.cam_target.isplane && self.cam_target.speed > 0.0)
+	{
+		local.snd_vel = (self.cam_target.p_velocity - self.cam_target.p_velocity * $world.upvector * $world.upvector) * (1.0 / self.cam_target.speed)
+		if(local.snd_vel * local.snd_vel > 0.0)
+		{
+			// quick, approximate normalization (seems not required)	
+			local.app_length = waitthread global/skylimit/math.scr::sqrt1 (local.snd_vel * local.snd_vel)
+			local.snd_vel = local.snd_vel * (1.0 / local.app_length)
+			local.snd_pos -= local.snd_vel * (40.0 / level.SL_UNITSCALE)
+		}
+	}
+	
+	local.vec = local.snd_pos - self.origin
+	local.sqdist = local.vec * local.vec
+	if(local.sqdist > level.SL_SND_MINDIST * level.SL_SND_MINDIST)
+	{
+		//println "updating origin " level.time " cam_angles: " local.cam_angles
+		
+		self.origin = local.snd_pos
+		
+		// update loopsound positions simultaneously
+		for(local.i = 1; local.i <= level.SND_ENTS.size; local.i++)
+		{
+			local.ref = self.snd_scene_refs[local.i]
+			if(local.ref)
+			{
+				//println "-- updating ref -- " local.i " , offset: " local.ref.offset " , class: " local.ref.classname
+				local.ref.origin = local.snd_pos + local.ref.offset
+			}
+		}
+	}
+end
+
+camize_angles local.angles_in:
+	local.angles_out = local.angles_in
+	
+	// normalize all angles to [-180,180] scale
+	for(local.i = 0; local.i <= 2; local.i++)
+		local.angles_out[local.i] = waitthread global/skylimit/math.scr::rerangeangle local.angles_in[local.i]
+	
+	// bound pitch to [-90,90] domain
+	if(local.angles_out[0] > 90.0)
+	{
+		local.angles_out[0] = 180.0 - local.angles_out[0]
+		local.angles_out[1] = waitthread global/skylimit/math.scr::rerangeangle (local.angles_out[1] + 180.0)
+		local.angles_out[2] = waitthread global/skylimit/math.scr::rerangeangle (local.angles_out[2] + 180.0)
+	}
+	else if(local.angles_out[0] < -90.0)
+	{
+		local.angles_out[0] = -180.0 - local.angles_out[0]
+		local.angles_out[1] = waitthread global/skylimit/math.scr::rerangeangle (local.angles_out[1] + 180.0)
+		local.angles_out[2] = waitthread global/skylimit/math.scr::rerangeangle (local.angles_out[2] + 180.0)
+	}
+end local.angles_out
+
+// moves cam_pos if a solid conceals view_pos
+// (tries to make sure view_pos is visible)
+
+// simplified version to reduce cpu load
+// only takes into account groundplane
+camera_trace local.cam_pos local.view_pos:
+	local.ground_offset = (0 0 -1.0)
+	
+	// check if line from cam_pos to view_pos intercepts groundplane
+	if(self.cam_target.isplane && self.cam_target.nearground && self.cam_target.tracing_ground)
+	{
+		local.cam_vec = local.cam_pos + local.ground_offset - self.cam_target.ground_plane_refpoint
+		local.tgt_vec = local.view_pos - self.cam_target.ground_plane_refpoint
+		
+		// normal projection
+		local.n_cam = local.cam_vec * self.cam_target.groundnormal
+		local.n_tgt = local.tgt_vec * self.cam_target.groundnormal
+		
+		if(local.n_cam * local.n_tgt < 0.0)
+		{
+			// intersected plane
+			local.safe_cam_pos = local.cam_pos - local.n_cam * self.cam_target.groundnormal
+		}
+		else
+		{
+			local.safe_cam_pos = local.cam_pos
+		}
+	}
+	else if(self.cam_target.istorpedo) // torpedo in the water!
+	{
+		local.safe_cam_pos = local.cam_pos
+		
+		if(local.safe_cam_pos[2] <  $world.SEALEVEL)
+		{
+			local.safe_cam_pos[2] = $world.SEALEVEL
+		}
+	}
+	else
+	{
+		// assume nothing is there that could obstruct the view
+		local.safe_cam_pos = local.cam_pos
+	}
+end local.safe_cam_pos
+
+/*
+// moves cam_pos if a solid conceals view_pos
+// (tries to make sure view_pos is visible)
+camera_trace local.cam_pos local.view_pos:
+	local.MINSQD = 0.01
+
+	local.check_offset = (0 0 -1.0)
+
+	local.start = local.view_pos
+	local.end = local.cam_pos + local.check_offset
+
+	if(group.cam_has_traced_before)
+	{
+		if(local.start[2] < $world.OBSTACLEHEIGHT || local.end[2] < $world.OBSTACLEHEIGHT)
+		{
+			local.delta_start = local.start - group.cam_last_trace_start
+			local.sqd_start = local.delta_start * local.delta_start
+			
+			if(local.sqd_start < local.MINSQD)
+			{
+				local.delta_end = local.end - group.cam_last_trace_end
+				local.sqd_end = local.delta_end * local.delta_end
+				
+				if(local.sqd_end < local.MINSQD)
+				{
+					local.dotrace = game.false
+				}
+				else
+				{
+					local.dotrace = game.true
+				}
+			}
+			else
+			{
+				local.dotrace = game.true
+			}
+		}
+		else
+		{
+			local.dotrace = game.false
+		}
+	}
+	else
+	{
+		local.dotrace = game.true
+	}
+
+	if(local.dotrace)
+	{
+		println "-- doing cam_trace -- " level.time
+		
+		local.hit = trace local.start local.end 0
+		
+		local.cam_pos = local.hit - local.check_offset
+		
+		group.cam_last_trace_start = local.start
+		group.cam_last_trace_end = local.end
+		group.cam_last_trace_result = local.hit
+		group.cam_last_trace_hit = local.hit != local.end
+		group.cam_has_traced_before = game.true
+	}
+	else
+	{
+		if(group.cam_last_trace_hit)
+		{
+			local.cam_pos = group.cam_last_trace_result - local.check_offset
+		}
+		else
+		{
+			// simply return input position
+			// as we're unlikely to hit anything this time either
+		}
+	}
+end local.cam_pos
+*/
+// pre: must have cam_target
+magiccamfix local.cam_pos:
+	local.base_pos = self.cam_target.origin
+	local.offset = local.cam_pos - local.base_pos
+
+	// this number is determined by black-magic
+	// for whatever reason, when viewvecs are normalized
+	// by this number the view is considerably smoother
+	local.MAGIC_NUMBER = 0.0625
+	
+	local.nclamp_offset = (0 0 0)
+
+	local.nclamp_offset[0] = (int (local.offset[0] / local.MAGIC_NUMBER)) * local.MAGIC_NUMBER
+	local.nclamp_offset[1] = (int (local.offset[1] / local.MAGIC_NUMBER)) * local.MAGIC_NUMBER
+	local.nclamp_offset[2] = (int (local.offset[2] / local.MAGIC_NUMBER)) * local.MAGIC_NUMBER
+	
+	local.cam_pos = local.base_pos + local.nclamp_offset
+end local.cam_pos
+
+// cam modes
+none local._switch:
+	// null cam (no camera set)
+end
+
+chase local._switch:
+	if(self.cam_target)
+	{
+		if(self.cam_target.isviewable)
+		{
+			if(self.cam_reverse)
+			{
+				local.mult = -1
+				local.angles_delta = (30 180 0)
+				local.offset = (0 0 0.5)
+			}
+			else
+			{
+				local.mult = 1
+				local.angles_delta = (0 0 0)
+				local.offset = (0 0 0)
+			}
+			
+			local.cam_pos = self.cam_target.origin
+			local.cam_pos -= self.cam_target.forwardvector * self.cam_target.CAM_VIEWDIST * $world.SL_SCALE * local.mult
+			local.cam_pos += local.offset[0] * self.cam_target.forwardvector * self.cam_target.CAM_VIEWDIST * $world.SL_SCALE
+			local.cam_pos += local.offset[1] * self.cam_target.leftvector * self.cam_target.CAM_VIEWDIST * $world.SL_SCALE
+			local.cam_pos += local.offset[2] * self.cam_target.upvector * self.cam_target.CAM_VIEWDIST * $world.SL_SCALE
+			
+			if (self.cam_target.CAM_CHASEOFFSET != NIL)
+			{
+				local.cam_pos += self.cam_target.forwardvector 	* self.cam_target.CAM_CHASEOFFSET[0] * $world.SL_SCALE * local.mult
+				local.cam_pos += self.cam_target.leftvector 	* self.cam_target.CAM_CHASEOFFSET[1] * $world.SL_SCALE * local.mult
+				local.cam_pos += self.cam_target.upvector 		* self.cam_target.CAM_CHASEOFFSET[2] * $world.SL_SCALE * local.mult
+			}
+			
+			local.cam_angles = waitthread camize_angles (self.cam_target.angles + local.angles_delta)
+			
+			local.cam_pos = waitthread camera_trace local.cam_pos self.cam_target.origin
+			local.cam_pos = waitthread magiccamfix local.cam_pos
+			
+			// make sure the compass points in the right direction
+			//self.viewangles = local.cam_angles
+			
+			waitthread updatecamera local.cam_pos local.cam_angles
+		}
+		else
+		{
+			println "chase cam target is not viewable"
+			self.cam_mode = "none"
+		}
+	}
+	else
+	{
+		println "chase cam without target"
+		self.cam_mode = "none"
+	}
+end
+
+chase_free local._switch:
+	if(self.cam_target)
+	{
+		if(self.cam_target.iscockpitviewable)
+		{
+			if (local._switch)
+			{
+				if(self.cam_reverse)
+				{
+					self.script_viewangles = (0 180 0)
+				}
+				else
+				{
+					self.script_viewangles = (0 0 0)
+				}
+			}
+			
+			local.cam_pos = self.cam_target.origin
+			
+			local.localfwd 	= angles_toforward self.script_viewangles
+			local.locallf	= -1.0 * (angles_toleft self.script_viewangles)
+			
+			// transform viewvec to local csys
+			local.fwd = local.localfwd[0] * self.cam_target.forwardvector + local.localfwd[1] * self.cam_target.leftvector + local.localfwd[2] * self.cam_target.upvector
+			local.lf  = local.locallf[0]  * self.cam_target.forwardvector + local.locallf[1]  * self.cam_target.leftvector + local.locallf[2]  * self.cam_target.upvector
+			
+			local.cam_angles = waitthread global/skylimit/math.scr::vectors_toangles local.fwd local.lf
+			
+			local.offset = -1.0 * local.fwd * self.cam_target.CAM_VIEWDIST * $world.SL_SCALE
+			
+			if (self.cam_target.CAM_CHASEOFFSET != NIL)
+			{
+				local.offset += self.cam_target.forwardvector 	* self.cam_target.CAM_CHASEOFFSET[0] * $world.SL_SCALE	
+				local.offset += self.cam_target.leftvector 		* self.cam_target.CAM_CHASEOFFSET[1] * $world.SL_SCALE	
+				local.offset += self.cam_target.upvector 		* self.cam_target.CAM_CHASEOFFSET[2] * $world.SL_SCALE		
+			}
+
+			local.cam_pos += local.offset
+			
+			// move camera a bit if a solid conceals its line-of-sight
+			local.cam_pos = waitthread camera_trace local.cam_pos self.cam_target.origin
+			local.cam_pos = waitthread magiccamfix local.cam_pos
+			
+			waitthread updatecamera local.cam_pos local.cam_angles
+		}
+		else
+		{
+			println "cockpit cam target is not cockpitviewable"
+			self.cam_mode = "none"
+		}
+	}
+	else
+	{
+		println "cockpit cam without cam target"
+		self.cam_mode = "none"
+	}
+end
+
+freelook local._switch:
+	if(self.cam_target)
+	{
+		if(self.cam_target.isviewable)
+		{
+			//if(local._switch)
+			//{				
+				//local.viewvec = self.cam_freelook_initvec
+				//self.script_viewangles = vector_toangles local.viewvec
+			//}
+			//else
+			//{
+				local.viewvec = angles_toforward self.script_viewangles
+			//}
+			
+			local.cam_angles = self.script_viewangles
+			local.cam_angles[2] = 0.0
+			
+			local.cam_pos = self.cam_target.origin - local.viewvec * self.cam_target.CAM_VIEWDIST * $world.SL_SCALE
+			
+			// move camera a bit if a solid conceals its line-of-sight
+			local.cam_pos = waitthread camera_trace local.cam_pos self.cam_target.origin
+			local.cam_pos = waitthread magiccamfix local.cam_pos
+			
+			waitthread updatecamera local.cam_pos local.cam_angles
+		}
+		else
+		{
+			println "freelook cam target is not viewable"
+			self.cam_mode = "none"
+		}
+	}
+	else
+	{
+		println "freelook cam without a target"
+		self.cam_mode = "none"
+	}
+end
+
+// not used
+virtual_cockpit local._switch:
+	if(self.cam_target)
+	{
+		if(self.cam_target.iscockpitviewable)
+		{
+			if (local._switch)
+			{
+				self.script_viewangles = (0.0 0.0 0.0)
+			}
+			
+			local.cam_pos = self.cam_target.origin
+			
+			local.offset = (0 0 0)
+			
+			local.offset += self.cam_target.CAM_COCKPITOFFSET[0] * self.cam_target.forwardvector * $world.SL_SCALE
+			local.offset += self.cam_target.CAM_COCKPITOFFSET[1] * self.cam_target.leftvector * $world.SL_SCALE
+			local.offset += self.cam_target.CAM_COCKPITOFFSET[2] * self.cam_target.upvector * $world.SL_SCALE
+			
+			local.MAGIC_NUMBER0 = 0.125
+			local.MAGIC_NUMBER1 = 0.125
+			local.MAGIC_NUMBER2 = 0.125
+	
+			local.moffset = (0 0 0)
+	
+			local.moffset[0] = (int (local.offset[0] / local.MAGIC_NUMBER0 + 0.5 * (2 * (local.offset[0] > 0) - 1))) * local.MAGIC_NUMBER0
+			local.moffset[1] = (int (local.offset[1] / local.MAGIC_NUMBER1 + 0.5 * (2 * (local.offset[1] > 0) - 1))) * local.MAGIC_NUMBER1
+			local.moffset[2] = (int (local.offset[2] / local.MAGIC_NUMBER2 + 0.5 * (2 * (local.offset[2] > 0) - 1))) * local.MAGIC_NUMBER2
+			
+			local.cam_pos += local.moffset
+			
+			local.localfwd 	= angles_toforward self.script_viewangles
+			local.locallf	= -1.0 * (angles_toleft self.script_viewangles)
+			
+			// transform viewvec to local csys
+			local.fwd = local.localfwd[0] * self.cam_target.forwardvector + local.localfwd[1] * self.cam_target.leftvector + local.localfwd[2] * self.cam_target.upvector
+			local.lf  = local.locallf[0]  * self.cam_target.forwardvector + local.locallf[1]  * self.cam_target.leftvector + local.locallf[2]  * self.cam_target.upvector
+			
+			local.cam_angles = waitthread global/skylimit/math.scr::vectors_toangles local.fwd local.lf
+			
+			waitthread updatecamera local.cam_pos local.cam_angles
+		}
+		else
+		{
+			println "cockpit cam target is not cockpitviewable"
+			self.cam_mode = "none"
+		}
+	}
+	else
+	{
+		println "cockpit cam without cam target"
+		self.cam_mode = "none"
+	}
+end
+
+nose local._switch:
+	if(self.cam_target)
+	{
+		if(self.cam_target.iscockpitviewable)
+		{
+			local.cam_pos = self.cam_target.origin
+			local.cam_pos += self.cam_target.CAM_COCKPITOFFSET[0] * self.cam_target.forwardvector * $world.SL_SCALE
+			local.cam_pos += self.cam_target.CAM_COCKPITOFFSET[1] * self.cam_target.leftvector * $world.SL_SCALE
+			local.cam_pos += self.cam_target.CAM_COCKPITOFFSET[2] * self.cam_target.upvector * $world.SL_SCALE
+			
+			local.cam_angles = self.cam_target.angles
+			
+			// make sure the compass points in the right direction
+			//self.viewangles = local.cam_angles
+	
+			waitthread updatecamera local.cam_pos local.cam_angles
+		}
+		else
+		{
+			println "cockpit cam target is not cockpitviewable"
+			self.cam_mode = "none"
+		}
+	}
+	else
+	{
+		println "cockpit cam without cam target"
+		self.cam_mode = "none"
+	}
+end
+
+manual:
+	if(self.cam_origin && self.cam_angles)
+	{
+		waitthread updatecamera self.cam_origin self.cam_angles	
+	}
+	else
+	{
+		println "manual cam with invalid arguments: origin = " self.cam_origin " angles = " self.cam_angles
+		// continue in this cam mode regardless
+		//self.cam_mode = "none"	
+	}
+end

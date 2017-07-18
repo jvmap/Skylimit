@@ -1,0 +1,23 @@
+TIKI
+setup
+{
+	scale 0.52
+	path models/static/natural
+	skelmodel tree_commontree.skd
+	surface tree1_1 shader skylimit_static_tree1_1
+	surface tree1_2 shader skylimit_static_tree1_2
+	surface tree1_3 shader skylimit_static_tree1_3
+	surface tree1_4 shader skylimit_static_tree1_4
+	surface tree1_5 shader skylimit_static_tree1_5
+	surface tree1sprite shader skylimit_static_tree1sprite
+
+	lod_scale 100 // to prevent the continous LOD system from messing with this model
+}
+
+animations
+{
+	idle     tree_commontree.skc
+}
+
+/*QUAKED static_skylimit_commontree (0.5 0.0 0.5) (-16 -16 -8) (16 16 320)
+*/

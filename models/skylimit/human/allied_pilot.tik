@@ -1,0 +1,38 @@
+// swordfish crew m8s
+
+TIKI
+setup
+{
+	scale 0.52
+	path models/human/allied_pilot
+	skelmodel allied_pilot.skd
+
+	surface pants shader sl_pilot_pants
+	surface coat shader sl_pilot_top
+	surface cullpants shader sl_cull_pilot_pants
+
+	path models/human/heads
+	skelmodel head1.skd
+	surface head shader sl_head1
+
+	path models/human/hands
+	skelmodel hand.skd
+	surface hand shader sl_hands
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+	}
+}
+
+$path models/human/animation/scripted/jeep
+
+animations
+{	
+	// just sit. and stay down.
+	idle		jeep_drive_idle.skc
+}

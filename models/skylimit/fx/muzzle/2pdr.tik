@@ -1,0 +1,52 @@
+// 2pdr muzzle
+// no tracer
+
+TIKI
+
+setup
+{
+	scale 0.52
+	path models/skylimit/fx/muzzle/skel
+	skelmodel muzzle.skd
+	surface muzzle shader muzmodel
+}
+
+animations
+{
+	idle     muzzle.skc		
+	
+	// no tracer
+	fire	 muzzle.skc
+	{
+		client
+		{
+			// front flash
+			enter tagspawn origin
+			(
+				scale 3.0
+				offsetalongaxis 2.0 0.0 0.0
+				model muzsprite.spr
+				angles 0 0 crandom 25
+				life 0.1
+			)	
+			
+			// smoke
+			enter tagspawn origin
+			(
+				model vsssource.spr
+				alpha 0.5
+				color 0.5 0.5 0.5
+				scale 0.04
+				life 0.40
+				scalerate 5.00
+				velocity 400.00
+				randvel crandom 100.0 crandom 100.0 crandom 100.0
+				offset crandom 1.0 crandom 1.0 crandom 1.0
+				accel 0 0 30
+				fade
+				randomroll
+				count 6
+			)		
+		}
+	}
+}

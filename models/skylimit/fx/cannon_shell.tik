@@ -1,0 +1,64 @@
+// HE explosion in the air
+// similar to flak shell
+
+TIKI
+
+$include models/skylimit/utils/client_sound_cache.tik
+
+setup
+{
+	scale 1.0
+	path models/fx/dummy
+	skelmodel dummy3.skd
+}
+
+init
+{
+	server
+	{
+		classname EffectEntity
+		notsolid
+		rendereffects +dontdraw
+	}
+}
+
+animations
+{
+    idle dummy3.skc
+    
+    start dummy3.skc
+    {
+		client
+		{
+			enter stopaliaschannel cl_cannon_explo
+			enter sound cl_cannon_explo
+			
+			enter originspawn
+			(
+				count 1
+				model air_explosion.spr
+				alpha 0.40
+				color 1.00 1.00 1.00
+				scale 0.03
+				life 0.10
+				fade
+			)
+			
+			enter originspawn
+			(
+				model vsssource2.spr
+				count 8
+				alpha 0.70
+				color 0.20 0.20 0.20
+				life 3.00
+				scale 0.08
+				scalerate 0.25
+				friction 2.00
+				randvel crandom 4.0 crandom 4.0 crandom 4.0
+				fade
+				randomroll
+			)
+			
+		}
+	}
+}

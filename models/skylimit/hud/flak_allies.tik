@@ -1,0 +1,25 @@
+// by jv_map
+
+TIKI
+
+setup
+{
+	$path models/skylimit/hud/headicon
+	skelmodel headicon.skd
+	surface all shader skylimit_icon_flak_allies
+	scale 32000.0
+}
+
+init
+{
+	server
+	{
+		classname Animate
+		notsolid
+	}
+}
+
+animations
+{
+	idle	headicon.skc
+}

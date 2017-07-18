@@ -1,0 +1,84 @@
+TIKI
+
+$include models/skylimit/utils/client_sound_cache.tik
+
+setup
+{
+	scale 0.73	// Set default scale to 16/30.5 since world is in 16 units per foot and model is in cm's
+	path models/skylimit/weapons/37mm
+	skelmodel 37mm.skd
+	surface all shader stukag2_desert
+}
+
+init
+{
+	server
+	{
+      	classname Animate
+      	setsize "-32 -32 -32" "32 32 32"
+      	notsolid
+	}
+}
+
+animations
+{
+	idle	37mm.skc
+	
+	fire	37mm.skc
+	{
+		server
+		{
+			first commanddelay 0.01 anim idle
+		}
+		client
+		{
+			entry stopaliaschannel cl_antitank_fire
+			entry sound cl_antitank_fire
+			
+			// tracer
+			enter tagspawn tag_barrel
+			(
+				model muzsprite.spr
+				velocity 57000.0
+				parentangles
+				life 2.0
+				accel 0 0 -15.3
+				dietouch
+				scale 2.0
+			)
+			
+			// side flash
+			enter tagspawn tag_barrel
+			(
+				scale 1.6
+				offsetalongaxis 2.0 0.0 0.0
+				model muzsprite.spr
+				angles 0 0 crandom 25
+				life 0.06
+			)
+			enter tagspawn tag_barrel
+			(
+				scalemin 1.8
+				scalemax 2.2
+				model models/fx/muzflash.tik
+				randomroll
+				life 0.04
+			)
+			
+			// smoke puff
+			enter tagspawn tag_eject
+			(
+				model vsssource.spr
+				alpha 0.30
+				color 1.00 1.00 1.00
+				scale 0.03
+				life 2.00
+				scalerate 10.00
+				velocity 65.00
+				randvel range 20 -60 crandom -40 range 20 -60
+				fade
+				randomroll
+			)
+		}	
+	}
+}
