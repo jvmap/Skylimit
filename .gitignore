@@ -1,0 +1,9 @@
+*.pk3
+*.dll
+save/*
+sound/*
+!sound/skylimit/*
+sounds/*
+config.csv
+configs/*
+/*.cfg
