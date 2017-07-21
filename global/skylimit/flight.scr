@@ -1912,7 +1912,7 @@ ctrl_throttle:
 			{
 				self.throttlelevel = 0.0
 			}
-			else if(self.throttlelevel > self.THROTTLE_IDLE || (self.throttlelevel == self.THROTTLE_IDLE && self.has_released_idle_throttle))
+			else //if(self.throttlelevel > self.THROTTLE_IDLE || (self.throttlelevel == self.THROTTLE_IDLE && self.has_released_idle_throttle))
 			{
 				if(local.delta == 1)
 				{
