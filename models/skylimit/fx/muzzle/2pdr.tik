@@ -23,7 +23,7 @@ animations
 			// tracer
 			enter tagspawn origin
 			(
-				model models/skylimit/fx/tracer.tik
+				model models/skylimit/fx/tracer_yellow.tik
 				velocity 29250.0
 				alignstretch 0.2
 				life 3.0
