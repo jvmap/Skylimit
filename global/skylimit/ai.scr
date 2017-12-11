@@ -4,15 +4,11 @@
 main:
 	wait 2.0
 
-	for(local.i = 1; local.i <= 4; local.i++)
+	for(local.i = 1; local.i <= 5; local.i++)
 	{
-		wait 0.1
+		wait 2.0
 		thread botloop allies local.i
-	}
-	for(local.i = 1; local.i <= 4; local.i++)
-	{
-		wait 0.1
-		thread botloop axis local.i
+        thread botloop axis local.i
 	}
 end
 
@@ -39,7 +35,6 @@ botloop local.team local.delay:
 			}
 			
 			local.optnum = randomint level.SL_PLANEOPTIONS[local.pilot.dmteam].size + 1
-            //local.optnum++
 			local.plane_opt = level.SL_PLANEOPTIONS[local.pilot.dmteam][local.optnum]
 			if( !level.SL_FINITE_PLANES || level.SL_SERVICEGROUPS[local.team][local.plane_opt.servicegroup] > 0)
 			{
@@ -381,10 +376,10 @@ seek_targets local.plane local.pilot:
             local.leadtime = local.dist * level.SL_UNITSCALE / 700.0 // average bullet speed.
             local.target_pos = local.target.origin + local.target.w_velocity * local.leadtime + (0 0 2)
             
-            if (local.plane.forwardvector * local.target.forwardvector < -0.95)
+            if (local.plane.forwardvector * local.target.forwardvector < -0.98)
             {
                 // stay to the right of target if attacking head on
-                local.target_pos += 30 * angles_toleft (0 local.plane.angles[1] 0)
+                local.target_pos += 60 * angles_toleft (0 local.plane.angles[1] 0)
             }
             
             local.plane.ai_target_nvec = vector_normalize (local.target_pos - local.plane.origin)
