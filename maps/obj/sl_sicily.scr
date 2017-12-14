@@ -63,13 +63,13 @@ main:
 	// clouds
 	waitthread global/skylimit/clouds.scr::sunset
     
-    level.ai_target[allies] = ( -2240 -3528 -6227) 
+    level.ai_target[allies] = ( -2240 -3528 -6227)
     
-    thread bleh
+    thread set_ai_target
 end
 
-bleh:
-    while (1)
+set_ai_target:
+    while ($formidable)
     {
         level.ai_target[axis] = $formidable.origin + (0 0 20) + $formidable.forwardvector * 60
         waitframe

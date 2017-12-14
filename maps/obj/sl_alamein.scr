@@ -51,6 +51,9 @@ main:
 	local.phealth = 350.0
 	$pyramid1 waitthread global/skylimit/brushobject.scr::brushobject "pyramid" "Egyptian" "neutral" game.true local.phealth level.DMGB_STRUCTURE generic_primary NIL NIL game.false
 	$pyramid2 waitthread global/skylimit/brushobject.scr::brushobject "pyramid" "Egyptian" "neutral" game.true local.phealth level.DMGB_STRUCTURE generic_primary NIL NIL game.false
+    
+    level.ai_target[allies] = ( 3592 -3520 -7000)
+    level.ai_target[axis] = ( -1840 3952 -7000)
 end
 
 PLANETYPES_DM:
